@@ -1,0 +1,10 @@
+.Rproj.user
+.Rhistory
+.Rprofile
+.Rdata
+.httr-oauth
+.DS_Store
+.quarto
+*~
+vignettes/*_cache*
+vignettes/*_files*

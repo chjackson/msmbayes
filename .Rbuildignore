@@ -1,0 +1,12 @@
+^msmbayes\.Rproj$
+^\.Rproj\.user$
+^LICENSE\.md$
+src/.+.exe
+data-raw
+TODO.md
+docs
+vignettes/*_cache
+vignettes/*_files
+_pkgdown.yml
+vignettes/examples*
+bin
