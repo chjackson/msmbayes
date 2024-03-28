@@ -66,6 +66,7 @@ model {
   vector[nqpars] qtmp;
   array[ntlc] matrix[K,K] P;
 
+  // abstract this block into a function?
   for (j in 1:ntlc){
     Q[j,,] = rep_matrix(0, K, K);
     for (i in 1:nqpars){
