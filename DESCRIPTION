@@ -32,3 +32,5 @@ Suggests:
     cmdstanr
 LazyData: true
 VignetteBuilder: knitr
+URL: https://github.com/chjackson/msmbayes
+BugReports: https://github.com/chjackson/msmbayes/issues
