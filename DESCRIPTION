@@ -1,0 +1,34 @@
+Package: msmbayes
+Title: Bayesian Multi-State Models for Intermittently-Observed Data
+Version: 0.1
+Authors@R: 
+    person("Christopher", "Jackson", , "chris.jackson@mrc-bsu.cam.ac.uk", role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0002-6656-8913"))
+Description: Bayesian multi-state models for intermittently-observed data.  Markov and phase-type semi-Markov models, and misclassification hidden Markov models.
+License: GPL (>= 3)
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.1
+Depends: 
+    R (>= 4.1.0)
+Imports:
+    dplyr,
+    tidyr,
+    magrittr,
+    expm,
+    posterior,
+    tidybayes,
+    instantiate,
+    cli,
+    glue,
+    rlang,
+    hardhat
+Suggests:
+    msm,
+    bayesplot,
+    testthat,
+    rmarkdown,
+    knitr,
+    cmdstanr
+LazyData: true
+VignetteBuilder: knitr

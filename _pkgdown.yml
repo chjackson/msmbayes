@@ -1,0 +1,34 @@
+url: https://chjackson.github.io/msmbayes/
+template:
+  bootstrap: 5
+  assets: web_assets
+reference:
+- title: Fitting models
+- contents:
+  - msmbayes
+- title: Getting results from fitted models
+- contents:
+  - qdf
+  - qmatrix
+  - pmatrixdf
+  - pmatrix
+  - loghr
+  - hr
+  - mean_sojourn
+  - totlos
+  - edf
+  - summary.msmbayes
+- title: Datasets
+- contents:
+  - infsim
+  - infsim2
+  - bigdat
+  - infsim_model
+  - infsim_modelc
+- title: Package overview
+- contents:
+  - msmbayes-package
+home:
+  links:
+  - text: Questions, suggestions
+    href: https://github.com/chjackson/msmbayes/issues
