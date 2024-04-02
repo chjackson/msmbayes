@@ -22,7 +22,8 @@ Imports:
     cli,
     glue,
     rlang,
-    hardhat
+    hardhat,
+    ggplot2
 Suggests:
     msm,
     bayesplot,
@@ -34,3 +35,4 @@ LazyData: true
 VignetteBuilder: knitr
 URL: https://github.com/chjackson/msmbayes
 BugReports: https://github.com/chjackson/msmbayes/issues
+Additional_repositories: https://mc-stan.org/r-packages
