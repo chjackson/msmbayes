@@ -10,3 +10,5 @@ vignettes/*_files
 _pkgdown.yml
 vignettes/examples*
 bin
+^codecov\.yml$
+^\.github$
