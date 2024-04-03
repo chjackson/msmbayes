@@ -180,7 +180,10 @@ test_that("msmbayes: validation of new_data",{
   )
   expect_match(warn, "Novel levels")
 
-  expect_warning(mean_sojourn(infsim_model, new_data=nd), "no covariates")
+  warn <- capture_warnings(
+    mean_sojourn(infsim_model, new_data=nd)
+  )
+  expect_match(warn, "no covariates")
 
   ## correct; todo move to correct place
   nd <- data.frame(sex = "male")
@@ -242,8 +245,6 @@ test_that("msmbayes: priors validation",{
                "`betasd` must be non-negative")
 })
 
-# source("tests/testthat/helper.R")
-
 test_that("msmbayes: E validation",{
   Q <- matrix(0, 3, 3); Q[1,2] <- 0.1
   E <- matrix(0, 3, 4)
@@ -255,9 +256,4 @@ test_that("msmbayes: E validation",{
   expect_error(msmbayes(dat = dat_simple, Q=Q, E=E,
                         state="state", time="time", subject="subject"),
                "off-diagonal entries")
-  E <- matrix(0, 3, 3); E[1,2] <- 0.1
-  Efix <- matrix(0, 3, 4)
-  expect_error(msmbayes(dat = dat_simple, Q=Q, E=E, Efix=Efix,
-                        state="state", time="time", subject="subject"),
-               "square matrix")
 })

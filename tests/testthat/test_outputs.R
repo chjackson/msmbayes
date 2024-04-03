@@ -34,7 +34,7 @@ test_that("pmatrix with newdata",{
   P <- pmatrix(infsim_modelc, new_data=data.frame(sex=c("male","female")))
   Q1 <- draws_of(Q)[1,1,,]
   P1 <- draws_of(P)[1,1,1,,]
-  expect_equivalent(P1, expm::expm(Q1))
+  expect_equal(P1, expm::expm(Q1), ignore_attr=TRUE)
   pdf <- pmatrixdf(infsim_modelc, new_data=data.frame(sex=c("male","female")))
   expect_equal(P1[1,1], value(pdf[1,"value"]))
 })
