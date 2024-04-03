@@ -59,28 +59,50 @@
 #'   that had the person not entered the absorbing state, they would
 #'   not have been observed after this time.
 #'
+#' @param stacked If \code{TRUE} do a bar chart with the probabilities
+#'   for different states stacked on top of each other, so the y-axis
+#'   spans 0 to 1 exactly.  This is more compact.
+#'
+#' If \code{FALSE}, plot one panel per state, as is done in
+#' `prevalence.msm`.  This is more convenient for constructing a check
+#' of the model fit.
+#'
 #' @return A \code{ggplot2} plot object.
 #'
 #' @md
 #' @export
 msmhist <- function(data, state, time, subject, nbins,
-                    absorbing=NULL, censtimes=NULL){
-  data$state <- data[[state]] <- as.factor(data[[state]])
-  data$time <- data[[time]]
-  data$subject <- data[[subject]]
-  bardata <- msmhist_bardata(data, nbins, absorbing, censtimes)
-  data$ypos <- msmhist_random_ypos(data, bardata)
+                    absorbing=NULL, censtimes=NULL,
+                    stacked=TRUE){
+  check_data(data, state, time, subject)
+  data <- clean_data(data, state, time, subject)
+  bardata <- msmhist_bardata(data, "state", "time", "subject",
+                             nbins, absorbing, censtimes)
+  data$state <- factor(data$state)
+  data$ypos <- msmhist_random_ypos(data, bardata, stacked)
 
-  ggplot2::ggplot(data=bardata,
-                  ggplot2::aes(xmin=.data$binstart, xmax=.data$binend,
-                               ymin=.data$cumpstart, ymax=.data$cumpend,
-                               fill=.data$state)) +
-    ggplot2::geom_rect(col="black",alpha=0.5) +
-    ggplot2::geom_point(data=data,
-                        ggplot2::aes(x=.data$time,
-                                     y=.data$ypos,
-                                     colour=.data$state),
-                        inherit.aes=FALSE, alpha=0.7) +
+  if (stacked){
+    p <- ggplot2::ggplot(data=bardata,
+                         ggplot2::aes(xmin=.data$binstart, xmax=.data$binend,
+                                      ymin=.data$cumpstart, ymax=.data$cumpend,
+                                      fill=.data$state)) +
+      ggplot2::geom_rect(col="black",alpha=0.5)
+  }
+  else {
+    p <- ggplot2::ggplot(data=bardata,
+                         ggplot2::aes(xmin = .data$binstart, 
+                                      xmax = .data$binend, 
+                                      ymin = 0,
+                                      ymax = .data$props)) +
+      ggplot2::geom_rect(fill="gray80", col="gray30") + 
+      ggplot2::facet_wrap(~state) +
+      ggplot2::ylim(0,1)
+  }
+  p + ggplot2::geom_point(data=data,
+                          ggplot2::aes(x=.data$time,
+                                       y=.data$ypos,
+                                       colour=.data$state),
+                          inherit.aes=FALSE, alpha=0.7) +
     ggplot2::ylab("")
 }
 
@@ -94,17 +116,34 @@ msmhist <- function(data, state, time, subject, nbins,
 #' Estimate state occupation probabilities to be illustrated by a bar
 #' plot in \code{msmhist}
 #'
-#' @param data pre-cleaned with columns "time", "state", "subject"
-#'
+#' @inheritParams msmbayes
 #' @inheritParams msmhist
 #' 
-#' @return Data frame with columns `binid`, `binlabel`, `state`,
-#'   `binstart`, `binend`, `props`, `cumpstart`, `cumpend`
+#' @return Data frame with one row per bin and state, and columns: 
+#'
+#' * `binid`: Integer ID for bin
+#'
+#' * `binlabel`: Character label for bin, with time interval
+#'
+#' * `state`: State
+#' 
+#' * `binstart`, `binend`: Start and end time of the bin (numeric)
+#'
+#' * `props`: estimates of state $s$ occupancy proportions $p(s)$ for each bin
+#'
+#' * `cumpstart`, `cumpend`: Cumulative sum of `props` over the set of
+#'    states, where `cumpstart` starts at 0, and `cumpend` ends at
+#'    1. Intended for creating stacked bar plots with `geom_rect` or
+#'    similar.
 #'
 #' @md
-#' @noRd
-msmhist_bardata <- function(data, nbins, absorbing=NULL, censtimes=NULL){
-  timebin <- subject <- state <- pstate <- props <- cumpend <- binid <- binstart <- binend <- NULL # silence r cmd check
+#' @export
+msmhist_bardata <- function(data, state, time, subject, nbins,
+                            absorbing=NULL, censtimes=NULL){
+  timebin <- pstate <- props <- cumpend <- binid <- binstart <- binend <- NULL # silence r cmd check
+  check_data(data, state, time, subject)
+  data <- clean_data(data, state, time, subject)
+  data$state <- factor(data$state)
   qs <- msmhist_bins(data$time, nbins)
   nbins <- length(qs) - 1
   nst <- length(unique(data$state))
@@ -185,20 +224,24 @@ msmhist_expand_absorbing <- function(data, qs, absorbing, censtimes){
   datp
 }
 
-#' Obtain y coordinate needed to plot individual state observations
-#' for the msmhist plot.
+#' Obtain y coordinate needed to plot individual state observations on
+#' the "msmhist" plot.
 #'
 #' @param bardata output of \code{\link{msmhist_bardata}}
 #'
 #' @noRd
-msmhist_random_ypos <- function(data, bardata){
+msmhist_random_ypos <- function(data, bardata, stacked=TRUE){
   data$binid <- findInterval(data$time, attr(bardata,"qs"), all.inside = TRUE)
   data$bardataid <- match(paste(data$binid, data$state),
                        paste(bardata$binid, bardata$state))
+  if (stacked){
+    start <- bardata$cumpstart[data$bardataid]
+    end <- bardata$cumpend[data$bardataid]
+  } else {
+    start <- 0 
+    end <- bardata$props[data$bardataid]
+  }
   set.seed(1)
-  ypos <- runif(nrow(data),
-                bardata$cumpstart[data$bardataid],
-                bardata$cumpend[data$bardataid])
-  ypos
+  runif(nrow(data), start, end)
 }
 

@@ -25,7 +25,10 @@ msmbayes(
 \arguments{
 \item{data}{Data frame giving the observed data.}
 
-\item{state}{Character string naming the observed state variable in the data}
+\item{state}{Character string naming the observed state variable in
+the data.  This variable must either be an integer in 1,2,...,K,
+where K is the number of states, or a factor with these integers
+as level labels.}
 
 \item{time}{Character string naming the observation time variable in the data}
 

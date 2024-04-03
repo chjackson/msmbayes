@@ -5,12 +5,24 @@
 \title{Illustrate the empirical distribution of states against time
 in intermittently-observed multistate data}
 \usage{
-msmhist(data, state, time, subject, nbins, absorbing = NULL, censtimes = NULL)
+msmhist(
+  data,
+  state,
+  time,
+  subject,
+  nbins,
+  absorbing = NULL,
+  censtimes = NULL,
+  stacked = TRUE
+)
 }
 \arguments{
 \item{data}{Data frame giving the observed data.}
 
-\item{state}{Character string naming the observed state variable in the data}
+\item{state}{Character string naming the observed state variable in
+the data.  This variable must either be an integer in 1,2,...,K,
+where K is the number of states, or a factor with these integers
+as level labels.}
 
 \item{time}{Character string naming the observation time variable in the data}
 
@@ -29,6 +41,14 @@ no states are assumed to be absorbing.}
 people in the data who entered absorbing states.  This supposes
 that had the person not entered the absorbing state, they would
 not have been observed after this time.}
+
+\item{stacked}{If \code{TRUE} do a bar chart with the probabilities
+for different states stacked on top of each other, so the y-axis
+spans 0 to 1 exactly.  This is more compact.
+
+If \code{FALSE}, plot one panel per state, as is done in
+\code{prevalence.msm}.  This is more convenient for constructing a check
+of the model fit.}
 }
 \value{
 A \code{ggplot2} plot object.

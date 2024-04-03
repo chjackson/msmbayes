@@ -1,7 +1,19 @@
-check_data <- function(dat, state, time, subject, qm, call=caller_env()){
+## TODO ordering of check_data, form_covariates, clean_data.
+
+## what does form_covariates need from the data exactly?
+## to have a nrow, to be understood by hardhat::mold.
+## so needs basic checks eg data frame, variables exist
+
+## then the rest is applying column names and dropping missing data
+
+## what does msmhist need from the data
+## standard col names, but is it OK with missing data? 
+
+check_data <- function(dat, state, time, subject, qm=NULL, call=caller_env()){
   check_data_frame(dat, call)
   check_dat_variables(dat=dat, state=state, time=time, subject=subject, call=call)
-  check_state(dat[[state]], qm, call)
+  if (!is.null(qm))
+    check_state(dat[[state]], qm, call)
   check_dup_obs(dat[[state]], dat[[time]], dat[[subject]], call)
 }
 
@@ -103,6 +115,8 @@ check_square_matrix <- function(mat,matname="mat",call=caller_env()){
 
 ## see https://search.r-project.org/CRAN/refmans/cli/html/inline-markup.html for things like .var, .cls, .str, and doc for collapsing vectors (e.g. truncates at 20)
 
+## TODO does it have to be an integer, or is a factor with these labels OK
+
 check_state <- function(state, qm, call=caller_env()){
   nst <- qm$K
   badst <- which(!is.na(state) & !(state %in% 1:nst))
@@ -169,19 +183,33 @@ check_dup_obs <- function(state, time, subject, call=caller_env()){
 ## * subject num or char or factor.
 
 
-## TESTME Don't drop NAs in covariates at the final obs per subject
-
-#' Drop rows with missing values
-#' Apply standard names to columns
-#' Attach the concatenated design matrix as a matrix column
-#' Return cleaned data frame ready to be passed to standata.R
+#' Clean the user-supplied data for a msmbayes model
 #'
+#' This does the following 
+#'
+#' * Apply standard names (state, time, subject) to columns
+#'
+#' * Attach a concatenated design matrix (if supplied) as a matrix column
+#'
+#' * Return cleaned data frame ready to be passed to standata.R
+#'
+#' @md 
 #' @noRd
-clean_data <- function(dat, state, time, subject, X, call=caller_env()){
-  rownum <- lastobs <- NULL
+clean_data <- function(dat, state, time, subject, X=NULL, call=caller_env()){
   dat <- dat[,c(state, time, subject)]
   names(dat) <- c("state", "time", "subject")
+  if (is.factor(dat$state)) dat$state <- as.numeric(as.character(dat$state))
   dat$X <- X
+  dat <- drop_missing_data(dat)
+  check_one_subject_obs(dat$subject, call)
+  check_obs_ordered(dat$time, dat$subject, call)
+  check_subjects_adjacent(dat$subject, call)
+  dat
+}
+
+#' @noRd
+drop_missing_data <- function(dat){
+  rownum <- lastobs <- subject <- NULL
   na_state <- which(is.na(dat$state))
   if (length(na_state) > 0)
     cli_warn("{qty(length(na_state))} Dropping data row{?s} {na_state} with missing state")
@@ -191,20 +219,20 @@ clean_data <- function(dat, state, time, subject, X, call=caller_env()){
   na_subject <- which(is.na(dat$subject))
   if (length(na_subject) > 0)
     cli_warn("{qty(length(na_subject))} Dropping data row{?s} {na_subject} with missing subject")
+
   ## NAs in covariates are OK at last observation per subject
   ## since last covariate observation is not used.
   ## So replace last covariate obs with a dummy value, to keep Stan happy
-  last_obs <- dat |> mutate(rownum=row_number()) |> group_by(subject) |>
-    summarise(lastobs=max(rownum), groups="drop") |> pull(lastobs)
-  dat$X[last_obs,] <- 0
-  na_covs <- which(apply(dat$X, 1, function(y)any(is.na(y))))
-  if (length(na_covs) > 0)
-    cli_warn("Dropping data row{?s} {na_covs} with missing covariate values")
+  if (!is.null(dat$X)){
+    last_obs <- dat |> mutate(rownum=row_number()) |> group_by(subject) |>
+      summarise(lastobs=max(rownum), groups="drop") |> pull(lastobs)
+    dat$X[last_obs,] <- 0
+    na_covs <- which(apply(dat$X, 1, function(y)any(is.na(y))))
+    if (length(na_covs) > 0)
+      cli_warn("Dropping data row{?s} {na_covs} with missing covariate values")
+  } else na_covs <- NULL
   nas <- unique(c(na_state, na_time, na_subject, na_covs))
   complete <- setdiff(1:nrow(dat), nas)
   dat <- dat[complete,,drop=FALSE]
-  check_one_subject_obs(dat$subject, call)
-  check_obs_ordered(dat$time, dat$subject, call)
-  check_subjects_adjacent(dat$subject, call)
   dat
 }

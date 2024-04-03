@@ -6,7 +6,10 @@
 #'
 #' @param data Data frame giving the observed data.
 #'
-#' @param state Character string naming the observed state variable in the data
+#' @param state Character string naming the observed state variable in
+#'   the data.  This variable must either be an integer in 1,2,...,K,
+#'   where K is the number of states, or a factor with these integers
+#'   as level labels.
 #'
 #' @param time Character string naming the observation time variable in the data
 #'
@@ -104,7 +107,6 @@ msmbayes <- function(data, state, time, subject,
                      keep_data = FALSE,
                      ...){
   qm <- form_qmodel(Q)
-  check_data(data, state, time, subject, qm)
 
   if (!is.null(nphase)){
     pm <- form_phasetype(nphase, Q)
@@ -115,6 +117,7 @@ msmbayes <- function(data, state, time, subject,
   }
   em <- form_emodel(E, pm$Efix)
 
+  check_data(data, state, time, subject, qm) 
   cm <- form_covariates(covariates, data, qm)
   data <- clean_data(data, state, time, subject, cm$X)
   priors <- make_priors(lqmean, lqsd, betamean, betasd, qm, cm)
