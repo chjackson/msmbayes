@@ -25,20 +25,6 @@ form_qmodel <- function(Q,Qfix=NULL){
   )
 }
 
-tidy_Q <- function(Q, full=FALSE){
-  nst <- nrow(Q)
-  fromnames <- rownames(Q)
-  tonames <- colnames(Q)
-  if (is.null(fromnames)) fromnames <- as.character(1:nst)
-  if (is.null(tonames)) tonames <- as.character(1:nst)
-  dat <- data.frame(fromstate = fromnames[row(Q)],
-                    tostate = tonames[col(Q)],
-                    rate = as.vector(Q))
-  dat <- dat[dat$fromstate != dat$tostate,,drop=FALSE]
-  if (!full) dat <- dat[dat$rate >0,,drop=FALSE]
-  dat
-}
-
 #' @return List of information about the misclassification structure
 #'
 #' @noRd

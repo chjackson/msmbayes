@@ -38,5 +38,16 @@ test_that("Covariates msmbayes model agrees with msm",{
                     (bayes_ests_age |> pull(`97.5%`)  >  msm_age)))
   expect_true(all((bayes_ests_sex |> pull(`2.5%`)  <  msm_sex) &
                     (bayes_ests_sex |> pull(`97.5%`)  >  msm_sex)))
+  expect_s3_class(summary(draws)$value,"rvar")
 })
 
+
+test_that("Phase-type model runs, print and summary",{
+  draws <- msmbayes(infsim2, state="state", time="months", subject="subject",
+                    Q=Q, nphase=c(1,2), fit_method="optimize")
+  expect_s3_class(draws,"msmbayes")
+  print(draws)
+  expect_s3_class(summary(draws)$value,"rvar")
+  expect_true(nrow(mean_sojourn(draws, by_phase=FALSE)) == 2)
+  expect_true(nrow(mean_sojourn(draws, by_phase=TRUE)) == 3)
+})
