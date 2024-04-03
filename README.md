@@ -64,4 +64,6 @@ If you use it, please give feedback on [github issues](https://github.com/chjack
 
 <!-- badges: start -->
 [![lifecycle](man/figures/lifecycle-experimental.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
+[![Codecov test coverage](https://codecov.io/gh/chjackson/msmbayes/branch/master/graph/badge.svg)](https://app.codecov.io/gh/chjackson/msmbayes?branch=master)
+[![R-CMD-check](https://github.com/chjackson/msmbayes/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/chjackson/msmbayes/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
