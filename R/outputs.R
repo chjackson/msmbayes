@@ -328,3 +328,48 @@ totlos <- function(draws, t, new_data=NULL, fromt=0, pstart=NULL, discount=0){
     mutate(state = (1:nst)[vecid]) |>
     select(-vecid)
 }
+
+#' Constructor for a standardising population used for model 
+#' outputs
+#'
+#' Standardised outputs are outputs from models with covariates, that
+#' are defined by marginalising (averaging) over covariate values in a
+#' given population, rather than being conditional on a given
+#' covariate value.
+#'
+#' @inheritParams qmatrix
+#'
+#' @details Standardised outputs are produced from a Monte Carlo sample from
+#'   the joint distribution of parameters \eqn{\theta} and covariate
+#'   values \eqn{X}, \eqn{p(X,\theta) = p(\theta|X)p(X)}, where
+#'   \eqn{p(X)} is defined by the empirical distribution of covariates
+#'   in the standard population.   This joint sample is obtained by
+#'   concatenating samples of covariate-specific outputs.
+#'
+#' Hence applying an output function \eqn{g()} (such as the transition
+#' probability) to this sample produces a sample from the posterior of
+#' \eqn{\int g(\theta|X) dX}: the average transition probability (say)
+#' for a heterogeneous population.
+#' 
+#' @aliases standardize_to
+#'
+#' @examples 
+#'
+#' nd <- data.frame(sex=c("female","male"))
+#'
+#' ## gender-specific outputs
+#' qdf(infsim_modelc, new_data = nd) 
+#'
+#' ## averaged over men and women in the same proportions as are in `nd`
+#' ## in this case, `nd` has two rows, so we take a 50/50 average
+#' qdf(infsim_modelc, new_data = standardise_to(nd))
+#'
+#' @export
+standardise_to <- function(new_data){
+  attr(new_data, "std") <- TRUE
+  new_data
+}
+
+#' @rdname standardise_to
+#' @export
+standardize_to <- standardise_to

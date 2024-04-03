@@ -39,6 +39,8 @@ qvector <- function(draws, new_data=NULL, X=NULL){
     }
   }
   qvec <- exp(logqnew)
+  if (isTRUE(attr(new_data, "std")))
+    qvec <- standardise_qvector(qvec)
   qvec
 }
 
@@ -52,7 +54,24 @@ check_X <- function(X,draws){
   }
 }
 
-## Same as first few lines of qvector 
+#' Concatenate a vector of rvars into one.  (can't find function for this)
+#' @noRd
+combine_draws <- function(x) {
+  dx <- draws_of(x)
+  rvar(array(dx, dim=c(length(dx),1,1)))
+}
+
+#' input array of nvars with ncovs rows, nqpars cols
+#' output array of nvars with 1 row, nqpars cols
+#' formed from concatenating the posterior samples
+#' to represent sample from marginal output
+#'
+#' @noRd
+standardise_qvector <- function(qvec){
+  t(posterior::rvar_apply(qvec, 2, combine_draws))
+}
+
+## Same as first few lines of qvector
 ## No covs on e so this is simpler.  share code if do this.
 
 evector <- function(draws, new_data=NULL){
@@ -100,22 +119,16 @@ vecbycovs_to_df <- function(rvarmat, new_data){
     tidyr::pivot_longer(cols=matches("vecid"), names_to="vecid",
                         names_prefix = "vecid",
                         names_transform=list(vecid=as.integer))
-  if (!is.null(new_data))
+  if (!is.null(new_data) && !isTRUE(attr(new_data, "std")))
     res <- res |>
       left_join(new_data |> mutate(covid=1:n()), by="covid")
   class(res) <- c("msmbres", class(res))
   res |> select(-covid)
 }
 
-
-## loghr() is also low-level as it reads the beta[] from stan
-## but it is also the interface.
-## maybe it doesn't make sense to separate like this
-## is it interface vs rest? 
-
 #' @param st integer
-#' @param qvec vector of rates in colwise order 
-#' @return data frame.  number of rows is number of phases 
+#' @param qvec vector of rates in colwise order
+#' @return data frame.  number of rows is number of phases
 #' @noRd
 phase_mixture <- function(state, qvec, tdat){
   progrates <- qvec[tdat$oldfrom==state & tdat$ttype=="prog"]
