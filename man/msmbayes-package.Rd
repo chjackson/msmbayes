@@ -3,16 +3,21 @@
 \docType{package}
 \name{msmbayes-package}
 \alias{msmbayes-package}
-\title{The 'msmbayes' package.}
+\title{The 'msmbayes' package for Bayesian multi-state modelling of intermittently-observed data.}
 \description{
 For an introduction to and overview of the \code{msmbayes} package, and full documentation, see
 
-\url{GITHUB TODO}.
+\url{http://chjackson.github.io/msmbayes}.
 
-For details of the methods, see TODO
+For more resources on multi-state modelling, see the \href{http://chjackson.github.io/msm}{\code{msm} package} and its documentation.
 }
-\references{
-Kalbfleisch and Lawless, Statn.
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://github.com/chjackson/msmbayes}
+  \item Report bugs at \url{https://github.com/chjackson/msmbayes/issues}
+}
+
 }
 \author{
 \strong{Maintainer}: Christopher Jackson \email{chris.jackson@mrc-bsu.cam.ac.uk} (\href{https://orcid.org/0000-0002-6656-8913}{ORCID})

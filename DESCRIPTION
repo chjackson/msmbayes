@@ -27,7 +27,7 @@ Imports:
 Suggests:
     msm,
     bayesplot,
-    testthat,
+    testthat (>= 3.0.0),
     rmarkdown,
     knitr,
     cmdstanr
@@ -36,3 +36,4 @@ VignetteBuilder: knitr
 URL: https://github.com/chjackson/msmbayes
 BugReports: https://github.com/chjackson/msmbayes/issues
 Additional_repositories: https://mc-stan.org/r-packages
+Config/testthat/edition: 3

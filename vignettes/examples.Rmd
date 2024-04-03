@@ -159,7 +159,7 @@ The variable `statec` in the `infsim` data is simulated from a continuous-time M
 
 $q_{rs}^{(0)}$ is the intensity for a "reference" or baseline individual, defined as a 50 year old woman.  The same values as [above](#sec-simdata) are used for this.   In the data `infsim`, age is expressed in units of 10 years, and centered around age 50.   Centering around a value of interest helps with interpretation of the intercept term $q_{rs}^{(0)}$. Centering and scaling covariates to a roughly unit scale also tends to help with computation, especially for MCMC.
 
-To include covariates in a `msmbayes` model, a `covariates` argument is included.  The following model assumes sex and age are predictors of both the 1-2 and 2-1 transition intensities.
+To include covariates in a `msmbayes` model, a `covariates` argument is included.  The following model supposes that sex and age are predictors of both the 1-2 and 2-1 transition intensities.
 
 ```{r,results="hide",cache=TRUE}
 draws <- msmbayes(infsim, state="statec", time="months", subject="subject",
