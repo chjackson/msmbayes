@@ -7,7 +7,7 @@
 
 * Friendlier interface for specifying prior distributions.
 
-* Prior distributions now summarised in `summary()` output.
+* Prior distributions now summarised in `summary.msmbayes()` output.
 
 * New function `msmhist()` for illustrating multi-state data over time.
 
