@@ -5,4 +5,6 @@ test_that("msmhist runs",{
   expect_s3_class(p, "ggplot")
   bdat <- msmhist_bardata(infsim, "state","months", "subject", nbins=10)
   expect_s3_class(bdat, "data.frame")
+  p <- msmhist(infsim, "state","months", "subject", nbins=10, stacked=FALSE)
+  expect_s3_class(p, "ggplot")
 })

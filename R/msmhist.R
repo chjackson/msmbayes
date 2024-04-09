@@ -39,8 +39,8 @@
 #'   between observations.
 #'
 #'   `msmhist` places no assumption on the individual data.  Instead
-#'   the assumption is placed on the data-generating process.  The
-#'   histogram-like visualisation assumes, essentially, that the
+#'   the assumption is placed on the distribution underlying the data.
+#'   The histogram-like visualisation assumes, essentially, that the
 #'   distribution of states is the same at all times within each bin.
 #'
 #' @inheritParams msmbayes
@@ -68,6 +68,13 @@
 #' of the model fit.
 #'
 #' @return A \code{ggplot2} plot object.
+#'
+#' @examples
+#' msmhist(infsim, "state", "months", "subject", nbins=30)
+#' msmhist(infsim2, "state", "months", "subject", nbins=6)
+#'
+#' @seealso \code{\link{msmhist_bardata}} to extract the numbers
+#'   behind this plot so the plot can be customised by hand.
 #'
 #' @md
 #' @export
@@ -135,6 +142,8 @@ msmhist <- function(data, state, time, subject, nbins,
 #'    states, where `cumpstart` starts at 0, and `cumpend` ends at
 #'    1. Intended for creating stacked bar plots with `geom_rect` or
 #'    similar.
+#'
+#' @seealso \code{\link{msmhist}}
 #'
 #' @md
 #' @export

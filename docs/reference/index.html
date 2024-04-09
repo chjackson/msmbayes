@@ -10,7 +10,7 @@
     
     <a class="navbar-brand me-2" href="../index.html">msmbayes</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -34,7 +34,13 @@
       </ul><form class="form-inline my-2 my-lg-0" role="search">
         <input type="search" class="form-control me-sm-2" aria-label="Toggle navigation" name="search-input" data-search-index="../search.json" id="search-input" placeholder="Search for" autocomplete="off"></form>
 
-      <ul class="navbar-nav"></ul></div>
+      <ul class="navbar-nav"><li class="nav-item">
+  <a class="external-link nav-link" href="https://github.com/chjackson/msmbayes/" aria-label="github">
+    <span class="fab fa fab fa-github fa-lg"></span>
+     
+  </a>
+</li>
+      </ul></div>
 
     
   </div>
@@ -45,6 +51,29 @@
     </div>
 
     <div class="section level2">
+      <h2 id="exploratory-data-analysis">Exploratory data analysis<a class="anchor" aria-label="anchor" href="#exploratory-data-analysis"></a></h2>
+      
+      
+
+      
+    </div><div id="" class="section level2">
+      
+      
+      
+
+      <dl><dt>
+          
+          <code><a href="msmhist.html">msmhist()</a></code> 
+        </dt>
+        <dd>Illustrate the empirical distribution of states against time
+in intermittently-observed multistate data</dd>
+      </dl><dl><dt>
+          
+          <code><a href="msmhist_bardata.html">msmhist_bardata()</a></code> 
+        </dt>
+        <dd>Estimate state occupation probabilities to be illustrated by a bar
+plot in <code>msmhist</code></dd>
+      </dl></div><div class="section level2">
       <h2 id="fitting-models">Fitting models<a class="anchor" aria-label="anchor" href="#fitting-models"></a></h2>
       
       
@@ -59,7 +88,12 @@
           
           <code><a href="msmbayes.html">msmbayes()</a></code> 
         </dt>
-        <dd>Bayesian multi-state models for intermittently-observed data.</dd>
+        <dd>Bayesian multi-state models for intermittently-observed data</dd>
+      </dl><dl><dt>
+          
+          <code><a href="msmprior.html">msmprior()</a></code> 
+        </dt>
+        <dd>Constructor for a prior distribution in msmbayes</dd>
       </dl></div><div class="section level2">
       <h2 id="getting-results-from-fitted-models">Getting results from fitted models<a class="anchor" aria-label="anchor" href="#getting-results-from-fitted-models"></a></h2>
       
@@ -122,6 +156,12 @@ as a tidy data frame</dd>
           <code><a href="summary.msmbayes.html">summary(<i>&lt;msmbayes&gt;</i>)</a></code> 
         </dt>
         <dd>Summarise basic parameter estimates from an msmbayes model</dd>
+      </dl><dl><dt>
+          
+          <code><a href="standardise_to.html">standardise_to()</a></code> <code><a href="standardise_to.html">standardize_to()</a></code> 
+        </dt>
+        <dd>Constructor for a standardising population used for model
+outputs</dd>
       </dl></div><div class="section level2">
       <h2 id="datasets">Datasets<a class="anchor" aria-label="anchor" href="#datasets"></a></h2>
       
@@ -146,7 +186,7 @@ as a tidy data frame</dd>
 covariates</dd>
       </dl><dl><dt>
           
-          <code><a href="infsim_model.html">infsim_model</a></code> <code><a href="infsim_model.html">infsim_modelc</a></code> 
+          <code><a href="example_models.html">infsim_model</a></code> <code><a href="example_models.html">infsim_modelc</a></code> <code><a href="example_models.html">cav_misc</a></code> 
         </dt>
         <dd>Example fitted model objects used for testing msmbayes</dd>
       </dl></div><div class="section level2">
@@ -164,7 +204,7 @@ covariates</dd>
           
           <code><a href="msmbayes-package.html">msmbayes-package</a></code> 
         </dt>
-        <dd>The 'msmbayes' package.</dd>
+        <dd>The 'msmbayes' package for Bayesian multi-state modelling of intermittently-observed data</dd>
       </dl></div>
   </main><aside class="col-md-3"><nav id="toc"><h2>On this page</h2>
     </nav></aside></div>

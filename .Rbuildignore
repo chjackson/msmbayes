@@ -7,6 +7,7 @@ TODO.md
 docs
 vignettes/*_cache
 vignettes/*_files
+vignettes/figures*
 _pkgdown.yml
 vignettes/examples*
 bin

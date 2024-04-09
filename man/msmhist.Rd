@@ -91,7 +91,16 @@ same state between observations, or transition at the midpoint
 between observations.
 
 \code{msmhist} places no assumption on the individual data.  Instead
-the assumption is placed on the data-generating process.  The
-histogram-like visualisation assumes, essentially, that the
+the assumption is placed on the distribution underlying the data.
+The histogram-like visualisation assumes, essentially, that the
 distribution of states is the same at all times within each bin.
+}
+\examples{
+msmhist(infsim, "state", "months", "subject", nbins=30)
+msmhist(infsim2, "state", "months", "subject", nbins=6)
+
+}
+\seealso{
+\code{\link{msmhist_bardata}} to extract the numbers
+behind this plot so the plot can be customised by hand.
 }

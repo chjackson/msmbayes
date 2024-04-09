@@ -69,8 +69,8 @@ qdf <- function(draws, new_data=NULL){
   vecbycovs_to_df(qvec, new_data) |>
     mutate(from = qm$qrow[vecid],
            to = qm$qcol[vecid]) |>
-    relabel_phase_states(draws) |>
     select(-vecid) |>
+    relabel_phase_states(draws) |> 
     arrange(from,to) |>
     relocate(from, to, value)
 }
@@ -212,7 +212,8 @@ mean_sojourn <- function(draws, new_data=NULL, by_phase=TRUE){
   mst <- vecbycovs_to_df(mst, new_data) |>
     mutate(state = (1:nstates)[vecid]) |>
     select(-vecid) |>
-    relocate(state, value)
+    relocate(state, value) |>
+    slice(transient_states(qm))
   if (by_phase)
     mst <- mst |> relabel_phase_states(draws)
   mst
@@ -239,8 +240,8 @@ loghr <- function(draws){
     from[cm$xstart[i]:cm$xend[i]] <- qm$qrow[i]
     to[cm$xstart[i]:cm$xend[i]] <- qm$qcol[i]
   }
-  beta <- tidy_draws(draws) |>
-    gather_rvars(beta[]) |>
+  loghr <- tidy_draws(draws) |>
+    gather_rvars(loghr[]) |>
     pull(".value") |>
     t() |>
     as.data.frame() |>
@@ -249,8 +250,8 @@ loghr <- function(draws){
            name = cm$Xnames) |>
     select(from, to, name, value) |>
     relabel_phase_states(draws)
-  class(beta) <- c("msmbres", class(beta))
-  beta
+  class(loghr) <- c("msmbres", class(loghr))
+  loghr
 }
 
 #' Hazard ratios for covariates on transition intensities

@@ -3,7 +3,7 @@
 \docType{package}
 \name{msmbayes-package}
 \alias{msmbayes-package}
-\title{The 'msmbayes' package for Bayesian multi-state modelling of intermittently-observed data.}
+\title{The 'msmbayes' package for Bayesian multi-state modelling of intermittently-observed data}
 \description{
 For an introduction to and overview of the \code{msmbayes} package, and full documentation, see
 

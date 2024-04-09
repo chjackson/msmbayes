@@ -26,7 +26,7 @@
     
     <a class="navbar-brand me-2" href="index.html">msmbayes</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -70,8 +70,8 @@
   <main id="main" class="col-md-9"><div class="section level1">
 <div class="page-header"><h1 id="msmbayes">msmbayes<a class="anchor" aria-label="anchor" href="#msmbayes"></a>
 </h1></div>
-<p><code>msmbayes</code> is an experimental R package for Bayesian multi-state modelling of intermittently-observed data.</p>
-<p>It is similar to the <a href="https://chjackson.github.io/msm" class="external-link"><code>msm</code></a> package. However it only supports the following models:</p>
+<p><code>msmbayes</code> is an R package for Bayesian multi-state modelling of intermittently-observed data.</p>
+<p>It is similar to the <a href="https://chjackson.github.io/msm" class="external-link"><code>msm</code></a> package. It supports the following models:</p>
 <ul>
 <li><p>Markov models for intermittently-observed states</p></li>
 <li><p>Hidden Markov models for intermittently-observed, misclassified (discrete) states</p></li>
@@ -95,11 +95,11 @@
 <li><p>“Exact death time” observation schemes are not supported (but models can still have absorbing states, or any state structure).</p></li>
 <li><p>Continuously-observed processes (<code>exacttimes</code> in <code>msm()</code>) are not supported.</p></li>
 <li><p>“Censored states” are not supported.</p></li>
-<li><p>Equality constraints and fixed parameters are not supported, however prior distributions can be used.</p></li>
+<li><p>Equality constraints and fixed parameters are not supported. However, parameters can be constrained through their prior distributions.</p></li>
 <li><p>Time-inhomogeneous models specified through <code>pci</code> in <code>msm()</code> are not supported. However, models with time-varying intensities can still be specified through a “time” covariate, which assumes that intensities are constant between successive observations of the state.</p></li>
 <li><p>Hidden Markov models with general outcome distributions are not supported. The only HMMs supported are those where the observed state space is the same as (or a subset of) the true state space. This includes misclassification and phase-type models.</p></li>
 <li><p>Multivariate hidden Markov models are not supported</p></li>
-<li><p>Fewer output functions, in particular no functions to check fit to data</p></li>
+<li><p>Fewer output functions</p></li>
 <li><p>More limited documentation and worked examples</p></li>
 </ul>
 </div>
@@ -155,6 +155,8 @@
 <h2 data-toc-skip>Dev status</h2>
 <ul class="list-unstyled">
 <li><a href="https://lifecycle.r-lib.org/articles/stages.html#experimental" class="external-link"><img src="reference/figures/lifecycle-experimental.svg" alt="lifecycle"></a></li>
+<li><a href="https://app.codecov.io/gh/chjackson/msmbayes?branch=master" class="external-link"><img src="https://codecov.io/gh/chjackson/msmbayes/branch/master/graph/badge.svg" alt="Codecov test coverage"></a></li>
+<li><a href="https://github.com/chjackson/msmbayes/actions/workflows/R-CMD-check.yaml" class="external-link"><img src="https://github.com/chjackson/msmbayes/actions/workflows/R-CMD-check.yaml/badge.svg" alt="R-CMD-check"></a></li>
 </ul>
 </div>
 

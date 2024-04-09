@@ -15,6 +15,7 @@ form_qmodel <- function(Q,Qfix=NULL){
     qfixrow <- qfixcol <- qfix <- as.array(numeric(0))
   }
   list(
+    Q = Q,
     K = nrow(Q),
     nqpars = length(Q[Q>0]),
     qrow = row(Q)[Q>0],
@@ -45,6 +46,7 @@ form_emodel <- function(E,Efix=NULL){
   diag(E) <- 0
   E[Efix==1] <- 0
   list(
+    E = E,
     K = nrow(E),
     nepars = length(E[E>0]),
     erow = row(E)[E>0],
@@ -78,4 +80,12 @@ form_initprobs <- function(em, dat, pm){
   }
   initprobs
   ## TODO handle user-supplied initprobs
+}
+
+transient_states <- function(qm){
+  which(rowSums(qm$Q) > 0)
+}
+
+absorbing_states <- function(qm){
+  which(rowSums(qm$Q) == 0)
 }

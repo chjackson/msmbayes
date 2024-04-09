@@ -7,10 +7,8 @@
 #' @noRd
 qvector <- function(draws, new_data=NULL, X=NULL){
   td <- tidy_draws(draws)
-  qm <- attr(draws, "qmodel")
-  logq <- td |>
-    gather_rvars(logq[]) |>
-    pull(".value")
+  logq <- td |> gather_rvars(logq[]) |> pull(".value")
+
   if (!has_covariates(draws)){
     if (!is.null(new_data))
       cli_warn("Ignoring `new_data`, because there are no covariates in the model")
@@ -27,21 +25,25 @@ qvector <- function(draws, new_data=NULL, X=NULL){
       X <- new_data_to_X(new_data, draws)
     else check_X(X, draws)
     ncovvals <- nrow(X)
-    beta <- td |>  gather_rvars(beta[]) |>  pull(".value")
+    loghr <- td |>  gather_rvars(loghr[]) |>  pull(".value")
     cm <- attr(draws, "cmodel")
-    logqnew <- rvar(array(dim=c(ndraws(logq), nrow(X), qm$nqpars)))
-    for (i in 1:qm$nqpars){
+    logqnew <- rvar(array(dim=c(ndraws(logq), nrow(X), nqpars(draws))))
+    for (i in 1:nqpars(draws)){
       inds <- cm$xstart[i]:cm$xend[i]
       logqnew[,i] <- logq[i]
       if (cm$nxq[i] > 0)
         logqnew[,i] <- logqnew[,i] +
-        X[,inds,drop=FALSE] %**% beta[inds]  # %**% from posterior
+        X[,inds,drop=FALSE] %**% loghr[inds]  # %**% from posterior
     }
   }
   qvec <- exp(logqnew)
   if (isTRUE(attr(new_data, "std")))
     qvec <- standardise_qvector(qvec)
   qvec
+}
+
+logq_add_covs <- function(logq, loghr, new_data, X, draws){
+  ## TODO for getting the prior .  Support this, or just summary() for now? 
 }
 
 check_X <- function(X,draws){
@@ -95,6 +97,11 @@ qvec_rvar_to_Q <- function(qvec, qm){
   for (i in 1:qm$K)
     Q[i,i] <- -rvar_sum(Q[i,])
   Q
+}
+
+qvec_rvar_to_mst <- function(qvec, qm){
+  Q <- qvec_rvar_to_Q(qvec, qm)
+  -1 / diag(Q)  
 }
 
 #' @param rvarmat An rvar matrix with one row per covariate value.

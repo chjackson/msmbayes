@@ -208,43 +208,6 @@ test_that("transformations in formula",{
 })
 
 
-test_that("msmbayes: priors validation",{
-  dat_basic <- data.frame(state=c(1,2,2,1), time=1:4, subject=rep(1,4),
-                          age10=rep(30,4))
-  expect_error(msmbayes(dat_basic, Q=infsimQ, state="state", time="time", subject="subject",
-                        lqmean = "foo"),
-               "`lqmean` must be numeric")
-  expect_error(msmbayes(dat_basic, Q=infsimQ, state="state", time="time", subject="subject",
-                        lqmean = c(1,2,3)),
-               "length of `lqmean`")
-  expect_error(msmbayes(dat_basic, Q=infsimQ, state="state", time="time", subject="subject",
-                        lqsd = "foo"),
-               "`lqsd` must be numeric")
-  expect_error(msmbayes(dat_basic, Q=infsimQ, state="state", time="time", subject="subject",
-                        lqsd = c(1,2,3)),
-               "length of `lqsd`")
-  expect_error(msmbayes(dat_basic, Q=infsimQ, state="state", time="time", subject="subject",
-                        lqsd = c(1,-2)),
-               "`lqsd` must be non-negative")
-
-  covs <- list(Q(1,2) ~ age10)
-  expect_error(msmbayes(dat_basic, Q=infsimQ, state="state", time="time", subject="subject",
-                        betamean = "foo", covariates=covs),
-               "`betamean` must be numeric")
-  expect_error(msmbayes(dat_basic, Q=infsimQ, state="state", time="time", subject="subject",
-                        betamean = c(1,2,3), covariates=covs),
-               "length of `betamean`")
-  expect_error(msmbayes(dat_basic, Q=infsimQ, state="state", time="time", subject="subject",
-                        betasd = "foo", covariates=covs),
-               "`betasd` must be numeric")
-  expect_error(msmbayes(dat_basic, Q=infsimQ, state="state", time="time", subject="subject",
-                        betasd = c(1,2,3), covariates=covs),
-               "length of `betasd`")
-  expect_error(msmbayes(dat_basic, Q=infsimQ, state="state", time="time", subject="subject",
-                        betasd = c(-2), covariates=covs),
-               "`betasd` must be non-negative")
-})
-
 test_that("msmbayes: E validation",{
   Q <- matrix(0, 3, 3); Q[1,2] <- 0.1
   E <- matrix(0, 3, 4)

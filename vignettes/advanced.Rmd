@@ -7,8 +7,11 @@ output:
     toc: true
     toc_float: true
     theme: simplex
-    embed-resources: true
     number-sections: true
+resource_files:
+  - ../man/figures/twostatephase.png
+  - ../man/figures/threestatephase.png
+  - ../man/figures/twostate.png
 vignette: >
   %\VignetteIndexEntry{Phase-type and misclassification models}
   %\VignetteEngine{knitr::rmarkdown}
@@ -21,96 +24,58 @@ vignette: >
 
 In a multi-state model, suppose we do not believe the sojourn time in a particular state follows an exponential distribution.  For example, in the infection model, suppose we do not believe that the time spent in the "test positive" state is exponential. 
 
-```{tikz twostate, echo=FALSE, fig.width=5}
-\usetikzlibrary{positioning,arrows,calc}
-\definecolor{deepskyblue}{rgb}{0, 0.75, 1}
-\tikzstyle{state}=[minimum size = 0.8cm, draw, rounded corners, fill=deepskyblue, font=\sffamily]
-\usetikzlibrary{shapes.geometric}
-\begin{tikzpicture}[]
-\node[state] (negative) {1 = Test negative};
-\node[state, right=of negative] (positive) {2 = Test positive};
-\draw[->] [out=30,in=150]   ($(negative.east) + (0, 0.1)$)  to ($(positive.west) + (0, 0.1)$);
-\draw[->] [out=-150,in=-30] ($(positive.west) + (0, -0.1)$) to ($(negative.east) + (0,-0.1)$);
-\end{tikzpicture}
+```{r,echo=FALSE,out.width="500px"}
+knitr::include_graphics("../man/figures/twostate.png")
 ```
 
 We can relax this assumption by building a **"semi-Markov"** model, where the sojourn time in this state follows a more complex distribution.    One way to do this is to replace this state by a series of two (or more) latent or hidden states, known as "phases".  For example, with two phases: 
 
-```{tikz twostatephase, echo=FALSE, fig.width=7}
-\usetikzlibrary{positioning,arrows,calc}
-\definecolor{deepskyblue}{rgb}{0, 0.75, 1}
-\tikzstyle{state}=[minimum size = 0.8cm, draw, rounded corners, fill=deepskyblue, font=\sffamily]
-\tikzstyle{phase}=[minimum size = 0.8cm, draw, rounded corners, fill=yellow, font=\sffamily]
-\usetikzlibrary{shapes.geometric}
-\begin{tikzpicture}[]
-\node[state] (negative) {1 = Test negative};
-\node[phase, right=of negative] (positivea) {2a = Test positive (phase a)};
-\node[phase, right=of positivea] (positiveb) {2b = Test positive (phase b)};
-\draw[->] ($(negative.east)$)  to ($(positivea.west)$);
-\draw[->] ($(positivea.east)$) to ($(positiveb.west)$);
-\draw[->] [out=-150,in=-30] ($(positivea.south)$) to ($(negative.south)$);
-\draw[->] [out=-150,in=-30] ($(positiveb.south)$) to ($(negative.south)$);
-\end{tikzpicture}
+```{r,echo=FALSE,out.width="600px"}
+knitr::include_graphics("../man/figures/twostatephase.png")
 ```
 
 > In a phase-type model, we allow progression from one phase to the next, but not transitions from later to earlier phases (or jumps between non-adjacent phases, if there are 3 phases or more).    Otherwise, we allow the same transitions out of each phase as were allowed in the original model (to state 1, in this example)
 
 We then assume transitions between and out of the phases follow exponential distributions.  That is, we assume a Markov model on the latent state space.  The test-positive state then has a sojourn distribution known as the ["Coxian" phase-type](https://en.wikipedia.org/wiki/Phase-type_distribution#Coxian_distribution) distribution, instead of the exponential.
 
-This is an example of a **hidden Markov model**.  Phase-type models are a convenient way to build semi-Markov models for intermittently-observed data, because there are standard algorithms for computing the likelihood of a hidden Markov model.
+> **Note**: This is an example of a **hidden Markov model**, though one of a specific form where some states are observed correctly, and some states are latent.  Phase-type models are a convenient way to build semi-Markov models for intermittently-observed data, because there are standard algorithms for computing the likelihood of a hidden Markov model.
 
 
 
 # Fitting phase-type models in msmbayes
 
 To assume a phase-type sojourn distribution for one or more states in a `msmbayes`
-model, set the `nphase` argument.  This is a vector of length equal to the number of states,
-giving the number of phases per state.  Any elements of `nphase` that are 1 correspond
-to states with the usual exponential sojourn distribution.   
+model, set the `nphase` argument.  This is a vector of length equal to the number of states, giving the number of phases per state.  Any elements of `nphase` that are 1 correspond to states with the usual exponential sojourn distribution.
 
 
 ## Example: data simulated from a standard Markov model
 
-Here we extend the 2-state model for the simulated infection data to give
-state 2 (infection) a two-phase distribution.   These data were originally simulated assuming an exponential sojourn distribution in state 2 (with rate 3).   In this situation, we would expect the estimated rates of transition out of each phase to be identical.
+Here we extend the 2-state model for the simulated infection data to give state 2 (infection) a two-phase sojourn distribution.   These data were originally simulated assuming an exponential sojourn distribution in state 2 (with rate 3).   In this situation, we would expect the estimated rates of transition out of each phase to be identical.
+
+```{r}
+library(msmbayes)
+```
 
 ```{r,cache=TRUE,results="hide"}
 Q <- rbind(c(0, 1), 
            c(1, 0))
-library(msmbayes)
 draws <- msmbayes(infsim2, state="state", time="months", subject="subject",
                   Q=Q, nphase=c(1,2))
 ```
+
 ```{r}
 summary(draws)
 ```
 
-The estimated transition rates from the two phases of state 2 to 1 are not significantly 
-different from 2 - but there is large uncertainty around the estimated rates, since this model is over-fitted to the data.
-Implementing the same model in `msm` would give extremely large confidence intervals around the estimated rates.
+The phased states are labelled specially here, e.g. the first phase of state 2 is labelled `"2p1"`. The estimated transition rates from the two phases of state 2 to state 1 are not significantly different from 2 - but there is large uncertainty around the estimated rates, since this model is over-fitted to the data. Implementing the same model in `msm` would give extremely large confidence intervals around the estimated rates.
 
 
 ## Example: data simulated from a phase-type model 
 
 The following code simulates a dataset from the following phase-type model structure 
 
-```{tikz threestatephase, echo=FALSE, fig.width=6}
-\usetikzlibrary{positioning,arrows,calc}
-\definecolor{deepskyblue}{rgb}{0, 0.75, 1}
-\tikzstyle{state}=[minimum size = 0.8cm, draw, rounded corners, fill=deepskyblue, font=\sffamily]
-\tikzstyle{phase}=[minimum size = 0.8cm, draw, rounded corners, fill=yellow, font=\sffamily]
-\usetikzlibrary{shapes.geometric}
-\begin{tikzpicture}[]
-\node[phase] (state1a) {State 1 (phase 1, latent state 1)};
-\node[phase, right=of state1a] (state1b) {State 1 (phase 2, latent state 2)};
-\node[state, right=of state1b] (state2) {State 2 (latent state 3)};
-\node[state, below=of state2] (state3) {State 3 (latent state 4)};
-\draw[->] ($(state1a.east)$)  to ($(state1b.west)$);
-\draw[->] ($(state1b.east)$)  to ($(state2.west)$);
-\draw[->] ($(state2.south)$)  to ($(state3.north)$);
-\draw[->] ($(state1a.south east)$)  to ($(state3.north west)$);
-\draw[->] ($(state1b.south east)$)  to ($(state3.north west)$);
-\end{tikzpicture}
+```{r,echo=FALSE,out.width="600px"}
+knitr::include_graphics("../man/figures/threestatephase.png")
 ```
 
 with a transition intensity matrix (on the latent state space) given in the R object `Qg`.  This code uses the ability of the function `simmulti.msm()` from the `msm` package to simulate from hidden Markov models.
@@ -225,7 +190,7 @@ edf(draws)
 
 An identical non-Bayesian model is fitted using `msm()`.
 
-> Note this is different from the model fitted in the `msm` manual, since "exact death times" are not supported in `msmbayes`.  Also note that `msm` requires informative initial values for the non-zero intensities and misclassification probabilities here. For hidden Markov models, `msm` is not smart enough to determine good initial values automatically given the transition structure.
+> **Note**: this is different from the model fitted in the `msm` manual, since "exact death times" are not supported in `msmbayes`.  Also note that `msm` requires informative initial values for the non-zero intensities and misclassification probabilities here. For hidden Markov models, `msm` is not smart enough to determine good initial values automatically given the transition structure.
 
 ```{r}
 Qcav <- rbind(c(0, 0.148, 0, 0.0171), c(0, 0, 0.202, 0.081), 

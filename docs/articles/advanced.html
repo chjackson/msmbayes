@@ -26,7 +26,7 @@
     
     <a class="navbar-brand me-2" href="../index.html">msmbayes</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -53,7 +53,14 @@
         <input type="search" class="form-control me-sm-2" aria-label="Toggle navigation" name="search-input" data-search-index="../search.json" id="search-input" placeholder="Search for" autocomplete="off">
 </form>
 
-      <ul class="navbar-nav"></ul>
+      <ul class="navbar-nav">
+<li class="nav-item">
+  <a class="external-link nav-link" href="https://github.com/chjackson/msmbayes/" aria-label="github">
+    <span class="fab fa fab fa-github fa-lg"></span>
+     
+  </a>
+</li>
+      </ul>
 </div>
 
     
@@ -70,9 +77,9 @@
 Jackson <a href="mailto:chris.jackson@mrc-bsu.cam.ac.uk" class="email">chris.jackson@mrc-bsu.cam.ac.uk</a>
 </h4>
             
-            <h4 data-toc-skip class="date">2024-03-28</h4>
+            <h4 data-toc-skip class="date">2024-04-09</h4>
       
-      
+      <small class="dont-index">Source: <a href="https://github.com/chjackson/msmbayes/blob/HEAD/vignettes/advanced.Rmd" class="external-link"><code>vignettes/advanced.Rmd</code></a></small>
       <div class="d-none name"><code>advanced.Rmd</code></div>
     </div>
 
@@ -85,13 +92,13 @@ Jackson <a href="mailto:chris.jackson@mrc-bsu.cam.ac.uk" class="email">chris.jac
 a particular state follows an exponential distribution. For example, in
 the infection model, suppose we do not believe that the time spent in
 the “test positive” state is exponential.</p>
-<p><img src="advanced_files/figure-html/twostate-1.png" width="480"></p>
+<p><img src="../reference/figures/twostate.png" width="500px"></p>
 <p>We can relax this assumption by building a
 <strong>“semi-Markov”</strong> model, where the sojourn time in this
 state follows a more complex distribution. One way to do this is to
 replace this state by a series of two (or more) latent or hidden states,
 known as “phases”. For example, with two phases:</p>
-<p><img src="advanced_files/figure-html/twostatephase-1.png" width="672"></p>
+<p><img src="../reference/figures/twostatephase.png" width="600px"></p>
 <blockquote>
 <p>In a phase-type model, we allow progression from one phase to the
 next, but not transitions from later to earlier phases (or jumps between
@@ -104,10 +111,14 @@ exponential distributions. That is, we assume a Markov model on the
 latent state space. The test-positive state then has a sojourn
 distribution known as the <a href="https://en.wikipedia.org/wiki/Phase-type_distribution#Coxian_distribution" class="external-link">“Coxian”
 phase-type</a> distribution, instead of the exponential.</p>
-<p>This is an example of a <strong>hidden Markov model</strong>.
-Phase-type models are a convenient way to build semi-Markov models for
-intermittently-observed data, because there are standard algorithms for
-computing the likelihood of a hidden Markov model.</p>
+<blockquote>
+<p><strong>Note</strong>: This is an example of a <strong>hidden Markov
+model</strong>, though one of a specific form where some states are
+observed correctly, and some states are latent. Phase-type models are a
+convenient way to build semi-Markov models for intermittently-observed
+data, because there are standard algorithms for computing the likelihood
+of a hidden Markov model.</p>
+</blockquote>
 </div>
 <div class="section level2">
 <h2 id="fitting-phase-type-models-in-msmbayes">Fitting phase-type models in msmbayes<a class="anchor" aria-label="anchor" href="#fitting-phase-type-models-in-msmbayes"></a>
@@ -122,42 +133,48 @@ distribution.</p>
 <h3 id="example-data-simulated-from-a-standard-markov-model">Example: data simulated from a standard Markov model<a class="anchor" aria-label="anchor" href="#example-data-simulated-from-a-standard-markov-model"></a>
 </h3>
 <p>Here we extend the 2-state model for the simulated infection data to
-give state 2 (infection) a two-phase distribution. These data were
-originally simulated assuming an exponential sojourn distribution in
-state 2 (with rate 3). In this situation, we would expect the estimated
-rates of transition out of each phase to be identical.</p>
+give state 2 (infection) a two-phase sojourn distribution. These data
+were originally simulated assuming an exponential sojourn distribution
+in state 2 (with rate 3). In this situation, we would expect the
+estimated rates of transition out of each phase to be identical.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/chjackson/msmbayes" class="external-link">msmbayes</a></span><span class="op">)</span></span></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">Q</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">1</span><span class="op">)</span>, </span>
 <span>           <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">0</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va">msmbayes</span><span class="op">)</span></span>
 <span><span class="va">draws</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/msmbayes.html">msmbayes</a></span><span class="op">(</span><span class="va">infsim2</span>, state<span class="op">=</span><span class="st">"state"</span>, time<span class="op">=</span><span class="st">"months"</span>, subject<span class="op">=</span><span class="st">"subject"</span>,</span>
 <span>                  Q<span class="op">=</span><span class="va">Q</span>, nphase<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>,<span class="fl">2</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">draws</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">## <span style="color: #949494;"># A tibble: 4 × 5</span></span></span>
-<span><span class="co">##   name  from  to            value  rhat</span></span>
-<span><span class="co">##   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;rvar[1d]&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
-<span><span class="co">## <span style="color: #BCBCBC;">1</span> q     1     2p1    0.42 <span style="color: #949494;">± 0.59</span>   1.01</span></span>
-<span><span class="co">## <span style="color: #BCBCBC;">2</span> q     2p1   1      2.96 <span style="color: #949494;">± 4.71</span>   1.01</span></span>
-<span><span class="co">## <span style="color: #BCBCBC;">3</span> q     2p1   2p2    1.28 <span style="color: #949494;">± 5.90</span>   1.01</span></span>
-<span><span class="co">## <span style="color: #BCBCBC;">4</span> q     2p2   1      2.84 <span style="color: #949494;">± 16.96</span>  1.00</span></span></code></pre>
-<p>The estimated transition rates from the two phases of state 2 to 1
-are not significantly different from 2 - but there is large uncertainty
-around the estimated rates, since this model is over-fitted to the data.
-Implementing the same model in <code>msm</code> would give extremely
-large confidence intervals around the estimated rates.</p>
+<pre><code><span><span class="co">## <span style="color: #949494;"># A tibble: 7 × 6</span></span></span>
+<span><span class="co">##   name  from  to             value prior               rhat</span></span>
+<span><span class="co">##   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;rvar[1d]&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>              <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
+<span><span class="co">## <span style="color: #BCBCBC;">1</span> q     1     2p1     0.99 <span style="color: #949494;">± 0.94</span>  0.14 (0.0027, 6.7)  1.00</span></span>
+<span><span class="co">## <span style="color: #BCBCBC;">2</span> q     2p1   1       5.28 <span style="color: #949494;">± 6.17</span>  0.14 (0.0027, 6.7)  1.00</span></span>
+<span><span class="co">## <span style="color: #BCBCBC;">3</span> q     2p1   2p2     2.67 <span style="color: #949494;">± 27.31</span> 0.14 (0.0027, 6.7)  1.00</span></span>
+<span><span class="co">## <span style="color: #BCBCBC;">4</span> q     2p2   1       4.56 <span style="color: #949494;">± 15.89</span> 0.14 (0.0027, 6.7)  1.00</span></span>
+<span><span class="co">## <span style="color: #BCBCBC;">5</span> mst   1     <span style="color: #BB0000;">NA</span>      1.45 <span style="color: #949494;">± 0.71</span>  7.4 (0.148, 369)    1.00</span></span>
+<span><span class="co">## <span style="color: #BCBCBC;">6</span> mst   2p1   <span style="color: #BB0000;">NA</span>      0.21 <span style="color: #949494;">± 0.11</span>  3.7 (0.074, 184)    1.00</span></span>
+<span><span class="co">## <span style="color: #BCBCBC;">7</span> mst   2p2   <span style="color: #BB0000;">NA</span>     17.63 <span style="color: #949494;">± 95.37</span> 7.4 (0.148, 369)    1.00</span></span></code></pre>
+<p>The phased states are labelled specially here, e.g. the first phase
+of state 2 is labelled <code>"2p1"</code>. The estimated transition
+rates from the two phases of state 2 to state 1 are not significantly
+different from 2 - but there is large uncertainty around the estimated
+rates, since this model is over-fitted to the data. Implementing the
+same model in <code>msm</code> would give extremely large confidence
+intervals around the estimated rates.</p>
 </div>
 <div class="section level3">
 <h3 id="example-data-simulated-from-a-phase-type-model">Example: data simulated from a phase-type model<a class="anchor" aria-label="anchor" href="#example-data-simulated-from-a-phase-type-model"></a>
 </h3>
 <p>The following code simulates a dataset from the following phase-type
 model structure</p>
-<p><img src="advanced_files/figure-html/threestatephase-1.png" width="576"></p>
+<p><img src="../reference/figures/threestatephase.png" width="600px"></p>
 <p>with a transition intensity matrix (on the latent state space) given
 in the R object <code>Qg</code>. This code uses the ability of the
 function <code><a href="https://chjackson.github.io/msm/reference/simmulti.msm.html" class="external-link">simmulti.msm()</a></code> from the <code>msm</code> package
 to simulate from hidden Markov models.</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">Qg</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">0.18</span>, <span class="fl">0.008</span>, <span class="fl">0.012</span><span class="op">)</span>,</span>
 <span>            <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">0</span>,    <span class="fl">0.016</span>, <span class="fl">0.024</span><span class="op">)</span>,</span>
 <span>            <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">0</span>,    <span class="fl">0</span>,     <span class="fl">0.2</span><span class="op">)</span>,</span>
@@ -178,12 +195,12 @@ to simulate from hidden Markov models.</p>
 to approximate the Bayesian posterior. There are some warning messages
 from using this algorithm in this example, so in practice we might have
 wanted to cross-check the results with MCMC.</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">Q3</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>,<span class="fl">1</span>,<span class="fl">1</span><span class="op">)</span>,<span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>,<span class="fl">0</span>,<span class="fl">1</span><span class="op">)</span>,<span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>,<span class="fl">0</span>,<span class="fl">0</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">draws</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/msmbayes.html">msmbayes</a></span><span class="op">(</span>data<span class="op">=</span><span class="va">sim.df</span>, state<span class="op">=</span><span class="st">"obs"</span>, time<span class="op">=</span><span class="st">"time"</span>, subject<span class="op">=</span><span class="st">"subject"</span>,</span>
 <span>                  Q<span class="op">=</span><span class="va">Q3</span>, nphase<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2</span>,<span class="fl">1</span>,<span class="fl">1</span><span class="op">)</span>, fit_method<span class="op">=</span><span class="st">"pathfinder"</span><span class="op">)</span></span>
 <span><span class="fu">bayesplot</span><span class="fu">::</span><span class="fu"><a href="https://mc-stan.org/bayesplot/reference/MCMC-distributions.html" class="external-link">mcmc_dens</a></span><span class="op">(</span><span class="va">draws</span>, pars<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"logq[%s]"</span>,<span class="fl">1</span><span class="op">:</span><span class="fl">6</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p><img src="advanced_files/figure-html/unnamed-chunk-4-1.png" width="700"></p>
+<p><img src="advanced_files/figure-html/unnamed-chunk-8-1.png" width="700"></p>
 <p>The posterior distribution appears awkwardly shaped, with evidence of
 several local maxima or “saddle points”.</p>
 <p><code>msm</code> needs some tuning to converge, in particular the use
@@ -192,7 +209,7 @@ rate. In practice, sensitivity analysis to these initial values would be
 needed to confirm that the reported estimates are the global maximum
 likelihood estimates, rather than one of the local maxima or saddle
 points.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">Q3</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>,<span class="fl">0.5</span>,<span class="fl">0.5</span><span class="op">)</span>,<span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>,<span class="fl">0</span>,<span class="fl">0.5</span><span class="op">)</span>,<span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>,<span class="fl">0</span>,<span class="fl">0</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">s.msm</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://chjackson.github.io/msm/reference/msm.html" class="external-link">msm</a></span><span class="op">(</span><span class="va">obs</span> <span class="op">~</span> <span class="va">time</span>, subject<span class="op">=</span><span class="va">subject</span>, data<span class="op">=</span><span class="va">sim.df</span>, phase.states<span class="op">=</span><span class="fl">1</span>, qmatrix<span class="op">=</span><span class="va">Q3</span>,</span>
 <span>             phase.inits<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>trans<span class="op">=</span><span class="fl">0.05</span>,  <span class="co"># seems to need these</span></span>
@@ -201,7 +218,7 @@ points.</p>
 <p>Reassuringly, the Bayesian and frequentist methods give similar
 estimates of the transition intensities, which agree (within estimation
 error) with the values used for simulation.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/qmatrix.html">qmatrix</a></span><span class="op">(</span><span class="va">draws</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">## rvar&lt;1000&gt;[4,4] <span style="color: #949494;">mean ± sd:</span></span></span>
 <span><span class="co">##      [,1]               [,2]               [,3]              </span></span>
@@ -214,14 +231,14 @@ error) with the values used for simulation.</p>
 <span><span class="co">## [2,]  0.0233 ± 0.00058 </span></span>
 <span><span class="co">## [3,]  0.2006 ± 0.00578 </span></span>
 <span><span class="co">## [4,]  0.0000 ± 0.00000</span></span></code></pre>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://chjackson.github.io/msm/reference/qmatrix.msm.html" class="external-link">qmatrix.msm</a></span><span class="op">(</span><span class="va">s.msm</span>,ci<span class="op">=</span><span class="st">"none"</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">##              State 1 [P1] State 1 [P2]     State 2    State 3</span></span>
 <span><span class="co">## State 1 [P1]   -0.1986608   0.17706760  0.01059025 0.01100295</span></span>
 <span><span class="co">## State 1 [P2]    0.0000000  -0.03930873  0.01593401 0.02337472</span></span>
 <span><span class="co">## State 2         0.0000000   0.00000000 -0.20150880 0.20150880</span></span>
 <span><span class="co">## State 3         0.0000000   0.00000000  0.00000000 0.00000000</span></span></code></pre>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">Qg</span></span></code></pre></div>
 <pre><code><span><span class="co">##      [,1] [,2]  [,3]  [,4]</span></span>
 <span><span class="co">## [1,]    0 0.18 0.008 0.012</span></span>
@@ -232,16 +249,15 @@ error) with the values used for simulation.</p>
 calculated for the latent state space (<code>by_phase=TRUE</code>, the
 default), or the observable state space
 (<code>by_phase=FALSE</code>).</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/mean_sojourn.html">mean_sojourn</a></span><span class="op">(</span><span class="va">draws</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">## <span style="color: #949494;"># A tibble: 4 × 2</span></span></span>
+<pre><code><span><span class="co">## <span style="color: #949494;"># A tibble: 3 × 2</span></span></span>
 <span><span class="co">##   state        value</span></span>
 <span><span class="co">##   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;rvar[1d]&gt;</span></span></span>
 <span><span class="co">## <span style="color: #BCBCBC;">1</span> 1p1     5.7 <span style="color: #949494;">± 0.89</span></span></span>
 <span><span class="co">## <span style="color: #BCBCBC;">2</span> 1p2    25.4 <span style="color: #949494;">± 0.39</span></span></span>
-<span><span class="co">## <span style="color: #BCBCBC;">3</span> 2       5.0 <span style="color: #949494;">± 0.14</span></span></span>
-<span><span class="co">## <span style="color: #BCBCBC;">4</span> 3       Inf <span style="color: #949494;">± NaN</span></span></span></code></pre>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<span><span class="co">## <span style="color: #BCBCBC;">3</span> 2       5.0 <span style="color: #949494;">± 0.14</span></span></span></code></pre>
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/mean_sojourn.html">mean_sojourn</a></span><span class="op">(</span><span class="va">draws</span>, by_phase<span class="op">=</span><span class="cn">FALSE</span><span class="op">)</span> </span></code></pre></div>
 <pre><code><span><span class="co">## <span style="color: #949494;"># A tibble: 3 × 2</span></span></span>
 <span><span class="co">##   state       value</span></span>
@@ -295,7 +311,7 @@ misclassified as 2.</p>
 <p>For speed in this demo, we use Stan’s <code>"optimize"</code> method,
 which simply determines the posterior mode, and no other posterior
 summaries.</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">Qcav</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">1</span>, <span class="fl">0</span>, <span class="fl">1</span><span class="op">)</span>,</span>
 <span>              <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">0</span>, <span class="fl">1</span>, <span class="fl">1</span><span class="op">)</span>, </span>
 <span>              <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">0</span>, <span class="fl">0</span>, <span class="fl">1</span><span class="op">)</span>,</span>
@@ -306,7 +322,7 @@ summaries.</p>
 <span>              <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">0</span>, <span class="fl">0</span>, <span class="fl">0</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">draws</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/msmbayes.html">msmbayes</a></span><span class="op">(</span>data<span class="op">=</span><span class="va">cav</span>, state<span class="op">=</span><span class="st">"state"</span>, time<span class="op">=</span><span class="st">"years"</span>, subject<span class="op">=</span><span class="st">"PTNUM"</span>, </span>
 <span>                  Q<span class="op">=</span><span class="va">Qcav</span>, E<span class="op">=</span><span class="va">Ecav</span>, fit_method<span class="op">=</span><span class="st">"optimize"</span><span class="op">)</span></span></code></pre></div>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/qmatrix.html">qmatrix</a></span><span class="op">(</span><span class="va">draws</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">## rvar&lt;1&gt;[4,4] <span style="color: #949494;">mean ± sd:</span></span></span>
 <span><span class="co">##      [,1]         [,2]         [,3]         [,4]        </span></span>
@@ -316,7 +332,7 @@ summaries.</p>
 <span><span class="co">## [4,]  0.000 ± NA   0.000 ± NA   0.000 ± NA   0.000 ± NA</span></span></code></pre>
 <p>The function <code>edf</code> extracts the misclassification (or
 “emission”) probabilities in a tidy data frame form.</p>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/edf.html">edf</a></span><span class="op">(</span><span class="va">draws</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">## <span style="color: #949494;"># A tibble: 4 × 3</span></span></span>
 <span><span class="co">##    from    to        value</span></span>
@@ -328,15 +344,15 @@ summaries.</p>
 <p>An identical non-Bayesian model is fitted using
 <code><a href="https://chjackson.github.io/msm/reference/msm.html" class="external-link">msm()</a></code>.</p>
 <blockquote>
-<p>Note this is different from the model fitted in the <code>msm</code>
-manual, since “exact death times” are not supported in
+<p><strong>Note</strong>: this is different from the model fitted in the
+<code>msm</code> manual, since “exact death times” are not supported in
 <code>msmbayes</code>. Also note that <code>msm</code> requires
 informative initial values for the non-zero intensities and
 misclassification probabilities here. For hidden Markov models,
 <code>msm</code> is not smart enough to determine good initial values
 automatically given the transition structure.</p>
 </blockquote>
-<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">Qcav</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">0.148</span>, <span class="fl">0</span>, <span class="fl">0.0171</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">0</span>, <span class="fl">0.202</span>, <span class="fl">0.081</span><span class="op">)</span>, </span>
 <span>              <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">0</span>, <span class="fl">0</span>, <span class="fl">0.126</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">0</span>, <span class="fl">0</span>, <span class="fl">0</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">Ecav</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">0.1</span>, <span class="fl">0</span>, <span class="fl">0</span><span class="op">)</span>,<span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.1</span>, <span class="fl">0</span>, <span class="fl">0.1</span>, <span class="fl">0</span><span class="op">)</span>,</span>
@@ -348,7 +364,7 @@ automatically given the transition structure.</p>
 <span><span class="co">## State 2  0.0000000 -0.26352026  0.2013230 0.06219724</span></span>
 <span><span class="co">## State 3  0.0000000  0.00000000 -0.3671024 0.36710242</span></span>
 <span><span class="co">## State 4  0.0000000  0.00000000  0.0000000 0.00000000</span></span></code></pre>
-<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://chjackson.github.io/msm/reference/ematrix.msm.html" class="external-link">ematrix.msm</a></span><span class="op">(</span><span class="va">cav.msm</span>, ci<span class="op">=</span><span class="st">"none"</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">##           State 1     State 2    State 3 State 4</span></span>
 <span><span class="co">## State 1 0.9919222 0.008077811 0.00000000       0</span></span>

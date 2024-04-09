@@ -1,0 +1,81 @@
+---
+title: "Figures for msmbayes vignettes"
+author: "Christopher Jackson <chris.jackson@mrc-bsu.cam.ac.uk>"
+date: "`r Sys.Date()`"
+output: 
+  rmarkdown::html_document:
+    toc: true
+    toc_float: true
+    theme: simplex
+    embed-resources: true
+    number-sections: true
+vignette: >
+  %\VignetteIndexEntry{Examples of using msmbayes}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+Build these in advance, then include the built files in the vignettes
+
+```{tikz twostate, echo=FALSE, fig.width=5}
+\usetikzlibrary{positioning,arrows,calc}
+\definecolor{deepskyblue}{rgb}{0, 0.75, 1}
+\tikzstyle{state}=[minimum size = 0.8cm, draw, rounded corners, fill=deepskyblue, font=\sffamily]
+\usetikzlibrary{shapes.geometric}
+\begin{tikzpicture}[]
+\node[state] (negative) {1 = Test negative};
+\node[state, right=of negative] (positive) {2 = Test positive};
+\draw[->] [out=30,in=150]   ($(negative.east) + (0, 0.1)$)  to ($(positive.west) + (0, 0.1)$);
+\draw[->] [out=-150,in=-30] ($(positive.west) + (0, -0.1)$) to ($(negative.east) + (0,-0.1)$);
+\end{tikzpicture}
+```
+
+```{tikz twostate, echo=FALSE, fig.width=5}
+\usetikzlibrary{positioning,arrows,calc}
+\definecolor{deepskyblue}{rgb}{0, 0.75, 1}
+\tikzstyle{state}=[minimum size = 0.8cm, draw, rounded corners, fill=deepskyblue, font=\sffamily]
+\usetikzlibrary{shapes.geometric}
+\begin{tikzpicture}[]
+\node[state] (negative) {1 = Test negative};
+\node[state, right=of negative] (positive) {2 = Test positive};
+\draw[->] [out=30,in=150]   ($(negative.east) + (0, 0.1)$)  to ($(positive.west) + (0, 0.1)$);
+\draw[->] [out=-150,in=-30] ($(positive.west) + (0, -0.1)$) to ($(negative.east) + (0,-0.1)$);
+\end{tikzpicture}
+```
+
+
+```{tikz twostatephase, echo=FALSE, fig.width=7}
+\usetikzlibrary{positioning,arrows,calc}
+\definecolor{deepskyblue}{rgb}{0, 0.75, 1}
+\tikzstyle{state}=[minimum size = 0.8cm, draw, rounded corners, fill=deepskyblue, font=\sffamily]
+\tikzstyle{phase}=[minimum size = 0.8cm, draw, rounded corners, fill=yellow, font=\sffamily]
+\usetikzlibrary{shapes.geometric}
+\begin{tikzpicture}[]
+\node[state] (negative) {1 = Test negative};
+\node[phase, right=of negative] (positivea) {2a = Test positive (phase a)};
+\node[phase, right=of positivea] (positiveb) {2b = Test positive (phase b)};
+\draw[->] ($(negative.east)$)  to ($(positivea.west)$);
+\draw[->] ($(positivea.east)$) to ($(positiveb.west)$);
+\draw[->] [out=-150,in=-30] ($(positivea.south)$) to ($(negative.south)$);
+\draw[->] [out=-150,in=-30] ($(positiveb.south)$) to ($(negative.south)$);
+\end{tikzpicture}
+```
+
+```{tikz threestatephase, echo=FALSE, fig.width=6}
+\usetikzlibrary{positioning,arrows,calc}
+\definecolor{deepskyblue}{rgb}{0, 0.75, 1}
+\tikzstyle{state}=[minimum size = 0.8cm, draw, rounded corners, fill=deepskyblue, font=\sffamily]
+\tikzstyle{phase}=[minimum size = 0.8cm, draw, rounded corners, fill=yellow, font=\sffamily]
+\usetikzlibrary{shapes.geometric}
+\begin{tikzpicture}[]
+\node[phase] (state1a) {State 1 (phase 1, latent state 1)};
+\node[phase, right=of state1a] (state1b) {State 1 (phase 2, latent state 2)};
+\node[state, right=of state1b] (state2) {State 2 (latent state 3)};
+\node[state, below=of state2] (state3) {State 3 (latent state 4)};
+\draw[->] ($(state1a.east)$)  to ($(state1b.west)$);
+\draw[->] ($(state1b.east)$)  to ($(state2.west)$);
+\draw[->] ($(state2.south)$)  to ($(state3.north)$);
+\draw[->] ($(state1a.south east)$)  to ($(state3.north west)$);
+\draw[->] ($(state1b.south east)$)  to ($(state3.north west)$);
+\end{tikzpicture}
+```

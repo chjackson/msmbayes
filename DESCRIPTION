@@ -1,6 +1,6 @@
 Package: msmbayes
 Title: Bayesian Multi-State Models for Intermittently-Observed Data
-Version: 0.1
+Version: 0.2
 Authors@R: 
     person("Christopher", "Jackson", , "chris.jackson@mrc-bsu.cam.ac.uk", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-6656-8913"))
@@ -23,14 +23,18 @@ Imports:
     glue,
     rlang,
     hardhat,
-    ggplot2
+    ggplot2,
+    stringr
 Suggests:
     msm,
+    cmdstanr,
     bayesplot,
     testthat (>= 3.0.0),
     rmarkdown,
     knitr,
-    cmdstanr
+    magick,
+    pdftools,
+    usethis
 LazyData: true
 VignetteBuilder: knitr
 URL: https://github.com/chjackson/msmbayes

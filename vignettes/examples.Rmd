@@ -7,8 +7,9 @@ output:
     toc: true
     toc_float: true
     theme: simplex
-    embed-resources: true
     number-sections: true
+resource_files:
+  - ../man/figures/twostate.png
 vignette: >
   %\VignetteIndexEntry{Examples of using msmbayes}
   %\VignetteEngine{knitr::rmarkdown}
@@ -19,8 +20,7 @@ This article demonstrates the basic use of the `msmbayes` package to fit Bayesia
 
 * It shows that `msmbayes` can reproduce the true parameter values for a simulated dataset, within an expected margin of simulation error, and gives similar results to `msm`.
 
-* It gives some general hints and warnings about Bayesian implementation of these models,
-e.g. priors, computational challenges.   However this is the subject of ongoing research, so it is somewhat vague.
+* It gives some general hints and warnings about Bayesian implementation of these models, e.g. priors, computational challenges.  Though this is the subject of ongoing research.
 
 A general introduction to the theory and practice of multi-state modelling is given in the documentation and course notes for the [`msm` package](https://chjackson.github.io/msm/).
 
@@ -33,17 +33,8 @@ These examples all use a simulated dataset designed to mimic a longitudinal stud
 
 We assume a two-state multi-state model, with states "test positive" and "test negative".
 
-```{tikz twostate, echo=FALSE, fig.width=5}
-\usetikzlibrary{positioning,arrows,calc}
-\definecolor{deepskyblue}{rgb}{0, 0.75, 1}
-\tikzstyle{state}=[minimum size = 0.8cm, draw, rounded corners, fill=deepskyblue, font=\sffamily]
-\usetikzlibrary{shapes.geometric}
-\begin{tikzpicture}[]
-\node[state] (negative) {1 = Test negative};
-\node[state, right=of negative] (positive) {2 = Test positive};
-\draw[->] [out=30,in=150]   ($(negative.east) + (0, 0.1)$)  to ($(positive.west) + (0, 0.1)$);
-\draw[->] [out=-150,in=-30] ($(positive.west) + (0, -0.1)$) to ($(negative.east) + (0,-0.1)$);
-\end{tikzpicture}
+```{r,echo=FALSE,out.width="400px"}
+knitr::include_graphics("../man/figures/twostate.png")
 ```
 
 The data are simulated from a continuous-time Markov model with the following transition intensity matrix.  Expressed in days or months, respectively, this is 
@@ -94,7 +85,7 @@ draws <- msmbayes(data=infsim, state="state", time="months", subject="subject",
                   Q=Q)
 ```
 
-### Transition structure and initial values
+### Transition structure
 
 The argument `Q` to `msmbayes()` is a square matrix that indicates the transition structure. This is in the same format as `msm()`:
 
@@ -107,20 +98,51 @@ The argument `Q` to `msmbayes()` is a square matrix that indicates the transitio
 * The **off-diagonal** entries of `Q` which are **0** indicate the transitions that are not allowed in continuous time. 
 
 
-### Transition intensities and prior distributions
+### Prior distributions for transition intensities {#sec-priors}
 
 The parameters of the model, $q_{rs}$, are transition intensities in continuous time.  These are not probabilities, but rates.  In particular, they are not probabilities of transition over an interval of time, as in a discrete-time Markov model.  See, e.g. the [`msm` course notes](https://chjackson.github.io/msm/msmcourse/msmbasic.html#transition-structure-is-for-the-continuous-time-process) for more discussion of this distinction. 
-To interpret these values, note that $q_{rs}$ is the rate at which transitions to $s$ are observed for a population in state $r$.  So $1/q_{rs}$ is the mean time to the next transition to $s$ that would be observed in this population.   
 
-Additional arguments `lqmean` and `lqsd` can be supplied to `msmbayes` to specify the mean and standard deviation of the normal prior for the log transition intensities.  Prior distributions are necessary in a Bayesian model.  If not supplied here, a mean of -2 and a standard deviation of 2 will be used by default.  This implies a 95% credible interval of between $\exp(-6)=0.002$ and $\exp(2)=7$ for the event rate, equivalent to a mean time to the event (inverting the rates) of between 0.1 and 400.  This is appropriately vague in many applications, but a more thoughtful choice is recommended in practice - note this will depend on the time unit (e.g. days or months).
+To interpret these values, note that $q_{rs}$ is the rate at which transitions to $s$ are observed for a population in state $r$.  So $1/q_{rs}$ is the mean time to the next transition to $s$ that would be observed in a population in state $r$, if we were to observe one person at a time (switching to observing a different person if a "competing event", i.e. a transition to a state other than $s$, happens).  Or put more simply perhaps, the mean time from state $r$ to $s$ if there were no competing events.
 
+In a Bayesian model, prior distributions must be defined for all parameters.   In `msmbayes`, normal priors are used for the log transition intensities.  The mean and standard deviation of these priors can be set through the `priors` argument to the `msmbayes` function.  This is a list of objects created by the function `msmprior`.  These objects can be specified in various alternative ways:
 
+(a) Directly specifying the mean and standard deviation for $\log(q_{rs})$, e.g.: 
+
+    ```{r}
+    priors <- list(
+      msmprior("logq(1,2)", mean=-1, sd=5),
+      msmprior("logq(2,1)", mean=-1, sd=5)
+    )
+    ```
+
+(b) Specifying prior quantiles for $\log(q_{rs})$, $q_{rs}$ or $1/q_{rs}$:
+
+    We can specify two out of the `median` (i.e. 50\% quantile), the `lower` 95\% quantile or the `upper` 95\% quantile for any of these quantities.  Perhaps the easiest to interpret is $1/q_{rs}$, the mean time to event $s$ for people in $r$, supplied here as `time(r,s)`.  Only two quantiles should be provided for each parameter, because this allows a unique normal distribution on $\log(q_{rs})$ to be deduced.   Different specifications can be mixed for different parameters, e.g. 
+
+    ```{r}
+    priors <- list(
+      msmprior("q(2,1)",    lower=0.001, upper=5),
+      msmprior("time(1,2)", median=10, upper=30)
+    )
+    ```
+
+> **Note:** the prior represents a belief about the _average in a population_ - not a distribution for individual outcomes.  Here, it means that we expect the average time from state 1 to state 2 (over a population) is 10 months, but this average could be as high as 30.  We are not saying that we expect to see _individual_ times to events of up to 30.
+
+(c) Accept the defaults. 
+
+    For any parameters not supplied in the `priors` argument, a normal distribution with a mean of -2 and a standard deviation of 2 will be used for $\log(q_{rs})$.  This implies a 95% credible interval of between $\exp(-6)=0.002$ and $\exp(2)=7$ for the event rate, equivalent to a mean time to event of between 0.1 and 400.  This is appropriately vague in many applications, but a more thoughtful choice is recommended in practice.  Note the prior depends on the time unit (e.g. days or months).
+
+The object `priors` is supplied as the `priors` argument to `msmbayes`, e.g. 
+
+```
+msmbayes(..., priors=priors,...)
+```
 
 ## Outputs from msmbayes
 
 The `msmbayes()` function uses [Stan](https://mc-stan.org) to draw a sample from the joint posterior distribution of the model parameters.  By default, MCMC is used, but faster approximations are available (see [below](examples.html#sec-comp)).
 
-This returns an object in the `draws` format defined by the `posterior`  R package.  This format is understood by various Bayesian R packages.   For example, we can use the `bayesplot` package to check that the MCMC chains have converged, using trace-plots of the main parameters (here the log transition intensities, labelled `logq`), and to examine the posterior distributions. Trace plots should look flat and fuzzy, like a sequence of independent draws from the same distribution, if the chains have converged (as here).
+`msmbayes()` returns an object in the `draws` format defined by the `posterior`  R package.  This format is understood by various Bayesian R packages.   For example, we can use the `bayesplot` package to check that the MCMC chains have converged, using trace-plots of the main parameters (here the log transition intensities, labelled `logq`), and to examine the posterior distributions. Trace plots should look horizontal and fuzzy, like a sequence of independent draws from the same distribution, if the chains have converged (as here).
 
 ```{r,message=FALSE, warning=FALSE, fig.height=2}
 library(bayesplot)
@@ -128,26 +150,32 @@ mcmc_trace(draws, pars=c("logq[1]","logq[2]"))
 mcmc_dens(draws, pars=c("logq[1]","logq[2]"))
 ```
 
-To summarise the basic parameter estimates (transition intensities here) use the `summary()` function.  This also gives the "Rhat" convergence diagnostic, which should be close to 1.0 if the MCMC estimation has converged ([see here](https://mc-stan.org/rstan/reference/Rhat.html) for more explanation.)
+To summarise the basic parameter estimates (transition intensities here) use the `summary()` function.   This gives a summary of the posterior for each parameter (variable `value`), alongside a summary of the prior for that parameter.   Since transition intensities are hard to interpret in isolation, the mean sojourn times in each state are included alongside, labelled `mst`.
 
 ```{r}
 summary(draws)
 ```
 
-Transition intensities are hard to interpret in isolation.  However we can obtain from them the mean sojourn times in each state.  The mean sojourn times are estimated to be (within estimation error) close to the true values of 6 and 0.33 months, as expected.
+The mean sojourn times are estimated to be (within estimation error) close to the true values of 6 and 0.33 months, as expected.
+
+Set `time=TRUE` to summarise the $1/q_{rs}$ (mean times to event, ignoring competing events, as described above) and their priors.  If there are no competing risks, as here, these are equal to the mean sojourn times.  Or set `log=TRUE` to summarise the $\log(q_{rs})$.
 
 ```{r}
-mean_sojourn(draws)
+summary(draws, time=TRUE)
 ```
 
-See also `qdf()` to get just the intensities, or `qmatrix()` for the same quantities in a matrix rather than data frame format.
+The `summary` output also gives the "Rhat" convergence diagnostic, which should be close to 1.0 if the MCMC estimation has converged ([see here](https://mc-stan.org/rstan/reference/Rhat.html) for more explanation.)
+
+See also `qdf()` to get just the intensities, or `qmatrix()` for the same quantities in a matrix rather than data frame format, and `mean_sojourn()` to get just the mean sojourn times.
 
 The `value` column of data frames returned by these functions is of type `rvar`.  This data type is from the `posterior` package. It is designed to contain random variables, such as uncertain quantities in Bayesian models.  Instead of a single value, it stores a sample from the quantity's distribution.  Here this is the posterior distribution.  It is printed here as a posterior mean $\pm$ one standard deviation.
 
-The `summary` function can be used on these data frames to extract posterior summary statistics from the object in the `value` column.  With no further arguments, the default summary statistics from the `posterior` package will be used.  Or the user can specify their own functions, as in the following call.  See the `posterior` package [documentation](https://mc-stan.org/posterior/reference/draws_summary.html) for more examples.
+To extract specific posterior summary statistics, the `summary` function can be used on any of these data frames. 
+
+With no further arguments, the default summary statistics from the `posterior` package will be used.  Or the user can specify their own functions, as in the following call.  See the `posterior` package [documentation](https://mc-stan.org/posterior/reference/draws_summary.html) for more examples.
 
 ```{r}
-summary(mean_sojourn(draws), mean, median, ~quantile(.x,c(0.025, 0.975)))
+summary(mean_sojourn(draws), mean, median, ~quantile(.x, c(0.025, 0.975)))
 ```
 
 
@@ -159,18 +187,23 @@ The variable `statec` in the `infsim` data is simulated from a continuous-time M
 
 $q_{rs}^{(0)}$ is the intensity for a "reference" or baseline individual, defined as a 50 year old woman.  The same values as [above](#sec-simdata) are used for this.   In the data `infsim`, age is expressed in units of 10 years, and centered around age 50.   Centering around a value of interest helps with interpretation of the intercept term $q_{rs}^{(0)}$. Centering and scaling covariates to a roughly unit scale also tends to help with computation, especially for MCMC.
 
-To include covariates in a `msmbayes` model, a `covariates` argument is included.  The following model supposes that sex and age are predictors of both the 1-2 and 2-1 transition intensities.
+To include covariates in a `msmbayes` model, a `covariates` argument is included.  The following model supposes that sex and age are predictors of both the 1-2 and 2-1 transition intensities.  Weakly informative priors are defined for the covariate 
+effects, through specifying upper 95% credible limits of 50 for the hazard ratios.
 
 ```{r,results="hide",cache=TRUE}
+priors <- list(msmprior("hr(age10,1,2)",median=1,upper=50),
+               msmprior("hr(age10,2,1)",median=1,upper=50),
+               msmprior("hr(sexmale,1,2)",median=1,upper=50),
+               msmprior("hr(sexmale,2,1)",median=1,upper=50))
 draws <- msmbayes(infsim, state="statec", time="months", subject="subject",
                   Q=Q,  covariates = list(Q(1,2)~sex+age10, Q(2,1)~sex+age10),
                   fit_method="pathfinder",
-                  betamean=c(0,0,0,0), betasd = c(5,5,5,5))
+                  priors = priors)
 ```
 
 ```{r,eval=FALSE,echo=FALSE}
 mcmc_trace(draws)
-mcmc_dens(draws, pars=c("logq[1]","logq[2]","beta[1]","beta[2]","beta[3]","beta[4]"))
+mcmc_dens(draws, pars=c("logq[1]","logq[2]","loghr[1]","loghr[2]","loghr[3]","loghr[4]"))
 ```
 
 The syntax of the `covariates` argument is a list of formulae.  Each formula has 
@@ -184,37 +217,44 @@ For example, `Q(2,1) ~ sex + age` indicates that $\log(q_{21})$ is an additive l
 > **Note:** This syntax is slightly different from `msm`, where we would use a named list of formulae with empty "outcome" left-hand sides, e.g. `covariates = list("1-2" = ~sex+age, "2-1" = ~ sex+age)`.
 
 After fitting a `msmbayes` model with covariates, the `summary` function on 
-the model object returns the estimates of the baseline intensities $q_{rs}^{(0)}$ and 
-the log hazard ratios $\beta_{rs}$, indicated here by covariate name and transition.
+the model object returns the estimates of the baseline intensities $q_{rs}^{(0)}$ and the hazard ratios $exp(\beta_{rs})$, indicated here by covariate name and transition.
 
 ```{r}
 summary(draws) 
 ```
 
-The estimates of the log hazard ratios are close to the true values of 2, 1, 0, and -1 used to simulate the data, within estimation error. 
-
-The function `hr` can be used to summarise the hazard ratios $\exp(\beta_{rs})$.  Note the posterior distributions are skewed, hence the posterior mean of the hazard ratio is different from the $\exp()$ of the posterior mean of the log hazard ratio.  The mode or median may be preferred as a point estimate.
+The functions `loghr` or `hr` can be used to summarise the log hazard ratios or hazard ratios in isolation.  The estimates of the log hazard ratios are close to the true values of 2, 1, 0, and -1 used to simulate the data, within estimation error.
 
 ```{r}
-hr(draws)   
+loghr(draws)   
 ```
+
+Note the posterior distributions are skewed, hence the posterior mean of the hazard ratio is different from the $\exp()$ of the posterior mean of the log hazard ratio.  The mode or median may be preferred as a point estimate.
+
+
+## Priors on covariate effects {#sec-priors-cov}
+
+Normal priors are used for the log hazard ratios $\beta$.  These can be specified through the `priors` argument, as above, either by specifying the mean and SD for the log hazard ratios, or quantiles of either the hazard ratios or the log hazard ratios.  Note the specific covariate should be referred to as well as the transition.  For example, to define priors for the effect of age on the 1-2 and 2-1 transition rates respectively:
+
+```{r}
+priors <- list(msmprior("loghr(age,1,2)", mean=0,   sd=2),
+               msmprior("hr(age,2,1)",    median=1, upper=5))
+```
+For factor covariates, the appropriate factor level should be included in the name (as done for `sexmale` above).
+
+For any priors for log hazard ratios not specified through `priors`, a default normal prior with mean 0 and SD 10 is used.   Be careful of this prior choice.  Bear in mind the likely size of covariate effects when choosing the prior variance.  Make sure the prior represents any evidence about the effect that exists outside the data.
+
 
 ## Notes on computation and tuning {#sec-comp}
 
-* Normal priors for the `beta` can be specified with the `betamean` and `betasd` arguments.  Careful of these.   Bear in mind the likely size of covariate effects when choosing the prior variance.  Make sure the prior represents any evidence about the effect that exists outside the data.
-
-* The `fit_method` argument specifies the quoted name of a function in `cmdstanr` to 
-be used to do the sampling.  ["sample"](https://mc-stan.org/cmdstanr/reference/model-method-sample.html) is the default. Users can pass arguments to these functions in to `msmbayes` to control sampling, 
-e.g. initial values, parallel processing...
+* The `fit_method` argument specifies the quoted name of a function in `cmdstanr` to be used to do the sampling.  ["sample"](https://mc-stan.org/cmdstanr/reference/model-method-sample.html) is the default. Users can pass arguments to these functions in to `msmbayes` to control sampling, e.g. initial values, parallel processing.
 
    	* `fit_method="laplace"` uses a [Laplace approximation](https://mc-stan.org/cmdstanr/reference/model-method-laplace.html) which determines the posterior mode exactly, then uses a normal approximation to the distribution around this mode.   MCMC reveals some skewed posterior distributions in this case, so the Laplace approximation is not ideal.  However, it is much faster than MCMC.
 
     * `fit_method="pathfinder"` implements a [variational approximation to the posterior](https://mc-stan.org/cmdstanr/reference/model-method-pathfinder.html).
-This is designed to be better than Laplace, and better than the standard variational method.
-It runs much faster than MCMC in this case, and is used in the example above.
+This is designed to be better than Laplace, and better than the standard variational method.  It runs much faster than MCMC in this case, and is used in the example above.
 
-    * `fit_method="variational"` runs quickly, similar to the Laplace method, but 
-seems to give less nuanced posterior distributions than the Pathfinder method.
+    * `fit_method="variational"` runs quickly, similar to the Laplace method, but seems to give less nuanced posterior distributions than the Pathfinder method.
 
 * This example works with Stan's default MCMC initial values, which are sampled from the priors.  Users could also supply the `init` argument to `msmbayes`, which is passed to Stan.
 
@@ -256,7 +296,7 @@ posterior is skewed for all the model parameters, and there is evidence that it
 may be "multimodal", i.e. has several peaks. 
 
 ```{r}
-mcmc_dens(draws, pars=c("logq[1]","logq[2]","beta[1]","beta[2]","beta[3]","beta[4]"),
+mcmc_dens(draws, pars=c("logq[1]","logq[2]","loghr[1]","loghr[2]","loghr[3]","loghr[4]"),
           adjust=1)
 ```
 

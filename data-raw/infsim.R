@@ -75,3 +75,15 @@ infsim_modelc <- msmbayes(dat = infsim2, state="state", time="months", subject="
 
 usethis::use_data(infsim_model, overwrite=TRUE)
 usethis::use_data(infsim_modelc, overwrite=TRUE)
+
+Qcav <- rbind(c(0, 1, 0, 1),
+              c(0, 0, 1, 1),
+              c(0, 0, 0, 1),
+              c(0, 0, 0, 0))
+Ecav <- rbind(c(0, 1, 0, 0),
+              c(1, 0, 1, 0),
+              c(0, 1, 0, 0),
+              c(0, 0, 0, 0))
+cav_misc <- msmbayes(data=msm::cav, state="state", time="years", subject="PTNUM",
+                     Q=Qcav, E=Ecav, fit_method="optimize")
+usethis::use_data(cav_misc, overwrite=TRUE)

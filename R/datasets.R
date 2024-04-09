@@ -59,7 +59,7 @@
 
 ##' Example fitted model objects used for testing msmbayes
 ##'
-##' @name infsim_model
+##' @name example_models
 ##' @aliases infsim_model infsim_modelc
 ##' 
 ##' @format An object of class \code{msmbayes}, obtained by fitting a
@@ -71,7 +71,12 @@
 ##' @keywords datasets
 "infsim_model"
 
-##' @rdname infsim_model
+##' @rdname example_models
 ##' @format \code{infsim_modelc} includes covariates on the transition
 ##' intensities.
 "infsim_modelc"
+
+##' @rdname example_models
+##' @format \code{cav_misc} is the misclassification model fitted to the CAV data from msm in the "Advanced multi-state models in msmbayes" vignette.
+##' intensities.
+"cav_misc"

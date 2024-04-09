@@ -3,9 +3,14 @@ template:
   bootstrap: 5
   assets: web_assets
 reference:
+- title: Exploratory data analysis
+- contents:
+  - msmhist
+  - msmhist_bardata
 - title: Fitting models
 - contents:
   - msmbayes
+  - msmprior
 - title: Getting results from fitted models
 - contents:
   - qdf
@@ -18,6 +23,7 @@ reference:
   - totlos
   - edf
   - summary.msmbayes
+  - standardise_to
 - title: Datasets
 - contents:
   - infsim

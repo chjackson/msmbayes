@@ -31,6 +31,9 @@
     <loc>https://chjackson.github.io/msmbayes/reference/edf.html</loc>
   </url>
   <url>
+    <loc>https://chjackson.github.io/msmbayes/reference/example_models.html</loc>
+  </url>
+  <url>
     <loc>https://chjackson.github.io/msmbayes/reference/hr.html</loc>
   </url>
   <url>
@@ -61,6 +64,15 @@
     <loc>https://chjackson.github.io/msmbayes/reference/msmbayes.html</loc>
   </url>
   <url>
+    <loc>https://chjackson.github.io/msmbayes/reference/msmhist.html</loc>
+  </url>
+  <url>
+    <loc>https://chjackson.github.io/msmbayes/reference/msmhist_bardata.html</loc>
+  </url>
+  <url>
+    <loc>https://chjackson.github.io/msmbayes/reference/msmprior.html</loc>
+  </url>
+  <url>
     <loc>https://chjackson.github.io/msmbayes/reference/pmatrix.html</loc>
   </url>
   <url>
@@ -71,6 +83,9 @@
   </url>
   <url>
     <loc>https://chjackson.github.io/msmbayes/reference/qmatrix.html</loc>
+  </url>
+  <url>
+    <loc>https://chjackson.github.io/msmbayes/reference/standardise_to.html</loc>
   </url>
   <url>
     <loc>https://chjackson.github.io/msmbayes/reference/summary.msmbayes.html</loc>

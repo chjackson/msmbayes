@@ -4,21 +4,33 @@
 \alias{summary.msmbayes}
 \title{Summarise basic parameter estimates from an msmbayes model}
 \usage{
-\method{summary}{msmbayes}(object, ...)
+\method{summary}{msmbayes}(object, log = FALSE, time = FALSE, ...)
 }
 \arguments{
 \item{object}{Object returned by \code{\link{msmbayes}}.}
 
+\item{log}{Present log transition intensities and log hazard ratios,
+rather than transition intensities and hazard ratios.}
+
+\item{time}{Present inverse transition intensities (i.e. mean times to events)}
+
 \item{...}{Further arguments passed to both \code{\link{qdf}} and \code{\link{loghr}}.}
 }
 \value{
-A data frame with one row for each parameter.  The
-posterior distribution for the parameter is encoded in the column
-\code{value}, which has the \code{rvar} data type defined by the
-\pkg{posterior package}.  This can be summarised by calling
-\code{summary} again on the data frame (see the examples).
+A data frame with one row for each basic model parameter,
+plus rows for the mean sojourn times.  The posterior distribution
+for the parameter is encoded in the column \code{value}, which
+has the \code{rvar} data type defined by the \pkg{posterior
+  package}.  This distribution can be summarised in any way by
+calling \code{summary} again on the data frame (see the
+examples).
 
-\code{q} are the transition intensities (at covariate values of zero)
+A string summarising a sample from the prior distribution, as a
+median and 95\% equal-tailed credible interval, is given in the
+\code{prior} column.
+
+Transition intensities, or transformations of transition
+intensities, are those for covariate values of zero.
 
 Remaining parameters (in non-HMMs) are log hazard ratios for
 covariate effects.

@@ -34,8 +34,8 @@ data {
   array[T] int<lower=1,upper=ntlc> tlcid; // which of these combinations each observation corresponds to
   array[ntlc] real<lower=0> timelag; // time lags (keeping only those corresponding to distinct (timelag, covariates)
 
-  array[nqpars] real lqmean;        // mean of normal prior on log(q)
-  array[nqpars] real<lower=0> lqsd; // sd of normal prior on log(q)
+  array[nqpars] real logqmean;        // mean of normal prior on log(q)
+  array[nqpars] real<lower=0> logqsd; // sd of normal prior on log(q)
 
   int<lower=0> nx; // total number of covariates on the intensities
   array[nqpars] int<lower=0> xstart; // starting index into X for each transition. 0 if no covariates on that transition 
@@ -43,14 +43,14 @@ data {
   array[nqpars] int<lower=0> nxq;    // number of covariates per transition
 
   matrix[ntlc,nx] X;              // all model matrices, column-binded together and keeping only rows corresponding to distinct (timelag, covariates)
-  array[nx] real betamean;        // mean of normal prior on covariate effects
-  array[nx] real<lower=0> betasd; // sd of normal prior on covariate effects
+  array[nx] real loghrmean;        // mean of normal prior on covariate effects
+  array[nx] real<lower=0> loghrsd; // sd of normal prior on covariate effects
 }
 
 parameters {
   vector[nqpars] logq; // vector of transition intensities
   array[nepars] real<lower=0,upper=1> evec; // vector of misclassification parameters, given default flat prior.  TODO transform?
-  vector[nx] beta;     // log hazard ratios for covariates
+  vector[nx] loghr;     // log hazard ratios for covariates
 } 
 
 transformed parameters {
@@ -72,7 +72,7 @@ model {
     for (i in 1:nqpars){
       qtmp[i] = logq[i];
       if (nxq[i]>0)
-	qtmp[i] = qtmp[i] + X[j,xstart[i]:xend[i]] * beta[xstart[i]:xend[i]];
+	qtmp[i] = qtmp[i] + X[j,xstart[i]:xend[i]] * loghr[xstart[i]:xend[i]];
       Q[j,qrow[i],qcol[i]] = exp(qtmp[i]);
     }
     for (k in 1:K) {
@@ -92,7 +92,7 @@ model {
   }
 
   for (i in 1:nqpars){
-    logq[i] ~ normal(lqmean[i], lqsd[i]); // or could be gamma
+    logq[i] ~ normal(logqmean[i], logqsd[i]); // or could be gamma
   }
   
   array[K] real mp_jk; // marg prob of data up to time t and true state k at time t, given true state j at time t-1 (recomputed every t, k)

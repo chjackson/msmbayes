@@ -1,4 +1,4 @@
-#' Bayesian multi-state models for intermittently-observed data.
+#' Bayesian multi-state models for intermittently-observed data
 #'
 #' Fit a multi-state model to longitudinal data consisting of
 #' intermittent observation of a discrete state.  Bayesian estimation
@@ -22,9 +22,9 @@
 #'   diagonal of \code{Q} is ignored.
 #'
 #'   There is no need to "guess" initial values and put them here, as
-#'   in `msm`.  Initial values for fitting are determined by Stan from
-#'   the prior distributions, and the specific value supplied for
-#'   positive entries of `Q` is disregarded.
+#'   is sometimes done in `msm`.  Initial values for fitting are
+#'   determined by Stan from the prior distributions, and the specific
+#'   values supplied for positive entries of `Q` are disregarded.
 #'
 #' @param E If \code{NULL} a non-hidden Markov model is fitted.  If
 #'   non-\code{NULL} this should be a matrix indicating the structure
@@ -51,26 +51,20 @@
 #' is a linear function of age.  You do not have to list all of the
 #' intensities here if some of them are not influenced by covariates.
 #'
+#' @param priors A list specifying priors.  Each component should be
+#' the result of a call to \code{\link{msmprior}}.  Any parameters
+#' with priors not specified here are given default priors (normal
+#' with mean -2 and SD 2 for log intensities, and normal with mean
+#' 0 and SD 10 for log hazard ratios).
+#'
+#' If only one parameter is given a non-default prior, a single msmprior
+#' call can be supplied here instead of a list. 
+#' 
+#'
 #' @param nphase For phase-type models, this is a vector with one
 #'   element per state, giving the number of phases per state.  This 
 #'   element is 1 for states that do not have phase-type sojourn distributions.
 #'   Not required for non-phase-type models.
-#'
-#' @param lqmean Mean of normal prior for log transition intensity.
-#'   Vector of same length as number of allowed instantanteous
-#'   transitions, specified in column-major order (reading down the
-#'   first column of Q first, then the second column, etc.)
-#'
-#' @param lqsd Standard deviation of normal prior for log transition
-#'   intensity, in the same format as \code{lqmean}.
-#'
-#' @param betamean Mean of normal prior for covariate effects.  Vector
-#'   of same length as the number of covariate effects, in the order
-#'   implied by the list supplied by the user in the \code{covariates}
-#'   argument.
-#'
-#' @param betasd Standard deviation of normal prior for covariate
-#'   effects, in the same format as \code{betamean}.
 #'
 #' @param fit_method Quoted name of a function from the `cmdstanr`
 #'   package specifying the algorithm to fit the model.  The default
@@ -88,8 +82,14 @@
 #'
 #' @return A data frame in the \code{draws} format of the
 #'   \pkg{posterior} package, containing draws from the posterior of
-#'   the model parameters.
+#'   the model parameters.  
 #'
+#' Attributes are added to give information about the model structure,
+#' and a class `"msmbayes"` is appended.
+#'
+#' See, e.g. \code{\link{summary.msmbayes}}, \code{\link{qdf}},
+#' \code{\link{hr}}, and similar functions, to extract parameter
+#' estimates from the fitted model.
 #'
 #' @importFrom instantiate stan_package_model
 #'
@@ -101,8 +101,7 @@ msmbayes <- function(data, state, time, subject,
                      Q, E=NULL, 
                      covariates=NULL,
                      nphase=NULL,
-                     lqmean=NULL, lqsd=NULL,
-                     betamean=NULL, betasd=NULL,
+                     priors=NULL,
                      fit_method = "sample",
                      keep_data = FALSE,
                      ...){
@@ -120,14 +119,14 @@ msmbayes <- function(data, state, time, subject,
   check_data(data, state, time, subject, qm) 
   cm <- form_covariates(covariates, data, qm)
   data <- clean_data(data, state, time, subject, cm$X)
-  priors <- make_priors(lqmean, lqsd, betamean, betasd, qm, cm)
+  stanpriors <- process_priors(priors, qm, cm)
 
   if (is.null(E)){
-    standat <- make_stan_aggdata(dat=data, qm=qm, cm=cm, priors=priors)
+    standat <- make_stan_aggdata(dat=data, qm=qm, cm=cm, priors=stanpriors)
     stanmod <- msmbayes_stan_model("msm")
   } else {
     standat <- make_stan_obsdata(dat=data, qm=qm, cm=cm,
-                                 em=em, pm=pm, priors=priors)
+                                 em=em, pm=pm, priors=stanpriors)
     stanmod <- msmbayes_stan_model("hmm")
   }
 
@@ -146,7 +145,7 @@ msmbayes <- function(data, state, time, subject,
   attr(res, "emodel") <- em
   attr(res, "pmodel") <- pm
   attr(res, "cmodel") <- cm[names(cm)!="X"]
-  attr(res, "priors") <- priors
+  attr(res, "priors") <- prior_db(stanpriors, qm, cm)
   if (keep_data) {
     attr(res, "data") <- data
   }
@@ -182,15 +181,27 @@ print.msmbayes <- function(x,...){
 #'
 #' @param object Object returned by \code{\link{msmbayes}}.
 #'
+#' @param log Present log transition intensities and log hazard ratios,
+#' rather than transition intensities and hazard ratios.
+#'
+#' @param time Present inverse transition intensities (i.e. mean times to events)
+#'
 #' @param ... Further arguments passed to both \code{\link{qdf}} and \code{\link{loghr}}.
 #'
-#' @return A data frame with one row for each parameter.  The
-#'   posterior distribution for the parameter is encoded in the column
-#'   \code{value}, which has the \code{rvar} data type defined by the
-#'   \pkg{posterior package}.  This can be summarised by calling
-#'   \code{summary} again on the data frame (see the examples).
+#' @return A data frame with one row for each basic model parameter,
+#'   plus rows for the mean sojourn times.  The posterior distribution
+#'   for the parameter is encoded in the column \code{value}, which
+#'   has the \code{rvar} data type defined by the \pkg{posterior
+#'   package}.  This distribution can be summarised in any way by
+#'   calling \code{summary} again on the data frame (see the
+#'   examples).
 #'
-#' \code{q} are the transition intensities (at covariate values of zero)
+#' A string summarising a sample from the prior distribution, as a
+#' median and 95% equal-tailed credible interval, is given in the
+#' \code{prior} column.
+#'
+#' Transition intensities, or transformations of transition
+#' intensities, are those for covariate values of zero.
 #'
 #' Remaining parameters (in non-HMMs) are log hazard ratios for
 #' covariate effects.
@@ -204,20 +215,37 @@ print.msmbayes <- function(x,...){
 #' summary(summary(infsim_model), median, ~quantile(.x, 0.025, 0.975))
 #'
 #' @export
-summary.msmbayes <- function(object,...){
+summary.msmbayes <- function(object,log=FALSE,time=FALSE,...){
   name <- from <- to <- value <- NULL
-  res <- qdf(object, ...) |>
-    mutate(name="q") |>
-    select(name, from, to, value)
+  names <- if (log) c(q="logq",hr="loghr") else c(q="q",hr="hr")
+  qres <- qdf(object, ...) 
+  if (time) {
+    names["q"] <- "time"
+    qres$value <- 1/qres$value
+  } else if (log) qres$value <- log(qres$value)
+  res <- qres |>
+    mutate(name=names["q"]) |>
+    select(name, from, to, value) |>
+    attach_priors(object, names["q"])
+  mst <- mean_sojourn(object) |>
+    mutate(name="mst", to=NA) |>
+    rename(from="state") |>
+    select(name, from, to, value) |>
+    attach_priors(object, "mst")
+  res <- rbind(res, mst)
   if (has_covariates(object)){
-    beta_ests <- loghr(object, ...) |>
-      select(name, from, to, value)
-    res <- rbind(res, beta_ests)
+    loghr_ests <-
+      (if (log) loghr(object, ...) else hr(object, ...) )|>
+      select(name, from, to, value) |>
+      attach_priors(object, names["hr"]) |>
+      mutate(name=sprintf("%s(%s)", names["hr"], name))
+    res <- rbind(res, loghr_ests)
   }
   if (has_misc(object)){
     e_ests <- edf(object, ...) |>
       mutate(name="e") |>
-      select(name, from, to, value)
+      select(name, from, to, value) |>
+      mutate(prior=NA) # TODO
     res <- rbind(res, e_ests)
   }
   res$rhat <- summary(res, rhat)[,c("rhat")]
@@ -239,4 +267,8 @@ has_misc <- function(draws){
 
 nstates <- function(draws){
   attr(draws, "qmodel")$K
+}
+
+nqpars <- function(draws){
+  attr(draws, "qmodel")$nqpars
 }

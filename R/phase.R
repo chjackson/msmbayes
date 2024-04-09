@@ -166,10 +166,13 @@ form_Qphase <- function(Q, nphase, pdat, call=caller_env()){
 }
 
 phase_expand_qmodel <- function(qm, pm){
-  qmnew <- list(K = nrow(pm$Qphase), 
-                nqpars = sum(pm$Qphase > 0),
-                qrow = row(pm$Qphase)[pm$Qphase > 0],
-                qcol = col(pm$Qphase)[pm$Qphase > 0])
+  Qnew <- pm$Qphase
+  Qnew[Qnew>0] <- 1 # "initial values" unused but keep code in case
+  qmnew <- list(Q = Qnew,
+                K = nrow(Qnew),
+                nqpars = sum(Qnew > 0),
+                qrow = row(Qnew)[Qnew > 0],
+                qcol = col(Qnew)[Qnew > 0])
   qmnew$phasedata <- form_phasetrans(qmnew,pm)
   qmnew
 }

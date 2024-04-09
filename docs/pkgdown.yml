@@ -4,7 +4,7 @@ pkgdown_sha: ~
 articles:
   advanced: advanced.html
   examples: examples.html
-last_built: 2024-03-28T15:48Z
+last_built: 2024-04-09T11:30Z
 urls:
   reference: https://chjackson.github.io/msmbayes/reference
   article: https://chjackson.github.io/msmbayes/articles

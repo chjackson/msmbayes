@@ -44,8 +44,8 @@ data {
 
   array[nqpars] int<lower=1,upper=K> qrow; // row of Q corresponding to each qvec
   array[nqpars] int<lower=1,upper=K> qcol; // col of Q corresponding to each qvec
-  array[nqpars] real lqmean;        // mean of normal prior on log(q) for X=0
-  array[nqpars] real<lower=0> lqsd; // sd of normal prior on log(q)
+  array[nqpars] real logqmean;        // mean of normal prior on log(q) for X=0
+  array[nqpars] real<lower=0> logqsd; // sd of normal prior on log(q)
 
   // State transition count data
   array[N] int<lower=1,upper=K> fromstate;
@@ -62,28 +62,28 @@ data {
   array[nqpars] int<lower=0> nxq;    // number of covariates per transition
 
   matrix[ncovind,nx] X;              // all model matrices, column-binded together and keeping only distinct rows
-  array[nx] real betamean;        // mean of normal prior on covariate effects
-  array[nx] real<lower=0> betasd; // sd of normal prior on covariate effects
+  array[nx] real loghrmean;        // mean of normal prior on covariate effects
+  array[nx] real<lower=0> loghrsd; // sd of normal prior on covariate effects
 }
 
 parameters {
   vector[nqpars] logq; // vector of transition intensities to be estimated
                           // logs of non-zero off-diagonal entries of Q
-  vector[nx] beta;     // log hazard ratios for covariates
+  vector[nx] loghr;     // log hazard ratios for covariates
 }
 
 transformed parameters {
   real loglik = 0;  // save loglik for use in priorsense, but keep other variables local here
   array[nqpars] real prior_logq;
-  array[nx] real prior_beta;
+  array[nx] real prior_loghr;
 
   for (i in 1:nqpars){
-    prior_logq[i] = normal_lpdf(logq[i] | lqmean[i], lqsd[i]); 
+    prior_logq[i] = normal_lpdf(logq[i] | logqmean[i], logqsd[i]); 
   }
 
   if (nx > 0){
     for (i in 1:nx){
-      prior_beta[i] = normal_lpdf(beta[i] | betamean[i], betasd[i]);
+      prior_loghr[i] = normal_lpdf(loghr[i] | loghrmean[i], loghrsd[i]);
     }
   }
 
@@ -104,7 +104,7 @@ transformed parameters {
       for (i in 1:nqpars){
 	qtmp[i] = logq[i];
 	if (nxq[i]>0)
-	  qtmp[i] = qtmp[i] + X[j,xstart[i]:xend[i]] * beta[xstart[i]:xend[i]];
+	  qtmp[i] = qtmp[i] + X[j,xstart[i]:xend[i]] * loghr[xstart[i]:xend[i]];
 	Q[j,qrow[i],qcol[i]] = exp(qtmp[i]);
       }
       for (k in 1:K) {
@@ -126,7 +126,7 @@ model {
   }
   if (nx > 0){
     for (i in 1:nx){
-      target += prior_beta[i];
+      target += prior_loghr[i];
     }
   }
   target += loglik;

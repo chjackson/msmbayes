@@ -61,3 +61,6 @@ similar.
 Estimate state occupation probabilities to be illustrated by a bar
 plot in \code{msmhist}
 }
+\seealso{
+\code{\link{msmhist}}
+}

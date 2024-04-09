@@ -31,6 +31,7 @@ test_that("hr",{
 
 test_that("pmatrix with newdata",{
   Q <- qmatrix(infsim_modelc, new_data=data.frame(sex=c("male","female")))
+  Q <- qmatrix(infsim_modelc, new_data=standardise_to(data.frame(sex=c("male","female"))))
   P <- pmatrix(infsim_modelc, new_data=data.frame(sex=c("male","female")))
   Q1 <- draws_of(Q)[1,1,,]
   P1 <- draws_of(P)[1,1,1,,]
@@ -46,4 +47,13 @@ test_that("totlos",{
   expect_equal(sum(draws_of(tl$value)), 6)
   tld <- totlos(infsim_model, t=18, fromt=12, discount=0.01)
   expect_lt(value(tld$value), value(tl$value))
+  expect_error(totlos(infsim_model, t="char"), "should be numeric")
+  expect_error(totlos(infsim_model, t=matrix(1:4,nrow=2)), "should be a vector")
+  expect_error(totlos(infsim_model, t=c(1,2)), "should be of length 1")
+})
+
+test_that("edf",{
+  expect_equal(value(edf(cav_misc)$value),
+               value(summary(cav_misc) |>filter(name=="e") |>
+                       slice(1) |> pull(value)))
 })

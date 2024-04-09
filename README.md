@@ -1,8 +1,8 @@
 # msmbayes
 
-`msmbayes` is an experimental R package for Bayesian multi-state modelling of intermittently-observed data.
+`msmbayes` is an R package for Bayesian multi-state modelling of intermittently-observed data.
 
-It is similar to the [`msm`](https://chjackson.github.io/msm) package.  However it only supports the following models:
+It is similar to the [`msm`](https://chjackson.github.io/msm) package.  It supports the following models:
 
 * Markov models for intermittently-observed states
 
@@ -32,7 +32,7 @@ Models are fitted with Bayesian estimation, via any of the algorithms available 
 
 * "Censored states" are not supported.
 
-* Equality constraints and fixed parameters are not supported, however prior distributions can be used.
+* Equality constraints and fixed parameters are not supported.  However, parameters can be constrained through their prior distributions.
 
 * Time-inhomogeneous models specified through `pci` in `msm()` are not supported.  However, models with time-varying intensities can still be specified through a "time" covariate, which assumes that intensities are constant between successive observations of the state. 
 
@@ -40,7 +40,7 @@ Models are fitted with Bayesian estimation, via any of the algorithms available 
 
 * Multivariate hidden Markov models are not supported
 
-* Fewer output functions, in particular no functions to check fit to data
+* Fewer output functions
 
 * More limited documentation and worked examples
 

@@ -9,8 +9,10 @@
 #' \code{nx} Total number of covariate effects in the model
 #'
 #' \code{nxq} Vector giving number of covariate effects on each permitted instantaneous
-#' transition intensity. This is a vectors of length \code{nqpars}, the number of permitted instantaneous transitions.
+#' transition intensity. This is a vector of length \code{nqpars}, the number of permitted instantaneous transitions.
 #'
+#' \code{nxquser} As nxq, but with one per element of the user-supplied covariates list,
+#' 
 #' \code{xstart},\code{xend}. Start and end index defining the block of columns of X
 #' that form the design matrix of covariates (excluding intercepts) for each transition intensity.  These should be
 #' vectors of length \code{nqpars}.
@@ -33,21 +35,24 @@ form_covariates <- function(covariates, dat, qm, call=caller_env()){
   else {
     X <- bp <- vector("list", length(covariates))
     prevend <- 0
+    from <- to <- nxquser <- numeric(length(covariates))
     for (i in seq_along(covariates)){
       res <- parse_msm_formula(covariates[[i]], dat, qm, call=call)
       X[[i]] <- res$hhat$predictors
       fromto <- res$fromto
       bp[[i]] <- res$hhat$blueprint
       ind <- which(qm$qrow==fromto[1] & qm$qcol==fromto[2])
-      nxq[ind] <- ncol(X[[i]])
+      from[i] <- fromto[1]; to[i] <- fromto[2] 
+      nxq[ind] <- nxquser[i] <- ncol(X[[i]])
       xstart[ind] <- prevend + 1
       xend[ind] <- prevend + nxq[ind]
       prevend <- prevend + nxq[ind]
     }
-  }
+  }  # no check if specify same transition more than once
+     # also no check for ~ 1 formulae
   X <- do.call("cbind", X)
-  list(nx=sum(nxq), nxq=nxq, xstart=xstart, xend=xend,
-       blueprint=bp, X=X, Xnames=colnames(X))
+  list(nx=sum(nxq), nxq=nxq, nxquser=nxquser, xstart=xstart, xend=xend,
+       blueprint=bp, X=X, Xnames=colnames(X), from=from, to=to)
 }
 
 

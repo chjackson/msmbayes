@@ -2,7 +2,7 @@
 % Please edit documentation in R/msmbayes.R
 \name{msmbayes}
 \alias{msmbayes}
-\title{Bayesian multi-state models for intermittently-observed data.}
+\title{Bayesian multi-state models for intermittently-observed data}
 \usage{
 msmbayes(
   data,
@@ -13,10 +13,7 @@ msmbayes(
   E = NULL,
   covariates = NULL,
   nphase = NULL,
-  lqmean = NULL,
-  lqsd = NULL,
-  betamean = NULL,
-  betasd = NULL,
+  priors = NULL,
   fit_method = "sample",
   keep_data = FALSE,
   ...
@@ -41,9 +38,9 @@ indicates that the instantaneous transition is allowed.  The
 diagonal of \code{Q} is ignored.
 
 There is no need to "guess" initial values and put them here, as
-in \code{msm}.  Initial values for fitting are determined by Stan from
-the prior distributions, and the specific value supplied for
-positive entries of \code{Q} is disregarded.}
+is sometimes done in \code{msm}.  Initial values for fitting are
+determined by Stan from the prior distributions, and the specific
+values supplied for positive entries of \code{Q} are disregarded.}
 
 \item{E}{If \code{NULL} a non-hidden Markov model is fitted.  If
 non-\code{NULL} this should be a matrix indicating the structure
@@ -75,21 +72,14 @@ element per state, giving the number of phases per state.  This
 element is 1 for states that do not have phase-type sojourn distributions.
 Not required for non-phase-type models.}
 
-\item{lqmean}{Mean of normal prior for log transition intensity.
-Vector of same length as number of allowed instantanteous
-transitions, specified in column-major order (reading down the
-first column of Q first, then the second column, etc.)}
+\item{priors}{A list specifying priors.  Each component should be
+the result of a call to \code{\link{msmprior}}.  Any parameters
+with priors not specified here are given default priors (normal
+with mean -2 and SD 2 for log intensities, and normal with mean
+0 and SD 10 for log hazard ratios).
 
-\item{lqsd}{Standard deviation of normal prior for log transition
-intensity, in the same format as \code{lqmean}.}
-
-\item{betamean}{Mean of normal prior for covariate effects.  Vector
-of same length as the number of covariate effects, in the order
-implied by the list supplied by the user in the \code{covariates}
-argument.}
-
-\item{betasd}{Standard deviation of normal prior for covariate
-effects, in the same format as \code{betamean}.}
+If only one parameter is given a non-default prior, a single msmprior
+call can be supplied here instead of a list.}
 
 \item{fit_method}{Quoted name of a function from the \code{cmdstanr}
 package specifying the algorithm to fit the model.  The default
@@ -108,6 +98,13 @@ object.  \code{FALSE} by default.}
 A data frame in the \code{draws} format of the
 \pkg{posterior} package, containing draws from the posterior of
 the model parameters.
+
+Attributes are added to give information about the model structure,
+and a class \code{"msmbayes"} is appended.
+
+See, e.g. \code{\link{summary.msmbayes}}, \code{\link{qdf}},
+\code{\link{hr}}, and similar functions, to extract parameter
+estimates from the fitted model.
 }
 \description{
 Fit a multi-state model to longitudinal data consisting of

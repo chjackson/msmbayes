@@ -10,7 +10,7 @@
     
     <a class="navbar-brand me-2" href="../index.html">msmbayes</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -34,7 +34,13 @@
       </ul><form class="form-inline my-2 my-lg-0" role="search">
         <input type="search" class="form-control me-sm-2" aria-label="Toggle navigation" name="search-input" data-search-index="../search.json" id="search-input" placeholder="Search for" autocomplete="off"></form>
 
-      <ul class="navbar-nav"></ul></div>
+      <ul class="navbar-nav"><li class="nav-item">
+  <a class="external-link nav-link" href="https://github.com/chjackson/msmbayes/" aria-label="github">
+    <span class="fab fa fab fa-github fa-lg"></span>
+     
+  </a>
+</li>
+      </ul></div>
 
     
   </div>
@@ -42,7 +48,7 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="" class="logo" alt=""><h1>Summarise basic parameter estimates from an msmbayes model</h1>
-      
+      <small class="dont-index">Source: <a href="https://github.com/chjackson/msmbayes/blob/HEAD/R/msmbayes.R" class="external-link"><code>R/msmbayes.R</code></a></small>
       <div class="d-none name"><code>summary.msmbayes.Rd</code></div>
     </div>
 
@@ -53,13 +59,22 @@
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="co"># S3 method for msmbayes</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">object</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">object</span>, log <span class="op">=</span> <span class="cn">FALSE</span>, time <span class="op">=</span> <span class="cn">FALSE</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
     <h2 id="arguments">Arguments<a class="anchor" aria-label="anchor" href="#arguments"></a></h2>
     <dl><dt>object</dt>
 <dd><p>Object returned by <code><a href="msmbayes.html">msmbayes</a></code>.</p></dd>
+
+
+<dt>log</dt>
+<dd><p>Present log transition intensities and log hazard ratios,
+rather than transition intensities and hazard ratios.</p></dd>
+
+
+<dt>time</dt>
+<dd><p>Present inverse transition intensities (i.e. mean times to events)</p></dd>
 
 
 <dt>...</dt>
@@ -70,14 +85,22 @@
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     
 
-<p>A data frame with one row for each parameter.  The
-posterior distribution for the parameter is encoded in the column
-<code>value</code>, which has the <code>rvar</code> data type defined by the
-<span class="pkg">posterior package</span>.  This can be summarised by calling
-<code>summary</code> again on the data frame (see the examples).</p>
+<p>A data frame with one row for each basic model parameter,
+plus rows for the mean sojourn times.  The posterior distribution
+for the parameter is encoded in the column <code>value</code>, which
+has the <code>rvar</code> data type defined by the <span class="pkg">posterior
+  package</span>.  This distribution can be summarised in any way by
+calling <code>summary</code> again on the data frame (see the
+examples).</p>
 
 
-<p><code>q</code> are the transition intensities (at covariate values of zero)</p>
+<p>A string summarising a sample from the prior distribution, as a
+median and 95% equal-tailed credible interval, is given in the
+<code>prior</code> column.</p>
+
+
+<p>Transition intensities, or transformations of transition
+intensities, are those for covariate values of zero.</p>
 
 
 <p>Remaining parameters (in non-HMMs) are log hazard ratios for
@@ -92,22 +115,30 @@ covariate effects.</p>
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">infsim_model</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 2 × 5</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   name   from    to      value  rhat</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;rvar[1d]&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> q         1     2   0.3 <span style="color: #949494;">± NA</span>    <span style="color: #BB0000;">NA</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> q         2     1   2.1 <span style="color: #949494;">± NA</span>    <span style="color: #BB0000;">NA</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 4 × 6</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   name   from    to      value prior             rhat</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;rvar[1d]&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>            <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> q         1     2  0.67 <span style="color: #949494;">± NA</span> 0.14 (0.0031, 6)    <span style="color: #BB0000;">NA</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> q         2     1  3.86 <span style="color: #949494;">± NA</span> 0.14 (0.0031, 6)    <span style="color: #BB0000;">NA</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> mst       1    <span style="color: #BB0000;">NA</span>  1.50 <span style="color: #949494;">± NA</span> 7.4 (0.17, 326)     <span style="color: #BB0000;">NA</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> mst       2    <span style="color: #BB0000;">NA</span>  0.26 <span style="color: #949494;">± NA</span> 7.4 (0.17, 326)     <span style="color: #BB0000;">NA</span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">infsim_model</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   name from to rhat      mean    median sd mad        q5       q95 rhat</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1    q    1  2   NA 0.2953571 0.2953571 NA   0 0.2953571 0.2953571   NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2    q    2  1   NA 2.1351822 2.1351822 NA   0 2.1351822 2.1351822   NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ess_bulk ess_tail</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1       NA       NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2       NA       NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   name from to            prior rhat      mean    median sd mad        q5</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1    q    1  2 0.14 (0.0031, 6)   NA 0.6661110 0.6661110 NA   0 0.6661110</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2    q    2  1 0.14 (0.0031, 6)   NA 3.8606671 3.8606671 NA   0 3.8606671</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3  mst    1 NA  7.4 (0.17, 326)   NA 1.5012514 1.5012514 NA   0 1.5012514</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4  mst    2 NA  7.4 (0.17, 326)   NA 0.2590226 0.2590226 NA   0 0.2590226</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         q95 rhat ess_bulk ess_tail</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 0.6661110   NA       NA       NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2 3.8606671   NA       NA       NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3 1.5012514   NA       NA       NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4 0.2590226   NA       NA       NA</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">infsim_model</span><span class="op">)</span>, <span class="va">median</span>, <span class="op">~</span><span class="fu"><a href="https://rdrr.io/r/stats/quantile.html" class="external-link">quantile</a></span><span class="op">(</span><span class="va">.x</span>, <span class="fl">0.025</span>, <span class="fl">0.975</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   name from to rhat    median      2.5%</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1    q    1  2   NA 0.2953571 0.2953571</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2    q    2  1   NA 2.1351822 2.1351822</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   name from to            prior rhat    median      2.5%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1    q    1  2 0.14 (0.0031, 6)   NA 0.6661110 0.6661110</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2    q    2  1 0.14 (0.0031, 6)   NA 3.8606671 3.8606671</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3  mst    1 NA  7.4 (0.17, 326)   NA 1.5012514 1.5012514</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4  mst    2 NA  7.4 (0.17, 326)   NA 0.2590226 0.2590226</span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>
