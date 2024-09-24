@@ -6,11 +6,22 @@ inf_soj <- 10
 next_inf_time <- 180
 Qtrue <- rbind(c(-1/next_inf_time, 1/next_inf_time),
                c(1/inf_soj, -1/inf_soj))
-## Simulate from a phase-type model.  True states (1,(2,3)) map to observed (1,2)
+months <- 365.25/12
+(mst_mo <- c(10,180) / months)
+
+## Simulate from a phase-type model.  Time with infection has phasetype dist
+## True states (1,(2,3)) map to observed (1,2)
+## Short stay mean 0.16 months, long stay 1.25 months, equal probs.
+## not sure we can go analytically from msts and mix props to Q
+
 E2phase <- rbind(c(1, 0, 0), c(0, 1, 0),  c(0, 1, 0))
-Q2phase <- rbind(c(0, 0.1, 0),
-                 c(2, 0, 4),
-                 c(2, 0, 0))
+Q2phase <- rbind(c(0, 1/next_inf_time, 0),
+                 c(0.1, 0, 0.1),
+                 c(0.03, 0, 0))
+#Q_to_mst(Qtrue * months)
+#(res <- msmbayes:::Qphase_to_mix(Q2phase*months, nphase=c(1,2)))
+#res$mst
+
 nobs <- 36
 nsubj <- 100
 nobsall <- nobs * nsubj
