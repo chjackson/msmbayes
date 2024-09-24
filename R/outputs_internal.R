@@ -133,35 +133,53 @@ vecbycovs_to_df <- function(rvarmat, new_data){
   res |> select(-covid)
 }
 
-#' @param st integer
-#' @param qvec vector of rates in colwise order
-#' @return data frame.  number of rows is number of phases
+#' Convert transition intensities in a phase-type model to a mixture
+#' model representation
+#'
+#' @param state Integer state number
+#'
+#' @param qvec Vector of rates in colwise order.  Can be a numeric
+#'   vector or a vector of rvars
+#'
+#' @param tdat Phase-type model structure object, as returned by form_phasetrans
+#'
+#' @return Data frame with one row for each phase, and columns giving
+#'   the probability of belonging to each mixture component, and the
+#'   mean sojourn time of the corresponding sum-of-exponentials
+#'   distribution
+#'
 #' @noRd
-phase_mixture <- function(state, qvec, tdat){
+phase_mixture <- function(qvec, tdat, state){
+  nphases <- length(unique(tdat$qrow[tdat$oldfrom==state]))
+  arrprob <- mixprob <- mst <- rvarn_numeric(nphases, ndraws(qvec))
   progrates <- qvec[tdat$oldfrom==state & tdat$ttype=="prog"]
   nabs <- length(unique(tdat$oldto[tdat$oldfrom==state & tdat$ttype=="abs"]))
-  nphases <- length(unique(tdat$qrow[tdat$oldfrom==state]))
   absrates <- qvec[tdat$oldfrom==state & tdat$ttype=="abs"]
   dim(absrates) <- c(nphases, nabs)
-  arrprob <- mixprob <- mst <- rdo(numeric(nphases), ndraws=ndraws(qvec))
   arrprob[1] <- 1
   cum_mst <- 0
-  for (i in 2:nphases){
-    mst_phase <- 1 / (progrates[i-1] + rvar_sum(absrates[i-1,]))
-    mst[i-1] <- cum_mst + mst_phase
-    cum_mst <- cum_mst + mst_phase
-    progprob <- progrates[i-1] / (progrates[i-1] + rvar_sum(absrates[i-1,]))
-    arrprob[i] <- arrprob[i-1] * progprob
-    mixprob[i-1] <- arrprob[i-1] * (1 - progprob)
+  if (nphases==1){
+    mst <- 1/rvarn_sum(qvec[tdat$oldfrom==state])
+    ret <- data.frame(mixprob=1, mst=mst)
+  } else {
+    for (i in 2:nphases){
+      mst_phase <- 1 / (progrates[i-1] + rvarn_sum(absrates[i-1,]))
+      mst[i-1] <- cum_mst + mst_phase
+      cum_mst <- cum_mst + mst_phase
+      progprob <- progrates[i-1] / (progrates[i-1] + rvarn_sum(absrates[i-1,]))
+      arrprob[i] <- arrprob[i-1] * progprob
+      mixprob[i-1] <- arrprob[i-1] * (1 - progprob)
+    }
+    mixprob[nphases] <- arrprob[i]
+    mst[nphases] <- cum_mst + 1 / rvarn_sum(absrates[nphases,])
+    ret <- data.frame(mixprob, mst)
   }
-  mixprob[nphases] <- arrprob[i]
-  mst[nphases] <- cum_mst + 1 / rvar_sum(absrates[nphases,])
-  data.frame(mixprob, mst)
+  ret
 }
 
-mean_sojourn_phase <- function(qvec, state, qm) {
-  mx <- phase_mixture(state=state, qvec, tdat=qm$phasedata)
-  rvar_sum(mx$mixprob * mx$mst)
+mean_sojourn_phase <- function(qvec, tdat, state) {
+  mx <- phase_mixture(qvec, tdat, state)
+  rvarn_sum(mx$mixprob * mx$mst)
 }
 
 

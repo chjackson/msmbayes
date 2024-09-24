@@ -8,7 +8,8 @@
 #' @noRd
 form_phasetype <- function(nphase, Q, call=caller_env()){
   nphase <- check_nphase(nphase, Q, call)
-  if (is.null(nphase)) return(list(pdat=NULL, E=NULL, Efix=NULL, Qphase=Q))
+  if (is.null(nphase) || all(nphase==1))
+    return(list(phasetype=FALSE, pdat=NULL, E=NULL, Efix=NULL, Qphase=Q))
   pdat <- form_phasedata(nphase)
   E <- form_Ephase(nphase)
   Efix <- form_Efixphase(E)
@@ -21,6 +22,7 @@ form_phasetype <- function(nphase, Q, call=caller_env()){
 }
 
 check_nphase <- function(nphase, Q, call=caller_env()){
+  if (is.null(nphase)) return(NULL)
   if (!is.numeric(nphase))
     cli_abort(c("{.var nphase} should be numeric",
               "Supplied {.var nphase} of mode {mode(nphase)}"),
@@ -41,6 +43,9 @@ check_nphase <- function(nphase, Q, call=caller_env()){
 
 #' Form data frame describing a phase-type model structure
 #'
+#' One row per state.  Contrast with form_phasetrans, which returns
+#' one row per transition on the phased state space.
+#'
 #' @inheritParams phasetype_info
 #'
 #' @return A data frame with one row per state in the expanded
@@ -57,7 +62,8 @@ form_phasedata <- function(nphase){
   pdat$type <- ifelse(!pdat$phase, "markov",
                ifelse(duplicated(pdat$oldinds),
                       "laterphase", "firstphase"))
-  plabs <- ifelse(pdat$phase, paste0("p",sequence(nphase)), "")
+  pdat$phaseinds <- sequence(nphase)
+  plabs <- ifelse(pdat$phase, paste0("p",pdat$phaseinds), "")
   pdat$label <- paste0(pdat$oldinds, plabs)
   pdat
 }
@@ -173,7 +179,7 @@ phase_expand_qmodel <- function(qm, pm){
                 nqpars = sum(Qnew > 0),
                 qrow = row(Qnew)[Qnew > 0],
                 qcol = col(Qnew)[Qnew > 0])
-  qmnew$phasedata <- form_phasetrans(qmnew,pm)
+  qmnew$phasedata <- form_phasetrans(qmnew, pm$pdat)
   qmnew
 }
 
@@ -182,29 +188,59 @@ phase_expand_qmodel <- function(qm, pm){
 #' phase-type models.
 #'
 #' @noRd
-relabel_phase_states <- function(dat, draws){
+relabel_phase_states <- function(dat, draws, wide=TRUE){
   if (is_phasetype(draws)){
     pdat <- attr(draws, "pmodel")$pdat
-    if (!is.null(dat[["state"]]))
+    tdat <- attr(draws, "qmodel")$phasedata
+    if (!is.null(dat[["state"]])){
+      if (wide) {
+        dat[["stateobs"]] <- pdat$oldinds[dat[["state"]]]
+        dat[["statephase"]] <- pdat$phaseinds[dat[["state"]]]
+      }
       dat[["state"]] <- pdat$label[dat[["state"]]]
-    if (!is.null(dat[["from"]]))
+    }
+    if (!is.null(dat[["from"]])){
+      if (wide) {
+        dat[["fromobs"]] <- pdat$oldinds[dat[["from"]]]
+        dat[["toobs"]] <- pdat$oldinds[dat[["to"]]]
+        dat[["fromphase"]] <- pdat$phaseinds[dat[["from"]]]
+        dat[["tophase"]] <- pdat$phaseinds[dat[["to"]]]
+        dat[["ttype"]] <- tdat$ttype[tdat$qrow==dat[["from"]] & tdat$qcol==dat[["to"]]]
+      }
       dat[["from"]] <- pdat$label[dat[["from"]]]
-    if (!is.null(dat[["to"]]))
       dat[["to"]] <- pdat$label[dat[["to"]]]
+    }
   }
   dat
 }
 
-#' Label transitions in phase-type models as progression, absorption or
-#' neither (transition from a Markov state)
+#' Form phase-type data by transition.
 #'
+#' Contrast with phase-type data structure by state, as returned by
+#' `form_phasedata`.
+#'
+#' @param qm Transition data as a tidy data frame, as can be produced
+#'   from a raw transition intensity matrix Q by `form_qmodel`.
+#'
+#' @param pdat Phase-type data by state, as can be produced by
+#'   `form_phasedata` from a vector concatenating the number of phases
+#'   per state.
+#'
+#' @return Data frame with one row per transition intensity in the
+#'   phased space, indicating from-to state numbers on the
+#'   "old space", and from-to phase numbers.
+#'
+#'   Also includes an indicator for whether the transition is a
+#'   progression, absorption or neither (transition from Markov state)
+#'
+#' @md
 #' @noRd
-form_phasetrans <- function(qm, pm){
+form_phasetrans <- function(qm, pdat){
   tdat <- as.data.frame(qm[c("qrow","qcol")])
-  tdat$oldfrom <- pm$pdat$oldinds[tdat$qrow]
-  tdat$oldto <- pm$pdat$oldinds[tdat$qcol]
-  tdat$phasefrom <- pm$pdat$phase[qm$qrow]
-  tdat$phaseto <- pm$pdat$phase[qm$qcol]
+  tdat$oldfrom <- pdat$oldinds[tdat$qrow]
+  tdat$oldto <- pdat$oldinds[tdat$qcol]
+  tdat$phasefrom <- pdat$phase[qm$qrow]
+  tdat$phaseto <- pdat$phase[qm$qcol]
   tdat$ttype <- ifelse(tdat$phasefrom & tdat$phaseto, "prog",
                        ifelse(tdat$phasefrom, "abs", "markov"))
   tdat

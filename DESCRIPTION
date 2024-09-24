@@ -8,10 +8,11 @@ Description: Bayesian multi-state models for intermittently-observed data.  Mark
 License: GPL (>= 3)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.1
+RoxygenNote: 7.3.2
 Depends: 
     R (>= 4.1.0)
 Imports:
+    abind,
     dplyr,
     tidyr,
     magrittr,

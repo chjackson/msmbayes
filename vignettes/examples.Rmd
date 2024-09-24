@@ -253,6 +253,7 @@ For any priors for log hazard ratios not specified through `priors`, a default n
 
     * `fit_method="pathfinder"` implements a [variational approximation to the posterior](https://mc-stan.org/cmdstanr/reference/model-method-pathfinder.html).
 This is designed to be better than Laplace, and better than the standard variational method.  It runs much faster than MCMC in this case, and is used in the example above.
+However it is still based on a normal approximation that may not represent the true posterior shape.  If the approximation is poor, then a warning message referring to the "Pareto k value" will be printed when the model is fitted. 
 
     * `fit_method="variational"` runs quickly, similar to the Laplace method, but seems to give less nuanced posterior distributions than the Pathfinder method.
 

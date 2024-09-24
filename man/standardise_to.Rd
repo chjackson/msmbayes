@@ -37,7 +37,7 @@ for a heterogeneous population.
 nd <- data.frame(sex=c("female","male"))
 
 ## gender-specific outputs
-qdf(infsim_modelc, new_data = nd) 
+qdf(infsim_modelc, new_data = nd)
 
 ## averaged over men and women in the same proportions as are in `nd`
 ## in this case, `nd` has two rows, so we take a 50/50 average

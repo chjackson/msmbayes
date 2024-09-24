@@ -4,11 +4,11 @@
 
 It is similar to the [`msm`](https://chjackson.github.io/msm) package.  It supports the following models:
 
-* Markov models for intermittently-observed states
+* Markov models for intermittently-observed state data
 
-* Hidden Markov models for intermittently-observed, misclassified (discrete) states
+* Hidden Markov models for intermittently-observed, misclassified (discrete) state data
 
-* Phase-type semi-Markov models for intermittently-observed states
+* Phase-type semi-Markov models for intermittently-observed state data
 
 Models are fitted with Bayesian estimation, via any of the algorithms available in [Stan](http://mc-stan.org), whereas `msm` uses only maximum likelihood.
 
@@ -34,15 +34,15 @@ Models are fitted with Bayesian estimation, via any of the algorithms available 
 
 * Equality constraints and fixed parameters are not supported.  However, parameters can be constrained through their prior distributions.
 
-* Time-inhomogeneous models specified through `pci` in `msm()` are not supported.  However, models with time-varying intensities can still be specified through a "time" covariate, which assumes that intensities are constant between successive observations of the state. 
+* Time-inhomogeneous models specified through `pci` in `msm()` are not supported.  However, models with time-varying intensities can still be specified through a time-dependent covariate (e.g. time itself), which assumes that intensities are constant between successive observations of the state. 
 
 * Hidden Markov models with general outcome distributions are not supported.  The only HMMs supported are those where the observed state space is the same as (or a subset of) the true state space.  This includes misclassification and phase-type models.
 
-* Multivariate hidden Markov models are not supported
+* Multivariate hidden Markov models are not supported.
 
-* Fewer output functions
+* Fewer output functions.
 
-* More limited documentation and worked examples
+* More limited documentation and worked examples.
 
 
 ## Getting started

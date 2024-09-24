@@ -13,3 +13,4 @@ vignettes/examples*
 bin
 ^codecov\.yml$
 ^\.github$
+.Rprofile

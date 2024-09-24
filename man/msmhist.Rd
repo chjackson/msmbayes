@@ -24,9 +24,9 @@ the data.  This variable must either be an integer in 1,2,...,K,
 where K is the number of states, or a factor with these integers
 as level labels.}
 
-\item{time}{Character string naming the observation time variable in the data}
+\item{time}{Character string naming the observation time variable in the data.}
 
-\item{subject}{Character string naming the individual ID variable in the data}
+\item{subject}{Character string naming the individual ID variable in the data.}
 
 \item{nbins}{Number of time intervals to bin the state observations
 into.  The underlying distribution of states illustrated by the

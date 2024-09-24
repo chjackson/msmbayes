@@ -27,9 +27,9 @@ the data.  This variable must either be an integer in 1,2,...,K,
 where K is the number of states, or a factor with these integers
 as level labels.}
 
-\item{time}{Character string naming the observation time variable in the data}
+\item{time}{Character string naming the observation time variable in the data.}
 
-\item{subject}{Character string naming the individual ID variable in the data}
+\item{subject}{Character string naming the individual ID variable in the data.}
 
 \item{Q}{Matrix indicating the transition structure.  A zero entry
 indicates that instantaneous transitions from (row) to (column)

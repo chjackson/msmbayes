@@ -11,9 +11,9 @@
 #'   where K is the number of states, or a factor with these integers
 #'   as level labels.
 #'
-#' @param time Character string naming the observation time variable in the data
+#' @param time Character string naming the observation time variable in the data.
 #'
-#' @param subject Character string naming the individual ID variable in the data
+#' @param subject Character string naming the individual ID variable in the data.
 #'
 #' @param Q Matrix indicating the transition structure.  A zero entry
 #'   indicates that instantaneous transitions from (row) to (column)
@@ -107,13 +107,11 @@ msmbayes <- function(data, state, time, subject,
                      ...){
   qm <- form_qmodel(Q)
 
-  if (!is.null(nphase)){
-    pm <- form_phasetype(nphase, Q)
+  pm <- form_phasetype(nphase, Q)
+  if (pm$phasetype){
     qm <- phase_expand_qmodel(qm, pm)
     E <- pm$E
-  } else {
-    pm <- list(phasetype=FALSE, pdat=NULL)
-  }
+  } 
   em <- form_emodel(E, pm$Efix)
 
   check_data(data, state, time, subject, qm) 

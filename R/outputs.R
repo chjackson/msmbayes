@@ -70,7 +70,7 @@ qdf <- function(draws, new_data=NULL){
     mutate(from = qm$qrow[vecid],
            to = qm$qcol[vecid]) |>
     select(-vecid) |>
-    relabel_phase_states(draws) |> 
+    relabel_phase_states(draws) |>
     arrange(from,to) |>
     relocate(from, to, value)
 }
@@ -105,7 +105,7 @@ edf <- function(draws){
 #'
 #' @param t prediction time or vector of prediction times
 #'
-#' @return Array or matrix of `rvar` objects giving the transition probability matrix at each requested prediction time and covariate value.  See \code{\link{qdf}} for notes on the `rvar` format. 
+#' @return Array or matrix of `rvar` objects giving the transition probability matrix at each requested prediction time and covariate value.  See \code{\link{qdf}} for notes on the `rvar` format.
 #'
 #' @importFrom tidybayes tidy_draws gather_rvars
 #' @importFrom dplyr pull
@@ -113,7 +113,7 @@ edf <- function(draws){
 #' @importFrom posterior rfun
 #'
 #' @seealso \code{\link{pmatrixdf}} returns the same information in a tidy
-#' data frame format.  
+#' data frame format.
 #'
 #' @md
 #' @export
@@ -195,10 +195,10 @@ mean_sojourn <- function(draws, new_data=NULL, by_phase=TRUE){
   pm <- attr(draws, "pmodel")
   qm <- attr(draws, "qmodel")
   ncovvals <- dim(Q)[1]
-  nstates <- if (by_phase) qm$K else pm$nstates_orig
+  nstates <- if (by_phase || !is_phasetype(draws)) qm$K else pm$nstates_orig
   mst <- rdo(matrix(nrow=ncovvals, ncol=nstates), ndraws=ndraws(Q))
   for (i in 1:ncovvals){
-    if (by_phase)
+    if (by_phase || !is_phasetype(draws))
       mst[i,] <- -1 / diag(Q[i,,,drop=TRUE])
     else {
       for (j in pm$unphased_states){
@@ -206,7 +206,7 @@ mean_sojourn <- function(draws, new_data=NULL, by_phase=TRUE){
         mst[i,j] <- -1 / Q[i,jnew,jnew,drop=TRUE]
       }
       for (j in pm$phased_states)
-        mst[i,j] <- mean_sojourn_phase(qvec[i,],j,qm)
+        mst[i,j] <- mean_sojourn_phase(qvec[i,], qm$phasedata, j)
     }
   }
   mst <- vecbycovs_to_df(mst, new_data) |>
@@ -285,7 +285,7 @@ summary.msmbres <- function(object, ...){
 #'
 #' See [msm::totlos.msm()] for the theory behind the method used to
 #' calculate this.  The analytic formula is used, not numerical integration.
-#' 
+#'
 #' @inheritParams qmatrix
 #'
 #' @param t End point of the time interval over which to measure
@@ -330,7 +330,7 @@ totlos <- function(draws, t, new_data=NULL, fromt=0, pstart=NULL, discount=0){
     select(-vecid)
 }
 
-#' Constructor for a standardising population used for model 
+#' Constructor for a standardising population used for model
 #' outputs
 #'
 #' Standardised outputs are outputs from models with covariates, that
@@ -351,15 +351,15 @@ totlos <- function(draws, t, new_data=NULL, fromt=0, pstart=NULL, discount=0){
 #' probability) to this sample produces a sample from the posterior of
 #' \eqn{\int g(\theta|X) dX}: the average transition probability (say)
 #' for a heterogeneous population.
-#' 
+#'
 #' @aliases standardize_to
 #'
-#' @examples 
+#' @examples
 #'
 #' nd <- data.frame(sex=c("female","male"))
 #'
 #' ## gender-specific outputs
-#' qdf(infsim_modelc, new_data = nd) 
+#' qdf(infsim_modelc, new_data = nd)
 #'
 #' ## averaged over men and women in the same proportions as are in `nd`
 #' ## in this case, `nd` has two rows, so we take a 50/50 average

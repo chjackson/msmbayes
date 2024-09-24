@@ -8,7 +8,7 @@
 #' 
 #' @name msmbayes-package
 #' @importFrom stats delete.response na.omit reshape setNames terms quantile runif qnorm
-#' @importFrom posterior as_draws as_draws_matrix rhat ess_bulk rvar ndraws rvar_sum "%**%" rdo rvar_sum draws_of merge_chains
+#' @importFrom posterior as_draws as_draws_matrix rhat ess_bulk rvar ndraws rvar_sum "%**%" rdo rvar_sum draws_of merge_chains is_rvar
 #' @importFrom cli cli_abort cli_warn qty cli_progress_bar cli_progress_update cli_progress_done
 #' @importFrom glue glue
 #' @importFrom rlang caller_env .data
@@ -17,6 +17,7 @@
 #' @importFrom tidyr pivot_longer
 #' @importFrom utils head
 #' @importFrom stringr str_match
+#' @importFrom abind abind
 #'
 #' @md
 "_PACKAGE"

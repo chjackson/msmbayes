@@ -1,5 +1,7 @@
 #' @return List of information about the transition structure
 #'
+#' (TODO document fully)
+#'
 #' @noRd
 form_qmodel <- function(Q,Qfix=NULL){
   check_Q(Q)
@@ -14,14 +16,14 @@ form_qmodel <- function(Q,Qfix=NULL){
   } else {
     qfixrow <- qfixcol <- qfix <- as.array(numeric(0))
   }
+  qrow <- row(Q)[Q>0]
+  qcol <- col(Q)[Q>0]
+  qvec <- Q[cbind(qrow,qcol)]
   list(
-    Q = Q,
-    K = nrow(Q),
+    Q = Q, K = nrow(Q),
+    qvec = qvec, qrow=qrow, qcol=qcol,
     nqpars = length(Q[Q>0]),
-    qrow = row(Q)[Q>0],
-    qcol = col(Q)[Q>0],
-    qfixrow = qfixrow,
-    qfixcol = qfixcol,
+    qfixrow = qfixrow, qfixcol = qfixcol,
     qfix = qfix
   )
 }
@@ -88,4 +90,51 @@ transient_states <- function(qm){
 
 absorbing_states <- function(qm){
   which(rowSums(qm$Q) == 0)
+}
+
+
+## Utilities for transition intensity matrices without reference to
+## msmbayes
+
+## Mean sojourn time 
+Q_to_mst <- function(Q){
+  diag(Q) <- 0
+  1 / rowSums(Q)
+}
+
+##' Convert phase-type transition intensities to mixture representation
+##'
+##' A higher-level wrapper around `phase_mixture` which does the core calculation
+
+##' Currently unused and untested
+##'
+##' @param Qphase Intensity matrix on phased space
+##'
+##' @param nphase Numeric vector concatenating number of phases per state
+##'
+##' @return List with the components:
+##'
+##' \code{mix}: Mixture probs and mean sojourn times conditional on mixture component, from \code{\link{phase_mixture}}
+##'
+##' \code{mst}: Marginal mean sojourn times
+##'
+##'
+##' @noRd
+Qphase_to_mix <- function(Qphase, nphase){
+  K <- sum(nphase)
+  stopifnot(nrow(Qphase)==K && ncol(Qphase)==K && K>0)
+  qm <- form_qmodel(Qphase)
+  pdat <- form_phasedata(nphase)
+  tdat <- form_phasetrans(qm, pdat)
+  mix <- list()
+  mst <- numeric()
+  for (i in seq_along(nphase)){
+    mix[[i]] <-  cbind(
+      state = i,
+      phase = seq(nphase[i]),
+      phase_mixture(qm$qvec, tdat, i)
+    )
+    mst[[i]] <- rvarn_sum(mix[[i]]$mixprob * mix[[i]]$mst)
+  }
+  list(mix=do.call("rbind",mix), mst=mst)
 }

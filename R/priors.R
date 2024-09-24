@@ -206,6 +206,12 @@ extraneous_covname_error <- function(res){
               "It is the (log) hazard ratio parameters that require covariate effect names"))
 }
 
+.default_priors <- list(
+  ## currently must be normal priors, can't change family.
+  logq = list(mean=-2, sd=2),
+  loghr = list(mean=0, sd=10)
+) 
+
 #' Assemble prior parameters as data to be passed to Stan
 #'
 #' @param priors list of objects created by `msmprior`
@@ -214,10 +220,10 @@ extraneous_covname_error <- function(res){
 #'
 #' @noRd
 process_priors <- function(priors, qm, cm=NULL){
-  logqmean <- rep(-2, qm$nqpars)
-  logqsd <- rep(2, qm$nqpars)
-  loghrmean <- rep(0, cm$nx)
-  loghrsd <- rep(10, cm$nx)
+  logqmean <- rep(.default_priors$logq$mean, qm$nqpars)
+  logqsd <- rep(.default_priors$logq$sd, qm$nqpars)
+  loghrmean <- rep(.default_priors$loghr$mean, cm$nx)
+  loghrsd <- rep(.default_priors$loghr$sd, cm$nx)
 
   if (inherits(priors, "msmprior"))
     priors <- list(priors)
