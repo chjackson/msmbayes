@@ -35,7 +35,8 @@ expm_gen2 <- function(d1, d2, p1){
   e1 <- exp(d1); e2 <- exp(d2)
   if (any(cn))
     res[,cn,] <- abind::abind(
-      cbind(exp(-d1), (exp(-d2)*(e2-e1)*p1)/(e1*d2-d1*e1)),
+      cbind(exp(-d1), 
+           (exp(-d2)*(e2/e1 - 1)*p1)/(d2 - d1)), # edited to avoid overflow.  Similar changes likely to be needed for gen3, gen4, gen5 
       cbind(0, exp(-d2)),
       along=0
     )
