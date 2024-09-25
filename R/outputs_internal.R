@@ -151,7 +151,8 @@ vecbycovs_to_df <- function(rvarmat, new_data){
 #' @noRd
 phase_mixture <- function(qvec, tdat, state){
   nphases <- length(unique(tdat$qrow[tdat$oldfrom==state]))
-  arrprob <- mixprob <- mst <- rvarn_numeric(nphases, ndraws(qvec))
+  nd <- if (is_rvar(qvec)) ndraws(qvec) else NULL # can we use this elsewhere? if so put inside rvarn_numeric
+  arrprob <- mixprob <- mst <- rvarn_numeric(nphases, nd)
   progrates <- qvec[tdat$oldfrom==state & tdat$ttype=="prog"]
   nabs <- length(unique(tdat$oldto[tdat$oldfrom==state & tdat$ttype=="abs"]))
   absrates <- qvec[tdat$oldfrom==state & tdat$ttype=="abs"]

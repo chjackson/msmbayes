@@ -96,7 +96,7 @@ absorbing_states <- function(qm){
 ## Utilities for transition intensity matrices without reference to
 ## msmbayes
 
-## Mean sojourn time 
+## Mean sojourn time
 Q_to_mst <- function(Q){
   diag(Q) <- 0
   1 / rowSums(Q)
@@ -105,8 +105,6 @@ Q_to_mst <- function(Q){
 ##' Convert phase-type transition intensities to mixture representation
 ##'
 ##' A higher-level wrapper around `phase_mixture` which does the core calculation
-
-##' Currently unused and untested
 ##'
 ##' @param Qphase Intensity matrix on phased space
 ##'
@@ -118,7 +116,6 @@ Q_to_mst <- function(Q){
 ##'
 ##' \code{mst}: Marginal mean sojourn times
 ##'
-##'
 ##' @noRd
 Qphase_to_mix <- function(Qphase, nphase){
   K <- sum(nphase)
@@ -127,14 +124,14 @@ Qphase_to_mix <- function(Qphase, nphase){
   pdat <- form_phasedata(nphase)
   tdat <- form_phasetrans(qm, pdat)
   mix <- list()
-  mst <- numeric()
+  mst <- numeric(length(nphase))
   for (i in seq_along(nphase)){
     mix[[i]] <-  cbind(
       state = i,
       phase = seq(nphase[i]),
       phase_mixture(qm$qvec, tdat, i)
     )
-    mst[[i]] <- rvarn_sum(mix[[i]]$mixprob * mix[[i]]$mst)
+    mst[i] <- rvarn_sum(mix[[i]]$mixprob * mix[[i]]$mst)
   }
   list(mix=do.call("rbind",mix), mst=mst)
 }
