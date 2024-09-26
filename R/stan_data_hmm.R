@@ -9,7 +9,8 @@
 #'
 #' @noRd
 make_stan_obsdata <- function(dat, qm=NULL, cm=NULL,
-                              em=NULL, pm=NULL, priors=NULL){
+                              em=NULL, pm=NULL, priors=NULL,
+                              soj_priordata=NULL){
   na_code <- 0 # keep Stan happy
   dat$timelag <- c(na_code, diff(dat[["time"]]))
   dat$timelag[!duplicated(dat[["subject"]])] <- na_code
@@ -57,6 +58,6 @@ make_stan_obsdata <- function(dat, qm=NULL, cm=NULL,
     xend = as.array(cm$xend),
     X = Xuniq
   )
-  standat <- c(standat, priors)
+  standat <- c(standat, priors, soj_priordata)
   standat
 }

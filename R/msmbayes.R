@@ -58,11 +58,13 @@
 #' 0 and SD 10 for log hazard ratios).
 #'
 #' If only one parameter is given a non-default prior, a single msmprior
-#' call can be supplied here instead of a list. 
-#' 
+#' call can be supplied here instead of a list.
+#'
+#' @param soj_priordata Synthetic data that represents prior information
+#' about the mean sojourn time.  Experimental feature, currently undocumented.
 #'
 #' @param nphase For phase-type models, this is a vector with one
-#'   element per state, giving the number of phases per state.  This 
+#'   element per state, giving the number of phases per state.  This
 #'   element is 1 for states that do not have phase-type sojourn distributions.
 #'   Not required for non-phase-type models.
 #'
@@ -82,7 +84,7 @@
 #'
 #' @return A data frame in the \code{draws} format of the
 #'   \pkg{posterior} package, containing draws from the posterior of
-#'   the model parameters.  
+#'   the model parameters.
 #'
 #' Attributes are added to give information about the model structure,
 #' and a class `"msmbayes"` is appended.
@@ -98,10 +100,11 @@
 #' @md
 #' @export
 msmbayes <- function(data, state, time, subject,
-                     Q, E=NULL, 
+                     Q, E=NULL,
                      covariates=NULL,
                      nphase=NULL,
                      priors=NULL,
+                     soj_priordata=NULL,
                      fit_method = "sample",
                      keep_data = FALSE,
                      ...){
@@ -111,25 +114,29 @@ msmbayes <- function(data, state, time, subject,
   if (pm$phasetype){
     qm <- phase_expand_qmodel(qm, pm)
     E <- pm$E
-  } 
+  }
   em <- form_emodel(E, pm$Efix)
 
-  check_data(data, state, time, subject, qm) 
+  check_data(data, state, time, subject, qm)
   cm <- form_covariates(covariates, data, qm)
   data <- clean_data(data, state, time, subject, cm$X)
   stanpriors <- process_priors(priors, qm, cm)
+  soj_priordata <- form_soj_priordata(soj_priordata)
 
   if (is.null(E)){
-    standat <- make_stan_aggdata(dat=data, qm=qm, cm=cm, priors=stanpriors)
+    standat <- make_stan_aggdata(dat=data, qm=qm, cm=cm,
+                                 priors=stanpriors, soj_priordata=soj_priordata)
     stanmod <- msmbayes_stan_model("msm")
   } else {
     standat <- make_stan_obsdata(dat=data, qm=qm, cm=cm,
-                                 em=em, pm=pm, priors=stanpriors)
+                                 em=em, pm=pm, priors=stanpriors,
+                                 soj_priordata=soj_priordata)
     stanmod <- msmbayes_stan_model("hmm")
   }
 
   if (!fit_method %in% c("sample","optimize","laplace","variational","pathfinder"))
     cli_abort("Unknown fit_method")
+
   fit <- stanmod[[fit_method]](data=standat, ...)
 
   res <- posterior::as_draws_df(fit) # priorsense doesn't like us merging chains of draws_array
@@ -216,7 +223,7 @@ print.msmbayes <- function(x,...){
 summary.msmbayes <- function(object,log=FALSE,time=FALSE,...){
   name <- from <- to <- value <- NULL
   names <- if (log) c(q="logq",hr="loghr") else c(q="q",hr="hr")
-  qres <- qdf(object, ...) 
+  qres <- qdf(object, ...)
   if (time) {
     names["q"] <- "time"
     qres$value <- 1/qres$value
@@ -252,7 +259,7 @@ summary.msmbayes <- function(object,log=FALSE,time=FALSE,...){
 }
 
 has_covariates <- function(draws){
-  attr(draws,"cm")$nx > 0 
+  attr(draws,"cm")$nx > 0
 }
 
 is_phasetype <- function(draws){

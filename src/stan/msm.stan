@@ -64,6 +64,14 @@ data {
   matrix[ncovind,nx] X;              // all model matrices, column-binded together and keeping only distinct rows
   array[nx] real loghrmean;        // mean of normal prior on covariate effects
   array[nx] real<lower=0> loghrsd; // sd of normal prior on covariate effects
+
+  // Prior pseudo-data for sojourn distribution
+  int<lower=0> nsoj;
+  array[nsoj] int<lower=0> sojy; // number of people remaining in state s by time t
+  array[nsoj] int<lower=0> sojn; // ...out of this denominator in state s at time 0
+  array[nsoj] int<lower=1> sojstate; // state s
+  array[nsoj] real<lower=0> sojtime;    // time t
+  array[nsoj] int<lower=1,upper=ncovind> sojtlcid; // index of covariate value (etc) for these people. TODO harmonise with hmm.stan
 }
 
 parameters {
@@ -117,6 +125,17 @@ transformed parameters {
       probs = validate_probs(to_vector(P[fromstate[i],]));
       loglik += multinomial_lpmf(ntostate[i,] | probs);
     }  
+
+    if (nsoj > 0){
+      matrix[K,K] Ptmp;
+      real sprob;
+      for (i in 1:nsoj){
+	Ptmp = matrix_exp(Q[sojtlcid[i],,]*sojtime[i]);
+	sprob = Ptmp[sojstate[i],sojstate[i]];
+	loglik += binomial_lpmf(sojy[i] | sojn[i], sprob);
+      }
+    }  
+
   }
 }
 
@@ -130,4 +149,5 @@ model {
     }
   }
   target += loglik;
+  
 }

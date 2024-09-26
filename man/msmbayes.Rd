@@ -14,6 +14,7 @@ msmbayes(
   covariates = NULL,
   nphase = NULL,
   priors = NULL,
+  soj_priordata = NULL,
   fit_method = "sample",
   keep_data = FALSE,
   ...
@@ -80,6 +81,9 @@ with mean -2 and SD 2 for log intensities, and normal with mean
 
 If only one parameter is given a non-default prior, a single msmprior
 call can be supplied here instead of a list.}
+
+\item{soj_priordata}{Synthetic data that represents prior information
+about the mean sojourn time.  Experimental feature, currently undocumented.}
 
 \item{fit_method}{Quoted name of a function from the \code{cmdstanr}
 package specifying the algorithm to fit the model.  The default
