@@ -60,7 +60,7 @@
 ##' Example fitted model objects used for testing msmbayes
 ##'
 ##' @name example_models
-##' @aliases infsim_model infsim_modelc
+##' @aliases infsim_model infsim_modelc infsim_modelp infsim_modelpc
 ##' 
 ##' @format An object of class \code{msmbayes}, obtained by fitting a
 ##'   Markov model to the dataset \code{\link{infsim}}.  See
@@ -75,6 +75,14 @@
 ##' @format \code{infsim_modelc} includes covariates on the transition
 ##' intensities.
 "infsim_modelc"
+
+##' @rdname example_models
+##' @format \code{infsim_modelp} is a phase-type model.
+"infsim_modelp"
+
+##' @rdname example_models
+##' @format \code{infsim_modelpc} is a phase-type model with covariates.
+"infsim_modelpc"
 
 ##' @rdname example_models
 ##' @format \code{cav_misc} is the misclassification model fitted to the CAV data from msm in the "Advanced multi-state models in msmbayes" vignette.

@@ -3,24 +3,23 @@
 library(tidyverse)
 
 inf_soj <- 10
-next_inf_time <- 180
-Qtrue <- rbind(c(-1/next_inf_time, 1/next_inf_time),
+next_inf_days <- 180
+Qtrue <- rbind(c(-1/next_inf_days, 1/next_inf_days),
                c(1/inf_soj, -1/inf_soj))
 months <- 365.25/12
 (mst_mo <- c(10,180) / months)
 
 ## Simulate from a phase-type model.  Time with infection has phasetype dist
 ## True states (1,(2,3)) map to observed (1,2)
-## Short stay mean 0.16 months, long stay 1.25 months, equal probs.
-## not sure we can go analytically from msts and mix props to Q
-
 E2phase <- rbind(c(1, 0, 0), c(0, 1, 0),  c(0, 1, 0))
-Q2phase <- rbind(c(0, 1/next_inf_time, 0),
+Q2phase <- rbind(c(0, 1/next_inf_days, 0),
                  c(0.1, 0, 0.1),
                  c(0.03, 0, 0))
+
+## These values imply short stay mean 0.16 months, long stay 1.25 months, equal probs: To check this, do,
+#msmbayes:::Qphase_to_mix(Q2phase*months, nphase=c(1,2))
+#Compare with the MST from the non-phasetype model
 #Q_to_mst(Qtrue * months)
-#(res <- msmbayes:::Qphase_to_mix(Q2phase*months, nphase=c(1,2)))
-#res$mst
 
 nobs <- 36
 nsubj <- 100
@@ -61,8 +60,8 @@ dat2 <- dat |>
   filter(subject < min(subject)+10,
          days < 500)
 inf_soj <- 10
-next_inf_time <- 60
-Qfast <- rbind(c(-1/next_inf_time, 1/next_inf_time),
+next_inf_days <- 60
+Qfast <- rbind(c(-1/next_inf_days, 1/next_inf_days),
                c(1/inf_soj, -1/inf_soj))
 set.seed(1)
 infsim2 <- msm::simmulti.msm(data=dat2, qmatrix=Qfast)
@@ -84,8 +83,17 @@ infsim_model <- msmbayes(dat = infsim2, state="state", time="months", subject="s
 infsim_modelc <- msmbayes(dat = infsim2, state="state", time="months", subject="subject", Q=infsimQ,
                         covariates=list(Q(1,2) ~ sex), fit_method = "optimize")
 
+infsim_modelp <- msmbayes(dat = infsim2, state="statep", time="months", subject="subject", Q=infsimQ,
+                          nphase = c(1,2), fit_method = "optimize")
+
+infsim_modelpc <- msmbayes(dat = infsim2, state="statep", time="months", subject="subject", Q=infsimQ,
+                          nphase = c(1,2),
+                          covariates=list(Q(1,2) ~ sex), fit_method = "optimize")
+
 usethis::use_data(infsim_model, overwrite=TRUE)
 usethis::use_data(infsim_modelc, overwrite=TRUE)
+usethis::use_data(infsim_modelp, overwrite=TRUE)
+usethis::use_data(infsim_modelpc, overwrite=TRUE)
 
 Qcav <- rbind(c(0, 1, 0, 1),
               c(0, 0, 1, 1),
