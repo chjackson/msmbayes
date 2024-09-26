@@ -37,6 +37,7 @@
 
 ##' @rdname nphase
 ##' @aliases dnphase
+##' @export
 dnphase <- function(x, prate, arate, method="analytic"){
   pars <- vectorise_nphase(x, prate, arate)
   ret <- numeric(length(pars$x))
@@ -61,6 +62,7 @@ dnphase <- function(x, prate, arate, method="analytic"){
 
 ##' @rdname nphase
 ##' @aliases pnphase
+##' @export
 pnphase <- function(x, prate, arate, method="analytic"){
   pars <- vectorise_nphase(x, prate, arate)
   ret <- numeric(length(pars$x))
@@ -88,6 +90,7 @@ pnphase <- function(x, prate, arate, method="analytic"){
 
 ##' @rdname nphase
 ##' @aliases hnphase
+##' @export
 hnphase <- function(x, prate, arate, method="analytic"){
   dnphase(x, prate, arate, method=method) / (1 - pnphase(x, prate, arate, method=method))
 }
