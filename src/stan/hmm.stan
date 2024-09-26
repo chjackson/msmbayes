@@ -45,6 +45,14 @@ data {
   matrix[ntlc,nx] X;              // all model matrices, column-binded together and keeping only rows corresponding to distinct (timelag, covariates)
   array[nx] real loghrmean;        // mean of normal prior on covariate effects
   array[nx] real<lower=0> loghrsd; // sd of normal prior on covariate effects
+
+  // Prior pseudo-data for sojourn distribution
+  int<lower=0> nsoj;
+  array[nsoj] int<lower=0> sojy; // number of people remaining in state s by time t
+  array[nsoj] int<lower=0> sojn; // ...out of this denominator in state s at time 0
+  array[nsoj] int<lower=1> sojstate; // state s
+  array[nsoj] real<lower=0> sojtime;    // time t
+  array[nsoj] int<lower=1,upper=ntlc> sojtlcid; // index of covariate value (etc) for these people
 }
 
 parameters {
@@ -124,6 +132,17 @@ model {
   }
   //  print("minus2loglik: ", -2*loglik);
   target += loglik;
+
+  if (nsoj > 0){
+    matrix[K,K] Ptmp;
+    real sprob;
+    for (i in 1:nsoj){
+      Ptmp = matrix_exp(Q[sojtlcid[i],,]*sojtime[i]);
+      sprob = Ptmp[sojstate[i],sojstate[i]];
+      sojy[i] ~ binomial(sojn[i], sprob);
+    }
+  }  
+
 } 
 
 // log_sum_exp(u, v) = log(exp(u) + exp(v))
