@@ -43,7 +43,7 @@ qvector <- function(draws, new_data=NULL, X=NULL){
 }
 
 logq_add_covs <- function(logq, loghr, new_data, X, draws){
-  ## TODO for getting the prior .  Support this, or just summary() for now? 
+  ## TODO for getting the prior .  Support this, or just summary() for now?
 }
 
 check_X <- function(X,draws){
@@ -101,7 +101,7 @@ qvec_rvar_to_Q <- function(qvec, qm){
 
 qvec_rvar_to_mst <- function(qvec, qm){
   Q <- qvec_rvar_to_Q(qvec, qm)
-  -1 / diag(Q)  
+  -1 / diag(Q)
 }
 
 #' @param rvarmat An rvar matrix with one row per covariate value.
@@ -129,8 +129,7 @@ vecbycovs_to_df <- function(rvarmat, new_data){
   if (!is.null(new_data) && !isTRUE(attr(new_data, "std")))
     res <- res |>
       left_join(new_data |> mutate(covid=1:n()), by="covid")
-  class(res) <- c("msmbres", class(res))
-  res |> select(-covid)
+  as_msmbres(res) |> select(-covid)
 }
 
 #' Convert transition intensities in a phase-type model to a mixture
@@ -207,4 +206,48 @@ new_data_to_X <- function(new_data, draws, call=caller_env()){
   }
   X <- as.matrix(do.call("cbind", X))
   X
+}
+
+
+soj_prob_phase <- function(draws, t, state, new_data=NULL){
+  fromobs <- ttype <- value <- covid <- NULL
+  qphase <- qdf(draws, new_data=new_data) |> filter(fromobs==state)
+  arate <- qphase |> filter(ttype=="abs") |> pull(value) |> draws_of()
+  prate <- qphase |> filter(ttype=="prog") |> pull(value) |> draws_of()
+  ntimes <- length(t)
+  ncovvals <- max(NROW(new_data), 1)
+  surv <- array(0, dim=c(ndraws(draws), ncovvals, ntimes))
+  for (i in 1:ntimes){
+    for (j in 1:ncovvals){
+      covid_p <- rep(1:ncovvals, length.out=ncol(prate))
+      covid_a <- rep(1:ncovvals, length.out=ncol(arate))
+      surv[,j,i] <- 1 - pnphase(t[i], prate[,covid_p==j], arate[,covid_a==j])
+    }
+  }
+  res <- data.frame(time = rep(t, ncovvals),
+                    value = as.vector(rvar(surv))) |>
+    as_msmbres()
+  if (!is.null(new_data))
+    res <- res |>
+      mutate(covid = rep(1:ncovvals, each=ntimes)) |>
+      left_join(new_data |> mutate(covid=1:n()), by="covid") |>
+      select(-covid)
+  res
+}
+
+soj_prob_nonphase <- function(draws, t, state, new_data=NULL){
+  vecid <- NULL
+  qv <- - qmatrix(draws, new_data=new_data, drop=FALSE)[, state, state] |> draws_of()
+  ntimes <- length(t)
+  ncovvals <- dim(qv)[2]
+  surv <- array(0, dim=c(ndraws(draws), ncovvals, ntimes))
+  for (i in 1:ntimes){
+    surv[,,i] <- pexp(t[i], rate = qv, lower.tail=FALSE)
+  }
+  res <- rvar(surv) |>
+    vecbycovs_to_df(new_data) |>
+    mutate(time = t[vecid]) |>
+    select(-vecid) |>
+    as_msmbres()
+  res
 }

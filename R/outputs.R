@@ -165,8 +165,8 @@ pmatrixdf <- function(draws, t=1, new_data=NULL){
   if (!is.null(new_data))
     pdf <- pdf |>
       left_join(new_data |> mutate(covid=1:n()), by="covid")
-  class(pdf) <- c("msmbres", class(pdf))
   pdf |>
+    as_msmbres() |> 
     select(-covid) |>
     relabel_phase_states(draws)
 }
@@ -250,8 +250,7 @@ loghr <- function(draws){
            name = cm$Xnames) |>
     select(from, to, name, value) |>
     relabel_phase_states(draws)
-  class(loghr) <- c("msmbres", class(loghr))
-  loghr
+  as_msmbres(loghr)
 }
 
 #' Hazard ratios for covariates on transition intensities
@@ -279,6 +278,14 @@ summary.msmbres <- function(object, ...){
   cbind(object, summ_df)
 }
 
+#' Convert to "msmbayes result" class
+#' so we can use summary.msmbres
+#' 
+#' @noRd
+as_msmbres <- function(object){
+  class(object) <- c("msmbres", class(object))
+  object
+}
 
 
 #' Total length of stay in each state over an interval
@@ -374,3 +381,27 @@ standardise_to <- function(new_data){
 #' @rdname standardise_to
 #' @export
 standardize_to <- standardise_to
+
+
+##' Sojourn probability in a state of a msmbayes model
+##'
+##' @inheritParams qmatrix
+##'
+##' @param t Time since state entry
+##'
+##' @param state State of interest (integer)
+##'
+##' @return A data frame with column `value` giving the probability of
+##'   remaining in `state` by time `t` since state entry, as an `rvar`
+##'   object. Other columns give the time and any covariate values.
+##'
+##' See \code{\link{qdf}} for notes on the `rvar` format.
+##'
+##' @md 
+##' @export
+soj_prob <- function(draws, t, state, new_data=NULL){
+  if (is_phasetype(draws))
+    soj_prob_phase(draws, t, state, new_data)
+  else
+    soj_prob_nonphase(draws, t, state, new_data)
+}
