@@ -205,7 +205,8 @@ relabel_phase_states <- function(dat, draws, wide=TRUE){
         dat[["toobs"]] <- pdat$oldinds[dat[["to"]]]
         dat[["fromphase"]] <- pdat$phaseinds[dat[["from"]]]
         dat[["tophase"]] <- pdat$phaseinds[dat[["to"]]]
-        dat[["ttype"]] <- tdat$ttype[tdat$qrow==dat[["from"]] & tdat$qcol==dat[["to"]]]
+        dat[["ttype"]] <-
+          tdat$ttype[match(paste(dat$from,dat$to), paste(tdat$qrow,tdat$qcol))]
       }
       dat[["from"]] <- pdat$label[dat[["from"]]]
       dat[["to"]] <- pdat$label[dat[["to"]]]
