@@ -127,7 +127,9 @@ form_Efixphase <- function(Ephase){
 #'
 #' @param pdat Data frame returned from \code{form_phasedata}.
 #'
-#' @return Q matrix on the expanded state space
+#' @return Q matrix on the expanded state space.   The initial values
+#' are currently not used (Stan chooses these based on the priors), but
+#' the 0/1 structure is used to define the allowed transitions
 #'
 #' @noRd
 form_Qphase <- function(Q, nphase, pdat, call=caller_env()){
@@ -159,7 +161,7 @@ form_Qphase <- function(Q, nphase, pdat, call=caller_env()){
   tophase <- matrix(pdat$phase[col(Qnew)], nrow=nstnew)
   prog_inds <- fromphase & tophase &
     fromoldind==tooldind  &
-    row(Qnew) < col(Qnew)
+    row(Qnew) + 1 == col(Qnew)
 
   ## Initial value for progression rates set to transition rate out of phased state * number of phases
   diag(Q) <- 0
