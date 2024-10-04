@@ -5,7 +5,9 @@
 \alias{dnphase}
 \alias{pnphase}
 \alias{hnphase}
-\title{Density, probability distribution and hazard functions for the Coxian
+\alias{rnphase}
+\title{Density, probability distribution, hazard and random
+number generation functions for the Coxian
 phase-type distribution with any number of phases.}
 \usage{
 dnphase(x, prate, arate, method = "analytic")
@@ -13,6 +15,8 @@ dnphase(x, prate, arate, method = "analytic")
 pnphase(x, prate, arate, method = "analytic")
 
 hnphase(x, prate, arate, method = "analytic")
+
+rnphase(n, prate, arate)
 }
 \arguments{
 \item{x}{Value at which to evaluate the PDF, CDF, or hazard.}
@@ -28,12 +32,15 @@ analytic solution to the matrix exponential is employed in the
 calculation.  For \code{nphase} 6 or more, or if \code{method="mexp"} the
 matrix exponential is determined using numerical methods, via
 \code{expm::expm()}.}
+
+\item{n}{Number of random samples to generate.}
 }
 \value{
-A vector of length \code{nrep}.
+A vector of length \code{n} or \code{length(x)}.
 }
 \description{
-Density, probability distribution and hazard functions for the Coxian
+Density, probability distribution, hazard and random
+number generation functions for the Coxian
 phase-type distribution with any number of phases.
 }
 \details{
@@ -47,5 +54,5 @@ These functions work in a vectorised way, so that alternative
 parameter values or evaluation values \code{x} can be supplied.  The
 number of alternative values is determined from the number of rows
 \code{nrep} of \code{arate}.  Then if necessary, \code{prate} and \code{x} are
-replicated to match the size of \code{arate}
+replicated to match the size of \code{arate}.
 }

@@ -4,7 +4,7 @@
 \alias{soj_prob}
 \title{Sojourn probability in a state of a msmbayes model}
 \usage{
-soj_prob(draws, t, state, new_data = NULL)
+soj_prob(draws, t, state, new_data = NULL, method = "analytic")
 }
 \arguments{
 \item{draws}{Object returned by \code{\link{msmbayes}}.}
@@ -14,6 +14,8 @@ soj_prob(draws, t, state, new_data = NULL)
 \item{state}{State of interest (integer)}
 
 \item{new_data}{Data frame with covariate values to predict for}
+
+\item{method}{TODO DOCME passed to pnphase}
 }
 \value{
 A data frame with column \code{value} giving the probability of

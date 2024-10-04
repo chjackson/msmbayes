@@ -1,6 +1,7 @@
 #' @name nphase
 #'
-#' @title Density, probability distribution and hazard functions for the Coxian
+#' @title Density, probability distribution, hazard and random
+#' number generation functions for the Coxian
 #' phase-type distribution with any number of phases.
 #'
 #' @details The number of phases, `nphase`, is taken from the
@@ -13,13 +14,14 @@
 #' parameter values or evaluation values `x` can be supplied.  The
 #' number of alternative values is determined from the number of rows
 #' `nrep` of `arate`.  Then if necessary, `prate` and `x` are
-#' replicated to match the size of `arate`
+#' replicated to match the size of `arate`.
 #'
+#' @param n Number of random samples to generate.
+#' 
 #' @param x Value at which to evaluate the PDF, CDF, or hazard.
 #'
 #' @param prate Progression rates.  Either a vector of length
 #'   `nphase-1`, or a matrix with `npar` rows and `nphase-1` columns.
-#'
 #'
 #' @param arate Absorption rates.  Either a vector of length `nphase`,
 #'   or a matrix with `npar` rows and `nphase` columns.
@@ -30,7 +32,7 @@
 #'   matrix exponential is determined using numerical methods, via
 #'   `expm::expm()`.
 #'
-#' @return A vector of length `nrep`.
+#' @return A vector of length `n` or `length(x)`.
 #'
 #' @md
 
@@ -96,7 +98,8 @@ hnphase <- function(x, prate, arate, method="analytic"){
 }
 
 
-
+## The matrix S as defined on
+## https://en.wikipedia.org/wiki/Phase-type_distribution
 nphase_generator <- function(prate, arate){
   nphase <- length(arate)
   S <- matrix(0, nrow=nphase, ncol=nphase)
@@ -104,6 +107,8 @@ nphase_generator <- function(prate, arate){
   diag(S) <- -(c(prate, 0) + arate)
   S
 }
+
+
 
 vectorise_nphase <- function(x, prate, arate){
   pars <- check_prate_arate(prate, arate)
@@ -256,4 +261,37 @@ h5phase <- function(x, p1, p2, p3, p4, a1, a2, a3, a4, a5){
                                   a1=a1, a2=a2, a3=a3, a4=a4, a5=a5)
   hnphase(pars$x, prate = cbind(pars$p1, pars$p2, pars$p3, pars$p4),
           arate = cbind(pars$a1, pars$a2, pars$a3, pars$a4, pars$a5))
+}
+
+##' @rdname nphase
+##' @aliases rnphase
+##' @export
+rnphase <- function(n, prate, arate){
+  Q <- nphase_Q(prate, arate)
+  absstate <- nrow(Q)
+  time <- numeric(n)
+  for (i in 1:n){
+    sm <- msm::sim.msm(qmatrix=Q, maxtime=Inf)
+    if (any(sm$states==absstate)){
+      time[i] <- sm$times[sm$states==absstate]
+    }
+    else {
+      time[i] <- NA
+      cli_warn("Absorbing state not reached in {.var rnphase}")
+    }
+  }
+  time
+}
+
+##' Given a phase-type sojourn distribution, return the corresponding
+##' Markov intensity matrix where state 3 is the absorbing state, and the
+##' the time to absorption is the sojourn distribution.
+##'
+##' @noRd
+nphase_Q <- function(prate, arate){
+  nphase <- length(arate)
+  Q <- matrix(0, nrow=nphase+1, ncol=nphase+1)
+  Q[1:nphase, nphase+1] <- arate
+  Q[cbind(1:(nphase-1), 2:nphase)] <- prate
+  Q
 }
