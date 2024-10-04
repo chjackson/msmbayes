@@ -64,18 +64,20 @@ form_initprobs <- function(em, dat, pm){
   initprobs <- matrix(0, nrow=nindiv, ncol=em$K)
   if (pm$phasetype){
     initstate <- dat[["state"]][!duplicated(dat[["subject"]])]
+
     ## for indivs whose first state is non-phased, set prob to 1 for that
     iprow <- which(initstate %in% pm$unphased_states)
     state_old <- initstate[initstate %in% pm$unphased_states]
     state_new <- match(state_old, pm$pdat$oldinds)
     initprobs[cbind(iprow,state_new)] <- 1
+
     ## else for phased states, set prob of potential states to 1/nphases
     iprow <- which(initstate %in% pm$phased_states)
     state_old <- initstate[initstate %in% pm$phased_states]
-    for (i in 1:nindiv){
+    for (i in seq_along(iprow)){
       state_new <- which(pm$pdat$oldinds==state_old[i])
       nphases <- length(state_new)
-      initprobs[i,state_new] <- 1/nphases
+      initprobs[iprow[i],state_new] <- 1/nphases
     }
   } else {
     initprobs[,1] <- 1
