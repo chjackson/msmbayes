@@ -119,9 +119,10 @@ qvec_rvar_to_mst <- function(qvec, qm){
 vecbycovs_to_df <- function(rvarmat, new_data){
   covid <- vecid <- NULL
   ncovvals <- dim(rvarmat)[1]
+  nelts <- if (length(dim(rvarmat))==1) 1 else ncol(rvarmat)
   res <- rvarmat |>
     as.data.frame() |>
-    setNames(paste0("vecid",1:ncol(rvarmat))) |>
+    setNames(paste0("vecid",1:nelts)) |>
     mutate(covid = 1:ncovvals) |>
     tidyr::pivot_longer(cols=matches("vecid"), names_to="vecid",
                         names_prefix = "vecid",
@@ -209,7 +210,8 @@ new_data_to_X <- function(new_data, draws, call=caller_env()){
 }
 
 
-soj_prob_phase <- function(draws, t, state, new_data=NULL){
+soj_prob_phase <- function(draws, t, state, new_data=NULL,
+                           method = "analytic"){
   fromobs <- ttype <- value <- covid <- NULL
   qphase <- qdf(draws, new_data=new_data) |> filter(fromobs==state)
   arate <- qphase |> filter(ttype=="abs") |> pull(value) |> draws_of()
@@ -221,7 +223,8 @@ soj_prob_phase <- function(draws, t, state, new_data=NULL){
     for (j in 1:ncovvals){
       covid_p <- rep(1:ncovvals, length.out=ncol(prate))
       covid_a <- rep(1:ncovvals, length.out=ncol(arate))
-      surv[,j,i] <- 1 - pnphase(t[i], prate[,covid_p==j], arate[,covid_a==j])
+      surv[,j,i] <- 1 - pnphase(t[i], prate[,covid_p==j], arate[,covid_a==j],
+                                method = method)
     }
   }
   res <- data.frame(time = rep(t, ncovvals),

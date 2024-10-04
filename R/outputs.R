@@ -385,7 +385,7 @@ standardize_to <- standardise_to
 
 ##' Sojourn probability in a state of a msmbayes model
 ##'
-##' @inheritParams qmatrix
+##' @inheritParams qmatrix nphase
 ##'
 ##' @param t Time since state entry
 ##'
@@ -399,9 +399,11 @@ standardize_to <- standardise_to
 ##'
 ##' @md 
 ##' @export
-soj_prob <- function(draws, t, state, new_data=NULL){
-  if (is_phasetype(draws))
-    soj_prob_phase(draws, t, state, new_data)
+soj_prob <- function(draws, t, state, new_data=NULL, method="analytic"){
+
+  if (is_phasetype(draws) &&
+      state %in% attr(draws,"pmodel")$phased_states)
+    soj_prob_phase(draws, t, state, new_data, method=method)
   else
     soj_prob_nonphase(draws, t, state, new_data)
 }
