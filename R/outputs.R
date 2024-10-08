@@ -23,7 +23,7 @@
 #' @examples
 #' qmatrix(infsim_model)
 #' summary(qmatrix(infsim_model))
-#' summary(qmatrix(infsim_model), median, ~quantile(.x, 0.025, 0.975))
+#' summary(qmatrix(infsim_model), median, ~quantile(.x, c(0.025, 0.975)))
 #'
 #' @export
 qmatrix <- function(draws, new_data=NULL, X=NULL, drop=TRUE){
@@ -55,7 +55,7 @@ qmatrix <- function(draws, new_data=NULL, X=NULL, drop=TRUE){
 #' @examples
 #' qdf(infsim_model)
 #' summary(qdf(infsim_model))
-#' summary(qdf(infsim_model), median, ~quantile(.x, 0.025, 0.975))
+#' summary(qdf(infsim_model), median, ~quantile(.x, c(0.025, 0.975)))
 #'
 #' qdf(infsim_modelc,
 #'     new_data = data.frame(sex=c("female","male")))

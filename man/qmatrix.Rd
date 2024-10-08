@@ -31,7 +31,7 @@ Transition intensity matrix from an msmbayes model
 \examples{
 qmatrix(infsim_model)
 summary(qmatrix(infsim_model))
-summary(qmatrix(infsim_model), median, ~quantile(.x, 0.025, 0.975))
+summary(qmatrix(infsim_model), median, ~quantile(.x, c(0.025, 0.975)))
 
 }
 \seealso{
