@@ -16,7 +16,7 @@ form_phasetype <- function(nphase, Q, call=caller_env()){
   Qphase <- form_Qphase(Q, nphase, pdat, call=call)
   unphased_states <- pdat$oldinds[!pdat$phase]
   phased_states <- unique(pdat$oldinds[pdat$phase])
-  list(phasetype=TRUE, pdat=pdat, E=E, Efix=Efix, Qphase=Qphase,
+  list(phasetype=TRUE, nphase=nphase, pdat=pdat, E=E, Efix=Efix, Qphase=Qphase,
        phased_states = phased_states, unphased_states = unphased_states,
        nstates_orig = max(pdat$oldinds))
 }
@@ -239,12 +239,15 @@ relabel_phase_states <- function(dat, draws, wide=TRUE){
 #' @md
 #' @noRd
 form_phasetrans <- function(qm, pdat){
-  tdat <- as.data.frame(qm[c("qrow","qcol")])
-  tdat$oldfrom <- pdat$oldinds[tdat$qrow]
+  tdat <- as.data.frame(qm[c("qrow","qcol")])  # naming. better as truefrom?
+  tdat$oldfrom <- pdat$oldinds[tdat$qrow] # better as obsfrom?
   tdat$oldto <- pdat$oldinds[tdat$qcol]
-  tdat$phasefrom <- pdat$phase[qm$qrow]
+  tdat$phasefrom <- pdat$phase[qm$qrow] # better as isphasefrom?
   tdat$phaseto <- pdat$phase[qm$qcol]
-  tdat$ttype <- ifelse(tdat$phasefrom & tdat$phaseto, "prog",
-                       ifelse(tdat$phasefrom, "abs", "markov"))
+  tdat$ttype <- ifelse(tdat$oldfrom==tdat$oldto &
+                       tdat$phasefrom, "prog",
+                ifelse(tdat$oldfrom != tdat$oldto &
+                       tdat$phasefrom, "abs",
+                       "markov"))
   tdat
 }
