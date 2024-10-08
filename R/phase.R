@@ -167,7 +167,7 @@ form_Qphase <- function(Q, nphase, pdat, call=caller_env()){
   diag(Q) <- 0
   old_exit_rate <- rowSums(Q)[type_old=="phased"]
   old_exit_rate <- rep(old_exit_rate, nphasep - 1)
-  Qnew[prog_inds] <- old_exit_rate * nphasep
+  Qnew[prog_inds] <- old_exit_rate * rep(nphasep, nphasep-1)
   rownames(Qnew) <- colnames(Qnew) <- pdat$label
 
   Qnew
