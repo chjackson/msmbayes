@@ -71,13 +71,14 @@ form_initprobs <- function(em, dat, pm){
     state_new <- match(state_old, pm$pdat$oldinds)
     initprobs[cbind(iprow,state_new)] <- 1
 
-    ## else for phased states, set prob of potential states to 1/nphases
+    ## for phased states, start in first phase
+    ## (previously set equal prob in each phase
+    ## could let user set if they really want this model)
     iprow <- which(initstate %in% pm$phased_states)
     state_old <- initstate[initstate %in% pm$phased_states]
     for (i in seq_along(iprow)){
-      state_new <- which(pm$pdat$oldinds==state_old[i])
-      nphases <- length(state_new)
-      initprobs[iprow[i],state_new] <- 1/nphases
+      firstphase <- min(which(pm$pdat$oldinds==state_old[i]))
+      initprobs[iprow[i],firstphase] <- 1
     }
   } else {
     initprobs[,1] <- 1
