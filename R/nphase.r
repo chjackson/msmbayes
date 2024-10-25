@@ -17,7 +17,7 @@
 #' replicated to match the size of `arate`.
 #'
 #' @param n Number of random samples to generate.
-#' 
+#'
 #' @param x Value at which to evaluate the PDF, CDF, or hazard.
 #'
 #' @param prate Progression rates.  Either a vector of length
@@ -25,6 +25,9 @@
 #'
 #' @param arate Absorption rates.  Either a vector of length `nphase`,
 #'   or a matrix with `npar` rows and `nphase` columns.
+#'
+#' @param initp Vector of probabilities of occupying each phase at the
+#'   start of the sojourn.  By default, the first phase has probability 1.
 #'
 #' @param method If `"analytic"` then for `nphase` 5 or less, an
 #'   analytic solution to the matrix exponential is employed in the
@@ -36,27 +39,30 @@
 #'
 #' @md
 
+## TODO ERROR CHECKING FOR NEGATIVE PARAMETERS
+
 
 ##' @rdname nphase
 ##' @aliases dnphase
 ##' @export
-dnphase <- function(x, prate, arate, method="analytic"){
+dnphase <- function(x, prate, arate, initp=NULL, method="analytic"){
   pars <- vectorise_nphase(x, prate, arate)
   ret <- numeric(length(pars$x))
   ret[x<0] <- ret[x==Inf] <- 0
   ret[is.na(x)] <- NA;  ret[is.nan(x)] <- NaN
   done <- (x<0) | (x==Inf) | is.na(x) | is.nan(x)
   pars <- subset_nphase_args(x, pars, done)
+  nphase <- ncol(pars$arate)
+  initp <- make_initp(initp, nphase)
 
   if (!all(done)){
     E <- expm_generator(pars$prate * pars$x, pars$arate * pars$x, method=method) # nrep x nphase x  nphase
     nrep <- dim(E)[1]
     nphase <- dim(E)[2]
-    alpha <- c(1, rep(0, nphase-1))
     S0 <- array(pars$arate, # nrep x nphase
                 dim=c(nrep, nphase, 1))[,,rep(1,nphase),drop=FALSE] ## nrep x nphase x nphase
     tmp <- apply(E * aperm(S0, c(1,3,2)), c(1,2), sum) # i.e. E %*% S0 if nrep=1.  nrep x nphase
-    ret[!done] <- tmp %*% alpha # alpha %*% E %*% S0 if nrep=1
+    ret[!done] <- tmp %*% initp # initp %*% E %*% S0 if nrep=1
   }
   ret
 }
@@ -65,36 +71,47 @@ dnphase <- function(x, prate, arate, method="analytic"){
 ##' @rdname nphase
 ##' @aliases pnphase
 ##' @export
-pnphase <- function(x, prate, arate, method="analytic"){
+pnphase <- function(x, prate, arate, initp=NULL,
+                    method="analytic", lower.tail=TRUE){
   pars <- vectorise_nphase(x, prate, arate)
   ret <- numeric(length(pars$x))
   ret[x==0] <- 0;  ret[x==Inf] <- 1
   ret[is.na(x)] <- NA;  ret[is.nan(x)] <- NaN
   done <- (x==0) | (x==Inf) | is.na(x) | is.nan(x)
   pars <- subset_nphase_args(x, pars, done)
+  nphase <- ncol(pars$arate)
+  initp <- make_initp(initp, nphase)
 
   if (!all(done)){
     E <- expm_generator(pars$prate * pars$x, pars$arate * pars$x, method=method)
     nrep <- dim(E)[1]
-    nphase <- dim(E)[2]
-    ## Equivalent to 1 - alpha %*% E %*% rep(1, nphase)
+    ## Equivalent to 1 - initp %*% E %*% rep(1, nphase)
     ## replicated for nrep alternative parameter values in prate, arate
     ## and returning a vector of length nrep instead of a scalar
     ones <- array(1, dim=c(nrep, nphase, nphase))
     tmp <- apply(E*ones, c(1,2), sum)
-    alpha <- c(1, rep(0, nphase-1))
-    res <- 1 - tmp %*% alpha
+    res <- 1 - tmp %*% initp
     ret[!done] <- res
   }
+  if (!lower.tail) ret <- 1 - ret
   ret
 }
 
+make_initp <- function(initp=NULL, nphase){
+  if (is.null(initp))
+    initp <- c(1, rep(0, nphase-1))
+  else {
+    if (length(initp) != nphase)
+      cli_abort("{.var initp} should have length equal to the number of phases, here {nphase}")
+    initp <- initp/sum(initp)
+  }
+}
 
 ##' @rdname nphase
 ##' @aliases hnphase
 ##' @export
-hnphase <- function(x, prate, arate, method="analytic"){
-  dnphase(x, prate, arate, method=method) / (1 - pnphase(x, prate, arate, method=method))
+hnphase <- function(x, prate, arate, initp=NULL, method="analytic"){
+  dnphase(x, prate, arate, initp=initp, method=method) / (1 - pnphase(x, prate, arate, initp=initp, method=method))
 }
 
 
@@ -146,6 +163,11 @@ check_prate_arate <- function(prate, arate){
     if ((nrow(prate) != nrep) || (ncol(prate) != nphase-1))
         cli_abort("Inferred nphase = {nphase}, nrep = {nrep} from the size of {.var arate}, so expected {.var prate} to be either a vector of length {nrep} or a matrix with {nrep} row{?s} (replicates) and {nphase-1} column{?s} ({.var nphase+1}). Found {.var prate} to be a {nrow(prate)} by {ncol(prate)} matrix")
   }
+  if (any(prate < 0)){ # TODO position
+    cli_abort("{.var prate} must be non-negative")
+  }
+  if (any(arate < 0))
+    cli_abort("{.var arate} must be non-negative")
   pars <- list(prate=prate, arate=arate, nphase=nphase, nrep=nrep)
 }
 
@@ -193,70 +215,79 @@ generator_diags_equal <- function(prate, arate){
   apply(d, 1, function(x)any(duplicated(x)))
 }
 
-d2phase <- function(x, p1, a1, a2){
+d2phase <- function(x, p1, a1, a2, method="analytic"){
   pars <- vectorise_nphase_scalar(x, p1=p1, a1=a1, a2=a2)
-  dnphase(pars$x, prate=cbind(pars$p1), arate=cbind(pars$a1, pars$a2))
+  dnphase(pars$x, prate=cbind(pars$p1), arate=cbind(pars$a1, pars$a2),
+          method=method)
 }
-p2phase <- function(x, p1, a1, a2){
+p2phase <- function(x, p1, a1, a2, method="analytic"){
   pars <- vectorise_nphase_scalar(x, p1=p1, a1=a1, a2=a2)
-  pnphase(pars$x, prate=cbind(pars$p1), arate=cbind(pars$a1, pars$a2))
+  pnphase(pars$x, prate=cbind(pars$p1), arate=cbind(pars$a1, pars$a2),
+          method=method)
 }
-h2phase <- function(x, p1, a1, a2){
+h2phase <- function(x, p1, a1, a2, method="analytic"){
   pars <- vectorise_nphase_scalar(x, p1=p1, a1=a1, a2=a2)
-  hnphase(pars$x, prate=cbind(pars$p1), arate=cbind(pars$a1, pars$a2))
+  hnphase(pars$x, prate=cbind(pars$p1), arate=cbind(pars$a1, pars$a2),
+          method=method)
 }
 
-d3phase <- function(x, p1, p2, a1, a2, a3){
+d3phase <- function(x, p1, p2, a1, a2, a3, method="analytic"){
   pars <- vectorise_nphase_scalar(x, p1=p1, p2=p2, a1=a1, a2=a2, a3=a3)
   dnphase(pars$x, prate = cbind(pars$p1, pars$p2),
-          arate = cbind(pars$a1, pars$a2, pars$a3))
+          arate = cbind(pars$a1, pars$a2, pars$a3),
+          method=method)
 }
 
-p3phase <- function(x, p1, p2, a1, a2, a3){
+p3phase <- function(x, p1, p2, a1, a2, a3, method="analytic"){
   pars <- vectorise_nphase_scalar(x, p1=p1, p2=p2, a1=a1, a2=a2, a3=a3)
   pnphase(pars$x, prate = cbind(pars$p1, pars$p2),
-          arate = cbind(pars$a1, pars$a2, pars$a3))
+          arate = cbind(pars$a1, pars$a2, pars$a3),
+          method=method)
 }
 
-h3phase <- function(x, p1, p2, a1, a2, a3){
+h3phase <- function(x, p1, p2, a1, a2, a3, method="analytic"){
   pars <- vectorise_nphase_scalar(x, p1=p1, p2=p2, a1=a1, a2=a2, a3=a3)
   hnphase(pars$x, prate = cbind(pars$p1, pars$p2),
-          arate = cbind(pars$a1, pars$a2, pars$a3))
+          arate = cbind(pars$a1, pars$a2, pars$a3),
+          method=method)
 }
 
-d4phase <- function(x, p1, p2, p3, a1, a2, a3, a4){
+d4phase <- function(x, p1, p2, p3, a1, a2, a3, a4, method="analytic"){
   pars <- vectorise_nphase_scalar(x, p1=p1, p2=p2, p3=p3,
                                   a1=a1, a2=a2, a3=a3, a4=a4)
   dnphase(pars$x, prate = cbind(pars$p1, pars$p2, pars$p3),
-          arate = cbind(pars$a1, pars$a2, pars$a3, pars$a4))
+          arate = cbind(pars$a1, pars$a2, pars$a3, pars$a4),
+          method=method)
 }
-p4phase <- function(x, p1, p2, p3, a1, a2, a3, a4){
+p4phase <- function(x, p1, p2, p3, a1, a2, a3, a4, method="analytic"){
   pars <- vectorise_nphase_scalar(x, p1=p1, p2=p2, p3=p3,
                                   a1=a1, a2=a2, a3=a3, a4=a4)
   pnphase(pars$x, prate = cbind(pars$p1, pars$p2, pars$p3),
-          arate = cbind(pars$a1, pars$a2, pars$a3, pars$a4))
+          arate = cbind(pars$a1, pars$a2, pars$a3, pars$a4),
+          method=method)
 }
-h4phase <- function(x, p1, p2, p3, a1, a2, a3, a4){
+h4phase <- function(x, p1, p2, p3, a1, a2, a3, a4, method="analytic"){
   pars <- vectorise_nphase_scalar(x, p1=p1, p2=p2, p3=p3,
                                   a1=a1, a2=a2, a3=a3, a4=a4)
   hnphase(pars$x, prate = cbind(pars$p1, pars$p2, pars$p3),
-          arate = cbind(pars$a1, pars$a2, pars$a3, pars$a4))
+          arate = cbind(pars$a1, pars$a2, pars$a3, pars$a4),
+          method=method)
 }
 
 
-d5phase <- function(x, p1, p2, p3, p4, a1, a2, a3, a4, a5){
+d5phase <- function(x, p1, p2, p3, p4, a1, a2, a3, a4, a5, method="analytic"){
   pars <- vectorise_nphase_scalar(x, p1=p1, p2=p2, p3=p3, p4=p4,
                                   a1=a1, a2=a2, a3=a3, a4=a4, a5=a5)
   dnphase(pars$x, prate = cbind(pars$p1, pars$p2, pars$p3, pars$p4),
           arate = cbind(pars$a1, pars$a2, pars$a3, pars$a4, pars$a5))
 }
-p5phase <- function(x, p1, p2, p3, p4, a1, a2, a3, a4, a5){
+p5phase <- function(x, p1, p2, p3, p4, a1, a2, a3, a4, a5, method="analytic"){
   pars <- vectorise_nphase_scalar(x, p1=p1, p2=p2, p3=p3, p4=p4,
                                   a1=a1, a2=a2, a3=a3, a4=a4, a5=a5)
   pnphase(pars$x, prate = cbind(pars$p1, pars$p2, pars$p3, pars$p4),
           arate = cbind(pars$a1, pars$a2, pars$a3, pars$a4, pars$a5))
 }
-h5phase <- function(x, p1, p2, p3, p4, a1, a2, a3, a4, a5){
+h5phase <- function(x, p1, p2, p3, p4, a1, a2, a3, a4, a5, method="analytic"){
   pars <- vectorise_nphase_scalar(x, p1=p1, p2=p2, p3=p3, p4=p4,
                                   a1=a1, a2=a2, a3=a3, a4=a4, a5=a5)
   hnphase(pars$x, prate = cbind(pars$p1, pars$p2, pars$p3, pars$p4),
