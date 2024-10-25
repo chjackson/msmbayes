@@ -12,6 +12,10 @@
 check_data <- function(dat, state, time, subject, qm=NULL, call=caller_env()){
   check_data_frame(dat, call)
   check_dat_variables(dat=dat, state=state, time=time, subject=subject, call=call)
+  if (nrow(dat)==0){
+    cli_inform("No observations in the data, carrying on and hoping for the best...")
+    return()
+  }
   if (!is.null(qm))
     check_state(dat[[state]], qm, call)
   check_dup_obs(dat[[state]], dat[[time]], dat[[subject]], call)
@@ -196,6 +200,7 @@ check_dup_obs <- function(state, time, subject, call=caller_env()){
 #' @md 
 #' @noRd
 clean_data <- function(dat, state, time, subject, X=NULL, call=caller_env()){
+  if (nrow(dat)==0) return()
   dat <- dat[,c(state, time, subject)]
   names(dat) <- c("state", "time", "subject")
   if (is.factor(dat$state)) dat$state <- as.numeric(as.character(dat$state))
