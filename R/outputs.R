@@ -385,7 +385,8 @@ standardize_to <- standardise_to
 
 ##' Sojourn probability in a state of a msmbayes model
 ##'
-##' @inheritParams qmatrix nphase
+##' @inheritParams qmatrix
+##' @inheritParams nphase
 ##'
 ##' @param t Time since state entry
 ##'

@@ -175,7 +175,7 @@ phase_mixture <- function(qvec, tdat, state){
     mst[nphases] <- cum_mst + 1 / rvarn_sum(absrates[nphases,])
     ret <- data.frame(mixprob, mst)
   }
-  ret
+  ret |> as_msmbres()
 }
 
 mean_sojourn_phase <- function(qvec, tdat, state) {
