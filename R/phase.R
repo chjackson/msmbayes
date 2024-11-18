@@ -13,7 +13,7 @@ form_phasetype <- function(nphase, Q, call=caller_env()){
   pdat <- form_phasedata(nphase)
   E <- form_Ephase(nphase)
   Efix <- form_Efixphase(E)
-  Qphase <- form_Qphase(Q, nphase, pdat, call=call)
+  Qphase <- form_Qphase(Q, nphase, call=call)
   unphased_states <- pdat$oldinds[!pdat$phase]
   phased_states <- unique(pdat$oldinds[pdat$phase])
   list(phasetype=TRUE, nphase=nphase, pdat=pdat, E=E, Efix=Efix, Qphase=Qphase,
@@ -125,15 +125,14 @@ form_Efixphase <- function(Ephase){
 #'
 #' @inheritParams msmbayes
 #'
-#' @param pdat Data frame returned from \code{form_phasedata}.
-#'
 #' @return Q matrix on the expanded state space.   The initial values
 #' are currently not used (Stan chooses these based on the priors), but
 #' the 0/1 structure is used to define the allowed transitions
 #'
 #' @noRd
-form_Qphase <- function(Q, nphase, pdat, call=caller_env()){
+form_Qphase <- function(Q, nphase, call=caller_env()){
 
+  pdat <- form_phasedata(nphase)
   type_old <- ifelse(nphase==1, "markov", "phased")
   n_phased_states <- sum(type_old=="phased")
   nphasep <- nphase[type_old=="phased"]
@@ -150,6 +149,14 @@ form_Qphase <- function(Q, nphase, pdat, call=caller_env()){
   ## Phase "absorptions", i.e exits from any phase of phased states to any other permitted state
   ## For initial value, assume absorption rates common between phases
   inds <- rep(1 : n_phased_states, nphasep)
+
+  abs_inds <- matrix(
+    (rep(pdat$phase, nstnew) &
+       rep(pdat$type %in% c("markov","firstphase"), each=nstnew) &
+       !(pdat$oldinds[row(Qnew)] == pdat$oldinds[col(Qnew)])
+    ),
+    nrow=nstnew)
+
   Qnew[pdat$phase, pdat$type %in% c("markov","firstphase")] <-
     Q[type_old=="phased",
       type_old %in% c("markov","phased"),drop=FALSE][inds,,drop=FALSE]
@@ -169,6 +176,8 @@ form_Qphase <- function(Q, nphase, pdat, call=caller_env()){
   old_exit_rate <- rep(old_exit_rate, nphasep - 1)
   Qnew[prog_inds] <- old_exit_rate * rep(nphasep, nphasep-1)
   rownames(Qnew) <- colnames(Qnew) <- pdat$label
+  attr(Qnew, "prog_inds") <- prog_inds
+  attr(Qnew, "abs_inds") <- abs_inds
 
   Qnew
 }
