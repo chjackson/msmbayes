@@ -54,6 +54,9 @@ Examples of using `msmbayes` are given in: `vignette("examples")`.
 
 **Warning: this package is experimental. Some knowledge of Bayesian analysis is needed to develop and interpret models with it!**
 
+(a) Install `cmdstan` and `cmdstanr` by following the [instructions linked here](https://mc-stan.org/cmdstanr/articles/cmdstanr.html)
+
+(b) Install `msmbayes` by doing:
 ```
 ## install,packages("remotes") # if need be
 remotes::install_github("chjackson/msmbayes")
