@@ -24,7 +24,7 @@
 #' @noRd
 expm_gen2 <- function(d1, d2, p1){
   res <- array(dim = c(2, length(d1), 2))
-  cn <- d2 == d1
+  cn <- d2 == d1   
   if (any(cn)){
     d1c <- d1[cn]; p1c <- p1[cn]
     res[,cn,] <- abind::abind(cbind(exp(-d1c),exp(-d1c)*p1c), # nrep x nphase
@@ -180,11 +180,16 @@ expm_gen5 <- function(d1, d2, d3, d4, d5, p1, p2, p3, p4){
          ((exp(-d1) - exp(-d2))*d3 - d2*exp(-d1) + d1*exp(-d2)) +
          (d2 - d1)*exp(-d3)
        )*d4^2 +
-       (((exp(-d2) - exp(-d1))*d3^2 + d2^2*exp(-d1) - d1^2*exp(-d2)) +
-        (d1^2 - d2^2)*exp(-d3))*d4 +
-       ((d2*exp(-d1) - d1*exp(-d2))*d3^2 +
-        (d1^2*exp(-d2) - d2^2*exp(-d1))*d3) +
-       (d1*d2^2 - d1^2*d2)*exp(-d3)) +
+       (
+         ((exp(-d2) - exp(-d1))*d3^2 + d2^2*exp(-d1) - d1^2*exp(-d2)) +
+         (d1^2 - d2^2)*exp(-d3)
+       )*d4 +
+       (
+         (d2*exp(-d1) - d1*exp(-d2)
+         )*d3^2 +
+       (d1^2*exp(-d2) - d2^2*exp(-d1))*d3) +
+       (d1*d2^2 - d1^2*d2)*exp(-d3)
+     ) +
      ((d1 - d2)*d3^2 +
       (d2^2 - d1^2)*d3 +
       (d1^2*d2 - d1*d2^2))*exp(-d4))*p1*p2*p3)
@@ -201,6 +206,10 @@ expm_gen5 <- function(d1, d2, d3, d4, d5, p1, p2, p3, p4){
    ((d1^2*d2 - d1*d2^2)*d3^3 +
     (d1*d2^3 - d1^3*d2)*d3^2 +
     (d1^3*d2^2 - d1^2*d2^3)*d3)),
+
+  ## If these denominators are low enough, could fall back to matrix exponential method
+  ## otherwise they will silently overflow and give wrong finite answer
+  ## Or better to just use expm by default, for 5 states at least.  Stability / reliability over speed.
   
   (gen5_big_ratio_num(d1,d2,d3,d4,d5,p1,p2,p3,p4) )  /   
   (gen5_big_ratio_denom(d1,d2,d3,d4,d5))

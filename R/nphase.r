@@ -45,7 +45,7 @@
 ##' @rdname nphase
 ##' @aliases dnphase
 ##' @export
-dnphase <- function(x, prate, arate, initp=NULL, method="analytic"){
+dnphase <- function(x, prate, arate, initp=NULL, method="expm"){
   pars <- vectorise_nphase(x, prate, arate)
   ret <- numeric(length(pars$x))
   ret[x<0] <- ret[x==Inf] <- 0
@@ -72,7 +72,7 @@ dnphase <- function(x, prate, arate, initp=NULL, method="analytic"){
 ##' @aliases pnphase
 ##' @export
 pnphase <- function(x, prate, arate, initp=NULL,
-                    method="analytic", lower.tail=TRUE){
+                    method="expm", lower.tail=TRUE){
   pars <- vectorise_nphase(x, prate, arate)
   ret <- numeric(length(pars$x))
   ret[x==0] <- 0;  ret[x==Inf] <- 1
@@ -110,7 +110,7 @@ make_initp <- function(initp=NULL, nphase){
 ##' @rdname nphase
 ##' @aliases hnphase
 ##' @export
-hnphase <- function(x, prate, arate, initp=NULL, method="analytic"){
+hnphase <- function(x, prate, arate, initp=NULL, method="expm"){
   dnphase(x, prate, arate, initp=initp, method=method) / (1 - pnphase(x, prate, arate, initp=initp, method=method))
 }
 
@@ -123,6 +123,20 @@ nphase_generator <- function(prate, arate){
   S[cbind(1:(nphase-1), 2:nphase)] <- prate
   diag(S) <- -(c(prate, 0) + arate)
   S
+}
+
+##' Given a phase-type sojourn distribution, return the corresponding
+##' Markov intensity matrix where state 3 is the absorbing state, and the
+##' the time to absorption is the sojourn distribution.
+##'
+##' @noRd
+nphase_Q <- function(prate, arate){
+  nphase <- length(arate)
+  Q <- matrix(0, nrow=nphase+1, ncol=nphase+1)
+  Q[1:nphase, nphase+1] <- arate
+  Q[cbind(1:(nphase-1), 2:nphase)] <- prate
+  diag(Q) <- -rowSums(Q)
+  Q
 }
 
 
@@ -178,7 +192,7 @@ subset_nphase_args <- function(x, pars, done){
   list(x=x, prate=prate, arate=arate)
 }
 
-expm_generator <- function(prate, arate, method="analytic"){
+expm_generator <- function(prate, arate, method="expm"){
   nrep <- nrow(arate)
   nphase <- ncol(arate)
   if ((nphase > 5) || (method=="expm") ||
@@ -215,58 +229,58 @@ generator_diags_equal <- function(prate, arate){
   apply(d, 1, function(x)any(duplicated(x)))
 }
 
-d2phase <- function(x, p1, a1, a2, method="analytic"){
+d2phase <- function(x, p1, a1, a2, method="expm"){
   pars <- vectorise_nphase_scalar(x, p1=p1, a1=a1, a2=a2)
   dnphase(pars$x, prate=cbind(pars$p1), arate=cbind(pars$a1, pars$a2),
           method=method)
 }
-p2phase <- function(x, p1, a1, a2, method="analytic"){
+p2phase <- function(x, p1, a1, a2, method="expm"){
   pars <- vectorise_nphase_scalar(x, p1=p1, a1=a1, a2=a2)
   pnphase(pars$x, prate=cbind(pars$p1), arate=cbind(pars$a1, pars$a2),
           method=method)
 }
-h2phase <- function(x, p1, a1, a2, method="analytic"){
+h2phase <- function(x, p1, a1, a2, method="expm"){
   pars <- vectorise_nphase_scalar(x, p1=p1, a1=a1, a2=a2)
   hnphase(pars$x, prate=cbind(pars$p1), arate=cbind(pars$a1, pars$a2),
           method=method)
 }
 
-d3phase <- function(x, p1, p2, a1, a2, a3, method="analytic"){
+d3phase <- function(x, p1, p2, a1, a2, a3, method="expm"){
   pars <- vectorise_nphase_scalar(x, p1=p1, p2=p2, a1=a1, a2=a2, a3=a3)
   dnphase(pars$x, prate = cbind(pars$p1, pars$p2),
           arate = cbind(pars$a1, pars$a2, pars$a3),
           method=method)
 }
 
-p3phase <- function(x, p1, p2, a1, a2, a3, method="analytic"){
+p3phase <- function(x, p1, p2, a1, a2, a3, method="expm"){
   pars <- vectorise_nphase_scalar(x, p1=p1, p2=p2, a1=a1, a2=a2, a3=a3)
   pnphase(pars$x, prate = cbind(pars$p1, pars$p2),
           arate = cbind(pars$a1, pars$a2, pars$a3),
           method=method)
 }
 
-h3phase <- function(x, p1, p2, a1, a2, a3, method="analytic"){
+h3phase <- function(x, p1, p2, a1, a2, a3, method="expm"){
   pars <- vectorise_nphase_scalar(x, p1=p1, p2=p2, a1=a1, a2=a2, a3=a3)
   hnphase(pars$x, prate = cbind(pars$p1, pars$p2),
           arate = cbind(pars$a1, pars$a2, pars$a3),
           method=method)
 }
 
-d4phase <- function(x, p1, p2, p3, a1, a2, a3, a4, method="analytic"){
+d4phase <- function(x, p1, p2, p3, a1, a2, a3, a4, method="expm"){
   pars <- vectorise_nphase_scalar(x, p1=p1, p2=p2, p3=p3,
                                   a1=a1, a2=a2, a3=a3, a4=a4)
   dnphase(pars$x, prate = cbind(pars$p1, pars$p2, pars$p3),
           arate = cbind(pars$a1, pars$a2, pars$a3, pars$a4),
           method=method)
 }
-p4phase <- function(x, p1, p2, p3, a1, a2, a3, a4, method="analytic"){
+p4phase <- function(x, p1, p2, p3, a1, a2, a3, a4, method="expm"){
   pars <- vectorise_nphase_scalar(x, p1=p1, p2=p2, p3=p3,
                                   a1=a1, a2=a2, a3=a3, a4=a4)
   pnphase(pars$x, prate = cbind(pars$p1, pars$p2, pars$p3),
           arate = cbind(pars$a1, pars$a2, pars$a3, pars$a4),
           method=method)
 }
-h4phase <- function(x, p1, p2, p3, a1, a2, a3, a4, method="analytic"){
+h4phase <- function(x, p1, p2, p3, a1, a2, a3, a4, method="expm"){
   pars <- vectorise_nphase_scalar(x, p1=p1, p2=p2, p3=p3,
                                   a1=a1, a2=a2, a3=a3, a4=a4)
   hnphase(pars$x, prate = cbind(pars$p1, pars$p2, pars$p3),
@@ -275,19 +289,19 @@ h4phase <- function(x, p1, p2, p3, a1, a2, a3, a4, method="analytic"){
 }
 
 
-d5phase <- function(x, p1, p2, p3, p4, a1, a2, a3, a4, a5, method="analytic"){
+d5phase <- function(x, p1, p2, p3, p4, a1, a2, a3, a4, a5, method="expm"){
   pars <- vectorise_nphase_scalar(x, p1=p1, p2=p2, p3=p3, p4=p4,
                                   a1=a1, a2=a2, a3=a3, a4=a4, a5=a5)
   dnphase(pars$x, prate = cbind(pars$p1, pars$p2, pars$p3, pars$p4),
           arate = cbind(pars$a1, pars$a2, pars$a3, pars$a4, pars$a5))
 }
-p5phase <- function(x, p1, p2, p3, p4, a1, a2, a3, a4, a5, method="analytic"){
+p5phase <- function(x, p1, p2, p3, p4, a1, a2, a3, a4, a5, method="expm"){
   pars <- vectorise_nphase_scalar(x, p1=p1, p2=p2, p3=p3, p4=p4,
                                   a1=a1, a2=a2, a3=a3, a4=a4, a5=a5)
   pnphase(pars$x, prate = cbind(pars$p1, pars$p2, pars$p3, pars$p4),
           arate = cbind(pars$a1, pars$a2, pars$a3, pars$a4, pars$a5))
 }
-h5phase <- function(x, p1, p2, p3, p4, a1, a2, a3, a4, a5, method="analytic"){
+h5phase <- function(x, p1, p2, p3, p4, a1, a2, a3, a4, a5, method="expm"){
   pars <- vectorise_nphase_scalar(x, p1=p1, p2=p2, p3=p3, p4=p4,
                                   a1=a1, a2=a2, a3=a3, a4=a4, a5=a5)
   hnphase(pars$x, prate = cbind(pars$p1, pars$p2, pars$p3, pars$p4),
@@ -312,17 +326,4 @@ rnphase <- function(n, prate, arate){
     }
   }
   time
-}
-
-##' Given a phase-type sojourn distribution, return the corresponding
-##' Markov intensity matrix where state 3 is the absorbing state, and the
-##' the time to absorption is the sojourn distribution.
-##'
-##' @noRd
-nphase_Q <- function(prate, arate){
-  nphase <- length(arate)
-  Q <- matrix(0, nrow=nphase+1, ncol=nphase+1)
-  Q[1:nphase, nphase+1] <- arate
-  Q[cbind(1:(nphase-1), 2:nphase)] <- prate
-  Q
 }
