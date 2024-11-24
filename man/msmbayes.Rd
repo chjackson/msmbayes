@@ -13,6 +13,9 @@ msmbayes(
   E = NULL,
   covariates = NULL,
   nphase = NULL,
+  phased_state = NULL,
+  phased_family = "weibull",
+  phased_spline = "hermite",
   priors = NULL,
   soj_priordata = NULL,
   fit_method = "sample",
@@ -73,13 +76,25 @@ element per state, giving the number of phases per state.  This
 element is 1 for states that do not have phase-type sojourn distributions.
 Not required for non-phase-type models.}
 
+\item{phased_state}{For phase-type models, this indicates which state is given
+a Weibull or Gamma sojourn distribution approximated by a 5-phase model.
+Only one phased state is supported for the moment.   Ignored if \code{nphase} is supplied.}
+
+\item{phased_family}{\code{"weibull"} or \code{"gamma"}, indicating the
+approximated sojourn distribution in the phased state.}
+
+\item{phased_spline}{\code{"linear"} or \code{"hermite"}. Advanced: spline
+used in constructing the approximation. May remove this argument
+if one of these turns out to be good enough.}
+
 \item{priors}{A list specifying priors.  Each component should be
 the result of a call to \code{\link{msmprior}}.  Any parameters
 with priors not specified here are given default priors (normal
 with mean -2 and SD 2 for log intensities, and normal with mean
-0 and SD 10 for log hazard ratios).
+0 and SD 10 for log hazard ratios, or normal(0,1) for log shape and scale
+in phase-type approximations).
 
-If only one parameter is given a non-default prior, a single msmprior
+If only one parameter is given a non-default prior, a single \code{msmprior}
 call can be supplied here instead of a list.}
 
 \item{soj_priordata}{Synthetic data that represents prior information

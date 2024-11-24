@@ -7,7 +7,7 @@
 #' For more resources on multi-state modelling, see the [`msm` package](http://chjackson.github.io/msm) and its documentation.
 #' 
 #' @name msmbayes-package
-#' @importFrom stats delete.response na.omit reshape setNames terms quantile runif qnorm pexp
+#' @importFrom stats delete.response na.omit reshape setNames terms quantile runif qnorm pexp plogis qlogis rexp approx 
 #' @importFrom posterior as_draws as_draws_matrix rhat ess_bulk rvar ndraws rvar_sum "%**%" rdo rvar_sum draws_of merge_chains is_rvar
 #' @importFrom cli cli_abort cli_warn qty cli_progress_bar cli_progress_update cli_progress_done cli_inform
 #' @importFrom glue glue
@@ -18,6 +18,7 @@
 #' @importFrom utils head
 #' @importFrom stringr str_match
 #' @importFrom abind abind
+#' @importFrom cmdstanr cmdstan_model
 #'
 #' @md
 "_PACKAGE"

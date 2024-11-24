@@ -53,9 +53,9 @@ test_that("totlos",{
 })
 
 test_that("edf",{
-  expect_equal(value(edf(cav_misc)$value),
-               value(summary(cav_misc) |>filter(name=="e") |>
-                       slice(1) |> pull(value)))
+  expect_equal(mean(edf(cav_misc)$value[1]),
+               summary(cav_misc) |>filter(name=="e") |>
+                       slice(1) |> pull(value) |> mean())
 })
 
 test_that("soj_prob",{

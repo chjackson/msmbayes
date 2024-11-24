@@ -55,9 +55,10 @@
 #' the result of a call to \code{\link{msmprior}}.  Any parameters
 #' with priors not specified here are given default priors (normal
 #' with mean -2 and SD 2 for log intensities, and normal with mean
-#' 0 and SD 10 for log hazard ratios).
+#' 0 and SD 10 for log hazard ratios, or normal(0,1) for log shape and scale
+#' in phase-type approximations).
 #'
-#' If only one parameter is given a non-default prior, a single msmprior
+#' If only one parameter is given a non-default prior, a single `msmprior`
 #' call can be supplied here instead of a list.
 #'
 #' @param soj_priordata Synthetic data that represents prior information
@@ -67,6 +68,17 @@
 #'   element per state, giving the number of phases per state.  This
 #'   element is 1 for states that do not have phase-type sojourn distributions.
 #'   Not required for non-phase-type models.
+#'
+#' @param phased_state For phase-type models, this indicates which state is given
+#' a Weibull or Gamma sojourn distribution approximated by a 5-phase model.
+#' Only one phased state is supported for the moment.   Ignored if `nphase` is supplied.
+#'
+#' @param phased_family `"weibull"` or `"gamma"`, indicating the
+#' approximated sojourn distribution in the phased state.
+#'
+#' @param phased_spline `"linear"` or `"hermite"`. Advanced: spline
+#'   used in constructing the approximation. May remove this argument
+#'   if one of these turns out to be good enough.
 #'
 #' @param fit_method Quoted name of a function from the `cmdstanr`
 #'   package specifying the algorithm to fit the model.  The default
@@ -103,6 +115,9 @@ msmbayes <- function(data, state, time, subject,
                      Q, E=NULL,
                      covariates=NULL,
                      nphase=NULL,
+                     phased_state=NULL,
+                     phased_family="weibull",
+                     phased_spline="hermite",
                      priors=NULL,
                      soj_priordata=NULL,
                      fit_method = "sample",
@@ -110,7 +125,7 @@ msmbayes <- function(data, state, time, subject,
                      ...){
   qm <- form_qmodel(Q)
 
-  pm <- form_phasetype(nphase, Q)
+  pm <- form_phasetype(nphase, Q, phased_state, phased_family, phased_spline)
   if (pm$phasetype){
     qm <- phase_expand_qmodel(qm, pm)
     E <- pm$E
@@ -131,7 +146,8 @@ msmbayes <- function(data, state, time, subject,
     standat <- make_stan_obsdata(dat=data, qm=qm, cm=cm,
                                  em=em, pm=pm, priors=stanpriors,
                                  soj_priordata=soj_priordata)
-    stanmod <- msmbayes_stan_model("hmm")
+    stanfile <- if (pm$phaseapprox) "phaseapprox" else "hmm"
+    stanmod <- msmbayes_stan_model(stanfile)
   }
 
   if (!fit_method %in% c("sample","optimize","laplace","variational","pathfinder"))
@@ -150,9 +166,11 @@ msmbayes <- function(data, state, time, subject,
   attr(res, "emodel") <- em
   attr(res, "pmodel") <- pm
   attr(res, "cmodel") <- cm[names(cm)!="X"]
-  attr(res, "priors") <- prior_db(stanpriors, qm, cm)
+  if (!pm$phaseapprox)
+    attr(res, "priors") <- prior_db(stanpriors, qm, cm) # TODO for phaseapprox
   if (keep_data) {
     attr(res, "data") <- data
+    attr(res, "standat") <- standat
   }
   class(res) <- c("msmbayes",class(res))
   res
@@ -224,6 +242,7 @@ summary.msmbayes <- function(object,log=FALSE,time=FALSE,...){
   name <- from <- to <- value <- NULL
   names <- if (log) c(q="logq",hr="loghr") else c(q="q",hr="hr")
   qres <- qdf(object, ...)
+  pa <- is_phaseapprox(object)
   if (time) {
     names["q"] <- "time"
     qres$value <- 1/qres$value
@@ -231,26 +250,26 @@ summary.msmbayes <- function(object,log=FALSE,time=FALSE,...){
   res <- qres |>
     mutate(name=names["q"]) |>
     select(name, from, to, value) |>
-    attach_priors(object, names["q"])
+    attach_priors(object, names["q"], pa)
   mst <- mean_sojourn(object) |>
     mutate(name="mst", to=NA) |>
     rename(from="state") |>
     select(name, from, to, value) |>
-    attach_priors(object, "mst")
+    attach_priors(object, "mst", pa)
   res <- rbind(res, mst)
   if (has_covariates(object)){
     loghr_ests <-
       (if (log) loghr(object, ...) else hr(object, ...) )|>
       select(name, from, to, value) |>
-      attach_priors(object, names["hr"]) |>
+      attach_priors(object, names["hr"], pa) |>
       mutate(name=sprintf("%s(%s)", names["hr"], name))
     res <- rbind(res, loghr_ests)
   }
   if (has_misc(object)){
     e_ests <- edf(object, ...) |>
       mutate(name="e") |>
-      select(name, from, to, value) |>
-      mutate(prior=NA) # TODO
+      select(name, from, to, value)
+    if (!pa) e_ests$prior <- NA # TODO
     res <- rbind(res, e_ests)
   }
   res$rhat <- summary(res, rhat)[,c("rhat")]
@@ -264,6 +283,10 @@ has_covariates <- function(draws){
 
 is_phasetype <- function(draws){
   attr(draws, "pmodel")$phasetype
+}
+
+is_phaseapprox <- function(draws){
+  attr(draws, "pmodel")$phaseapprox
 }
 
 has_misc <- function(draws){

@@ -1,15 +1,26 @@
 
 #' Form internal info needed for phase-type models
 #'
+#' TODO for phase5approx.
+#' * DONE: Internal state structure should be 5 phase
+#' * Priors for shape, scale, markovpars.  No priors for phase trans rates
+#' * Training data supplied to stan
+#' * Define indices needed for intensities in stan file
+#' * put functions in stan file. links to work round space thing?
+#'
 #' @inheritParams msmbayes
 #'
 #' @return A list DOCME
 #'
 #' @noRd
-form_phasetype <- function(nphase, Q, call=caller_env()){
+form_phasetype <- function(nphase, Q,
+                           phased_state, phased_family, phased_spline,
+                           call=caller_env()){
   nphase <- check_nphase(nphase, Q, call)
+  nphase <- nphase_from_approx(nphase, phased_state, Q)
   if (is.null(nphase) || all(nphase==1))
-    return(list(phasetype=FALSE, pdat=NULL, E=NULL, Efix=NULL, Qphase=Q))
+    return(list(phasetype=FALSE, phaseapprox=FALSE,
+                pdat=NULL, E=NULL, Efix=NULL, Qphase=Q))
   pdat <- form_phasedata(nphase)
   E <- form_Ephase(nphase)
   Efix <- form_Efixphase(E)
@@ -18,7 +29,21 @@ form_phasetype <- function(nphase, Q, call=caller_env()){
   phased_states <- unique(pdat$oldinds[pdat$phase])
   list(phasetype=TRUE, nphase=nphase, pdat=pdat, E=E, Efix=Efix, Qphase=Qphase,
        phased_states = phased_states, unphased_states = unphased_states,
+       phaseapprox = !is.null(phased_state),
+       phased_family = phased_family,
+       phased_spline = phased_spline,
        nstates_orig = max(pdat$oldinds))
+}
+
+nphase_from_approx <- function(nphase, phased_state=NULL, Q, call=caller_env()){
+  if (is.null(nphase) & !is.null(phased_state)) {
+    nstates <- nrow(Q)
+    if (!(phased_state %in% 1:nstates))
+      cli_abort("{.var phased_state} should be an integer from 1 up to the number of states ({nstates})",call)
+    nphase <- rep(1, nstates)
+    nphase[phased_state] <- 5
+  }
+  nphase
 }
 
 check_nphase <- function(nphase, Q, call=caller_env()){
@@ -190,7 +215,22 @@ phase_expand_qmodel <- function(qm, pm){
                 nqpars = sum(Qnew > 0),
                 qrow = row(Qnew)[Qnew > 0],
                 qcol = col(Qnew)[Qnew > 0])
-  qmnew$phasedata <- form_phasetrans(qmnew, pm$pdat)
+  qmnew$phasedata <- pd <- form_phasetrans(qmnew, pm$pdat)
+
+  if (pm$phaseapprox){ # won't work with >1 phased state. there would need to store /
+                       #  order by oldfrom
+    qmnew$nderivedq <- sum(pd$phasefrom)
+    stopifnot(qmnew$nderivedq == 9) # 5 phase approx, all rates estimated
+    qmnew$nqprior <- sum(pd$ttype=="markov")
+    qmnew$qderived_inds <- c(which(pd$phasefrom & pd$ttype=="prog"),
+                             which(pd$phasefrom & pd$ttype=="abs"))
+    qmnew$qprior_inds <- which(pd$ttype=="markov")
+  } else {
+    qmnew$qderived_inds <- NULL
+    qmnew$qprior_inds <- 1:qmnew$nqpars
+    qmnew$nqprior <- qmnew$nqpars
+  }
+
   qmnew
 }
 
@@ -248,7 +288,7 @@ relabel_phase_states <- function(dat, draws, wide=TRUE){
 #' @md
 #' @noRd
 form_phasetrans <- function(qm, pdat){
-  tdat <- as.data.frame(qm[c("qrow","qcol")])  # naming. better as truefrom?
+  tdat <- as.data.frame(qm[c("qrow","qcol")])  # TODO naming. better as truefrom?
   tdat$oldfrom <- pdat$oldinds[tdat$qrow] # better as obsfrom?
   tdat$oldto <- pdat$oldinds[tdat$qcol]
   tdat$phasefrom <- pdat$phase[qm$qrow] # better as isphasefrom?

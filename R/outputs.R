@@ -408,3 +408,18 @@ soj_prob <- function(draws, t, state, new_data=NULL, method="analytic"){
   else
     soj_prob_nonphase(draws, t, state, new_data)
 }
+
+
+##' Summarise posteriors for shape and scale parameters for the sojourn distribution in a semi-Markov msmbayes model
+##' 
+##' @inheritParams qmatrix
+##' @export
+phaseapprox_pars <- function(draws){
+  if (!is_phaseapprox(draws)) {
+    return(NULL)
+  }
+  td <- tidy_draws(draws)
+  shape <- td |> gather_rvars(shape[]) |> pull(".value")
+  scale <- td |> gather_rvars(scale[]) |> pull(".value")
+  as_msmbres(data.frame(name=c("shape","scale"), value=c(shape, scale)))
+}

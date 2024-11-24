@@ -35,12 +35,15 @@ prior_to_rvar <- function(mean, sd, n=1000){
 #' @return A list of data frames, each with info about the priors.
 #'   Each component is a different class of parameters
 #'
+#' TODO for phaseapprox models, only the Markov q have direct priors on them
+#' but phase q will have implied priors.  this doesn't seem a priority
+#'
 #' @noRd
 prior_db <- function(priors, qm, cm){
   prior <- NULL
   logq <- data.frame(
-    from = qm$qrow,
-    to = qm$qcol,
+    from = qm$qrow[qm$qprior_inds],
+    to = qm$qcol[qm$qprior_inds],
     priormean = priors$logqmean,
     priorsd = priors$logqsd,
     prior = prior_to_rvar(priors$logqmean, priors$logqsd, n=1000)
@@ -98,7 +101,8 @@ rvar_to_quantile_string <- function(rvar){
 #'   the prior for the corresponding parameter.
 #'
 #' @noRd
-attach_priors <- function(df, draws, parname){
+attach_priors <- function(df, draws, parname, phaseapprox){
+  if (phaseapprox) return(df) # for now
   matchcols <- c("from", "to")
   if (parname %in% .msmprior_fnpars)
     basename <- parname

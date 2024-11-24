@@ -10,11 +10,11 @@
 number generation functions for the Coxian
 phase-type distribution with any number of phases.}
 \usage{
-dnphase(x, prate, arate, method = "analytic")
+dnphase(x, prate, arate, initp = NULL, method = "expm")
 
-pnphase(x, prate, arate, method = "analytic")
+pnphase(x, prate, arate, initp = NULL, method = "expm", lower.tail = TRUE)
 
-hnphase(x, prate, arate, method = "analytic")
+hnphase(x, prate, arate, initp = NULL, method = "expm")
 
 rnphase(n, prate, arate)
 }
@@ -27,11 +27,16 @@ rnphase(n, prate, arate)
 \item{arate}{Absorption rates.  Either a vector of length \code{nphase},
 or a matrix with \code{npar} rows and \code{nphase} columns.}
 
+\item{initp}{Vector of probabilities of occupying each phase at the
+start of the sojourn.  By default, the first phase has probability 1.}
+
 \item{method}{If \code{"analytic"} then for \code{nphase} 5 or less, an
 analytic solution to the matrix exponential is employed in the
 calculation.  For \code{nphase} 6 or more, or if \code{method="mexp"} the
 matrix exponential is determined using numerical methods, via
 \code{expm::expm()}.}
+
+\item{lower.tail}{If \code{TRUE} return P(X<x), else P(X>=x).}
 
 \item{n}{Number of random samples to generate.}
 }

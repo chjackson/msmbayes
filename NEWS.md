@@ -13,3 +13,8 @@
 
 * New function `standardise_to()` for computing outputs standardised
   over the distribution of a given population.
+
+
+# Version 0.3 (??)
+
+* Semi-Markov models with phase-type approximations to Weibull and Gamma sojourn distributions. 

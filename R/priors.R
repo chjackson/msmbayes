@@ -147,7 +147,9 @@ transform_mlu <- function(par, mlu){
 
 .msmprior_pars <- list(
   "logq"  = c("logq", "q", "time"), # TODO capitals, invq?
-  "loghr" = c("loghr", "hr")
+  "loghr" = c("loghr", "hr"),
+  "logshape" = c("logshape"),
+  "logscale" = c("logscale")
 )
 .msmprior_pars_df <- data.frame(
   basename = rep(names(.msmprior_pars), lengths(.msmprior_pars)),
@@ -209,60 +211,93 @@ extraneous_covname_error <- function(res){
 .default_priors <- list(
   ## currently must be normal priors, can't change family.
   logq = list(mean=-2, sd=2),
-  loghr = list(mean=0, sd=10)
+  loghr = list(mean=0, sd=10),
+  logshape = list(mean=0, sd=1),
+  logscale = list(mean=0, sd=1)
 ) 
 
 #' Assemble prior parameters as data to be passed to Stan
 #'
 #' @param priors list of objects created by `msmprior`
 #'
-#' @return logqmean, logqsd, loghrmean, loghrsd: vectors passed to Stan
+#' @return logqmean, logqsd, loghrmean, loghrsd etc: vectors passed to Stan
+#' 
 #'
 #' @noRd
 process_priors <- function(priors, qm, cm=NULL){
-  logqmean <- rep(.default_priors$logq$mean, qm$nqpars)
-  logqsd <- rep(.default_priors$logq$sd, qm$nqpars)
+  priors <- check_priors(priors)
+  logqmean <- rep(.default_priors$logq$mean, qm$nqprior)
+  logqsd <- rep(.default_priors$logq$sd, qm$nqprior)
   loghrmean <- rep(.default_priors$loghr$mean, cm$nx)
   loghrsd <- rep(.default_priors$loghr$sd, cm$nx)
-
-  if (inherits(priors, "msmprior"))
-    priors <- list(priors)
+  logshapemean <- .default_priors$logshape$mean
+  logshapesd <- .default_priors$logshape$sd
+  logscalemean <- .default_priors$logscale$mean
+  logscalesd <- .default_priors$logscale$sd # ugh? separate function?
 
   for (i in seq_along(priors)){
     prior <- priors[[i]]
-    if (!inherits(prior, "msmprior"))
-      cli_abort("each component of the list {.var prior} should be an object returned by {.var msmprior}")
-    if (prior$ind1 == "all_indices")
-      qind <- seq_len(qm$nqpars)
-    else
-      qind <- which(qm$qrow==prior$ind1 & qm$qcol==prior$ind2)
-    if (length(qind)==0){
-      cli_abort("Unknown prior parameter: transition {prior$ind1}-{prior$ind2} is not in the model")
-    }
+    qind <- get_prior_qindex(prior, qm)
     if (prior$par_base=="logq"){
-      logqmean[qind] <- prior$mean
-      logqsd[qind] <- prior$sd
+      logqmean[match(qind,qm$qprior_inds)] <- prior$mean
+      logqsd[match(qind,qm$qprior_inds)] <- prior$sd
     }
     else if (prior$par_base=="loghr"){
       if (cm$nx==0)
         cli_warn("Ignoring prior on {.var loghr}, as no covariates in the model")
       else {
-        binds <- numeric()
-        for (i in seq_along(qind)) # qind may refer to one or all transitions
-          binds <- c(binds, cm$xstart[qind[i]]:cm$xend[qind[i]])
-        if (!is.null(prior$covname))
-          bind <- binds[cm$Xnames[binds] == prior$covname]
-        else bind <- binds # same prior for all covs on this transition
-        if (length(bind)==0){
-          trans <- paste0(qm$qrow[qind], "-", qm$qcol[qind])
-          cli_abort(c("Bad prior specification: covariate effect name {.var {prior$covname}} is not in the model for transition {trans}",
-                      "Valid names include {.var {unique(cm$Xnames[binds])}}"))
-        }
+        bind <- get_prior_hrindex(prior, qm, cm, qind)
         loghrmean[bind] <- prior$mean
         loghrsd[bind] <- prior$sd
       }
+    } else if (prior$par_base=="logshape"){
+      logshapemean <- prior$mean; logshapesd <- prior$sd
+    } else if (prior$par_base=="logscale"){
+      logscalemean <- prior$mean; logscalesd <- prior$sd
     }
   }
   list(logqmean=as.array(logqmean), logqsd=as.array(logqsd),
-       loghrmean=as.array(loghrmean), loghrsd=as.array(loghrsd))
+       loghrmean=as.array(loghrmean), loghrsd=as.array(loghrsd),
+       logshapemean = logshapemean, logshapesd = logshapesd,
+       logscalemean = logscalemean, logscalesd = logscalesd)
+}
+
+check_priors <- function(priors){
+  if (inherits(priors, "msmprior"))
+    priors <- list(priors)
+  for (i in seq_along(priors)){
+    if (!inherits(priors[[i]], "msmprior"))
+      cli_abort("each component of the list {.var prior} should be an object returned by {.var msmprior}")    
+  }
+  priors
+}
+
+##' Which in the set of transition intensities does a prior refer to
+##' @noRd
+get_prior_qindex <- function(prior, qm){
+  if (prior$ind1 == "all_indices")
+    qind <- seq_len(qm$nqprior)
+  else
+    qind <- which(qm$qrow==prior$ind1 & qm$qcol==prior$ind2)
+  if (length(qind)==0){
+    cli_abort("Unknown prior parameter: transition {prior$ind1}-{prior$ind2} is not in the model")
+  }
+  qind
+}
+
+##' Which in the set of covariate effect parameters does a prior refer to
+##' @noRd
+get_prior_hrindex <- function(prior, qm, cm, qind){
+  binds <- numeric()
+  for (i in seq_along(qind)) # qind may refer to one or all transitions
+    binds <- c(binds, cm$xstart[qind[i]]:cm$xend[qind[i]])
+  if (!is.null(prior$covname))
+    bind <- binds[cm$Xnames[binds] == prior$covname]
+  else bind <- binds # same prior for all covs on this transition
+  if (length(bind)==0){
+    trans <- paste0(qm$qrow[qind], "-", qm$qcol[qind])
+    cli_abort(c("Bad prior specification: covariate effect name {.var {prior$covname}} is not in the model for transition {trans}",
+                "Valid names include {.var {unique(cm$Xnames[binds])}}"))
+  }
+  bind
 }

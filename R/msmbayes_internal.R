@@ -19,13 +19,15 @@ form_qmodel <- function(Q,Qfix=NULL){
   qrow <- row(Q)[Q>0]
   qcol <- col(Q)[Q>0]
   qvec <- Q[cbind(qrow,qcol)]
-  list(
+  res <- list(
     Q = Q, K = nrow(Q),
     qvec = qvec, qrow=qrow, qcol=qcol,
-    nqpars = length(Q[Q>0]),
     qfixrow = qfixrow, qfixcol = qfixcol,
-    qfix = qfix
-  )
+    qfix = qfix,
+    nqpars = length(Q[Q>0]))
+  res$nqprior <- res$nqpars
+  res$qprior_inds <- seq_len(res$nqprior)
+  res
 }
 
 #' @return List of information about the misclassification structure

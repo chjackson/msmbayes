@@ -35,7 +35,8 @@ Suggests:
     knitr,
     magick,
     pdftools,
-    usethis
+    usethis,
+    maxLik
 LazyData: true
 VignetteBuilder: knitr
 URL: https://github.com/chjackson/msmbayes

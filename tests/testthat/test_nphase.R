@@ -73,6 +73,7 @@ test_that(">3-phase constrained parameters",{
 })
 
 test_that("analytic matrix exponential: 2 phases",{
+  x <- c(1, 2)
   p1 <- 1.1; a1 <- 0.9; a2 <- 0.94
   ## d2 != d1
   expect_equal(
