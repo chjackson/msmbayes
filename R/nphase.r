@@ -35,6 +35,8 @@
 #'   matrix exponential is determined using numerical methods, via
 #'   `expm::expm()`.
 #'
+#' @param lower.tail If `TRUE` return P(X<x), else P(X>=x). 
+#'
 #' @return A vector of length `n` or `length(x)`.
 #'
 #' @md
