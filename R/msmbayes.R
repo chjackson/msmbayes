@@ -69,15 +69,16 @@
 #'   element is 1 for states that do not have phase-type sojourn distributions.
 #'   Not required for non-phase-type models.
 #'
-#' @param phased_state For phase-type models, this indicates which state is given
+#' @param pastates For phase-type models, this indicates which states are given
 #' a Weibull or Gamma sojourn distribution approximated by a 5-phase model.
 #' Only one phased state is supported for the moment.   Ignored if `nphase` is supplied.
 #'
-#' @param phased_family `"weibull"` or `"gamma"`, indicating the
-#' approximated sojourn distribution in the phased state.
+#' @param pafamily `"weibull"` or `"gamma"`, indicating the
+#' approximated sojourn distribution in the phased state.  Either a vector
+#' of same length as `pastates`, or just one to apply to all states.
 #'
-#' @param phased_spline `"linear"` or `"hermite"`. Advanced: spline
-#'   used in constructing the approximation. May remove this argument
+#' @param paspline `"linear"` or `"hermite"`. Advanced: spline
+#'   used in constructing the approximations. May remove this argument
 #'   if one of these turns out to be good enough.
 #'
 #' @param fit_method Quoted name of a function from the `cmdstanr`
@@ -114,10 +115,10 @@
 msmbayes <- function(data, state, time, subject,
                      Q, E=NULL,
                      covariates=NULL,
+                     pastates=NULL,
+                     pafamily="weibull",
+                     paspline="hermite",
                      nphase=NULL,
-                     phased_state=NULL,
-                     phased_family="weibull",
-                     phased_spline="hermite",
                      priors=NULL,
                      soj_priordata=NULL,
                      fit_method = "sample",
@@ -125,7 +126,7 @@ msmbayes <- function(data, state, time, subject,
                      ...){
   qm <- form_qmodel(Q)
 
-  pm <- form_phasetype(nphase, Q, phased_state, phased_family, phased_spline)
+  pm <- form_phasetype(nphase, Q, pastates, pafamily, paspline)
   if (pm$phasetype){
     qm <- phase_expand_qmodel(qm, pm)
     E <- pm$E
@@ -135,7 +136,7 @@ msmbayes <- function(data, state, time, subject,
   check_data(data, state, time, subject, qm)
   cm <- form_covariates(covariates, data, qm)
   data <- clean_data(data, state, time, subject, cm$X)
-  stanpriors <- process_priors(priors, qm, cm)
+  stanpriors <- process_priors(priors, qm, cm, pm)
   soj_priordata <- form_soj_priordata(soj_priordata)
 
   if (is.null(E)){
@@ -175,14 +176,6 @@ msmbayes <- function(data, state, time, subject,
   class(res) <- c("msmbayes",class(res))
   res
 }
-
-## FIXME instantiate doesn't play nicely with devtools.
-
-## Currently have to stop it from recompiling the models every time load_all()
-## is called, by commenting out last few lines of src/install.libs.R
-
-## Also the cleanup script deletes the bin dir needed to help devtools
-## find the installed package in the current directory.  Commented that out
 
 msmbayes_stan_model <- function(model_name){
   local_path <- sprintf("bin/stan/%s.exe",model_name)

@@ -2,29 +2,25 @@
 % Please edit documentation in R/phaseapprox.R
 \name{qphaseapprox}
 \alias{qphaseapprox}
-\title{Convert a multi-state model intensity matrix with one non-Markov
+\title{Convert a multi-state model intensity matrix with one or more non-Markov
 state to an intensity matrix on a phase-type state space, with the
-non-Markov state modelled with a shape-scale phase-type distribution}
+non-Markov states modelled with a shape-scale phase-type distribution}
 \usage{
 qphaseapprox(
   qmatrix,
-  nphases,
+  pastates,
   shape,
   scale,
   family = "weibull",
-  spline = "linear"
+  spline = "linear",
+  att = TRUE
 )
 }
 \arguments{
 \item{qmatrix}{Intensity matrix on the observable state space.
 Values of rates for transitions out of the phased state are ignored.}
 
-\item{nphases}{Number of phases per observable state (as in msmbayes)
-
-Only supports one phased state (not checked)
-
-Doesn't support multiple absorptions from the phased state (could
-in theory combine using supplied qmatrix, assuming proportional)}
+\item{pastates}{integer state given phase type distribution. Only one phased state permitted}
 
 \item{shape}{shape parameter}
 
@@ -33,12 +29,18 @@ in theory combine using supplied qmatrix, assuming proportional)}
 \item{family}{parametric family approximated by the phase-type distribution: \code{"weibull"} or \code{"gamma"}}
 
 \item{spline}{(advanced) \code{"linear"} or \code{"hermite"}}
+
+\item{att}{keep attributes
+
+TODO
+Doesn't support multiple absorptions from the phased state (could
+in theory combine using supplied qmatrix, assuming proportional)}
 }
 \value{
 Intensity matrix on the phased state space
 }
 \description{
-Convert a multi-state model intensity matrix with one non-Markov
+Convert a multi-state model intensity matrix with one or more non-Markov
 state to an intensity matrix on a phase-type state space, with the
-non-Markov state modelled with a shape-scale phase-type distribution
+non-Markov states modelled with a shape-scale phase-type distribution
 }

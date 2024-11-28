@@ -7,22 +7,22 @@
 ##'
 ##' Interface based on phase-type internal model structure built in msmbayes
 ##'
-##' @inheritParams msm_phaseapprox 
+##' @inheritParams msm_phaseapprox
 ##' @param shape shape
 ##' @param scale scale
 ##' @return Scalar minus twice loglikelihood, or its derivatives
 ##' @noRd
 msm_phaseapprox_lik <- function(formula, subject, data, qmatrix,
-                                phased_state,
+                                pastates,
                                 shape, scale, family="weibull",
                                 deriv=FALSE, spline="linear"){
   nstates <- nrow(qmatrix)
   nphases <- rep(1, nstates)
-  nphases[phased_state] <- 5
+  nphases[pastates] <- 5
   pdat <- form_phasedata(nphases)
   ephase <- form_Ephase(nphases)
 
-  qphase <- qphaseapprox(qmatrix, nphases, shape, scale, family, spline)
+  qphase <- qphaseapprox(qmatrix, pastates, shape, scale, family, spline)
 
   if (!isTRUE(requireNamespace("msm", quietly = TRUE)))
     cli_abort("This requires the {.var msm} package to be installed")
@@ -32,16 +32,23 @@ msm_phaseapprox_lik <- function(formula, subject, data, qmatrix,
   mres <- msm::msm(formula=formula, subject=subject, data=data,
                    qmatrix=qphase, ematrix=ephase, fixedpars=TRUE)
 
-  if (deriv){ # TODO separate out. needs: mres, qphase, pdat, phased_state, shape, scale
-    dlik_dlrates_msm <- mres$paramdata$deriv # Assumes this contains only intensities
+  ## TODO for multiple phased states
+
+  if (deriv){ # TODO separate out. needs: mres, qphase, pdat, pastates, shape, scale
+
+    dlik_dlrates_msm <- mres$paramdata$deriv # Assumes this contains only intensities, not covariate effects
     imat <- t(mres$qmodel$imatrix)
     ## these parameters are ordered by reading across rows of Q.
-    names(dlik_dlrates_msm) <- panames_msmpars(qphase, mres$qmodel$imatrix, pdat, phased_state)
+    names(dlik_dlrates_msm) <- panames_msmpars(qphase, mres$qmodel$imatrix, qmatrix, pastates)
     ## reorder them from msm order to "prog before abs" order
-    phase_rates <- unlist(shapescale_to_rates(shape, scale, family=family,
-                                              spline=spline))
+
+    ## TODO DONE UP TO HERE
+    ## vectorise shapescale_to_rates etc.  faff.
+
+    phase_rates <- shapescale_to_rates(shape, scale, family=family, spline=spline, drop=FALSE)
     phase_rates[phase_rates==0] <- 0.000001
-    rmatch <- match(names(phase_rates), names(dlik_dlrates_msm))
+
+    rmatch <- match(colnames(phase_rates), names(dlik_dlrates_msm))
     dlrates_drates <- 1/phase_rates
     dlik_drates <- dlik_dlrates_msm[rmatch] * dlrates_drates
     dlik_drates[is.na(dlik_drates)] <- 0 # boundary estimates
@@ -49,7 +56,7 @@ msm_phaseapprox_lik <- function(formula, subject, data, qmatrix,
     dlik_dshapescale <- dlik_drates %*% t(drates_dshapescale)
     qpars <- exp(mres$estimates[names(mres$estimates)=="qbase"])
     fromstate <- col(imat)[imat==1]
-    markovpars <- qpars[!(fromstate %in% which(pdat$oldinds==phased_state))]
+    markovpars <- qpars[!(fromstate %in% which(pdat$oldinds==pastates))]
     dlik_dmarkovrates <- dlik_dlrates_msm["markovrate"] / markovpars
     dlik_dpars <- c(dlik_dmarkovrates, dlik_dshapescale)
     dpars_dlogpars <- c(markovpars, shape, scale)
@@ -67,7 +74,7 @@ msm_phaseapprox_lik <- function(formula, subject, data, qmatrix,
 ##' Objective function for MLE with phase approximation
 ##' @param par parameter vector on optimisation scale
 ##' @param formula, subject, data  as in msm
-##' @param phased_state, family  shared with msm_phaseapprox
+##' @param pastates, family  shared with msm_phaseapprox
 ##' @return minus twice log lik or derivative
 ##' Currently only supports models where
 ##'
@@ -77,41 +84,36 @@ msm_phaseapprox_lik <- function(formula, subject, data, qmatrix,
 ##'
 ##' @noRd
 msm_optim_fn <- function(par, index=NULL, formula, subject, data, qmatrix,
-                         phased_state, family="weibull", deriv=FALSE, spline="linear", minus=TRUE){
+                         pastates, family="weibull", deriv=FALSE, spline="linear", minus=TRUE){
 #  if (!is.null(index)){
 #    ind <- match(subject, unique(subject)) %in% index
 #    data <- data[ind,,drop=FALSE]; subject <- subject[ind]
 #  }
-  pd <- msm_optpardata(qmatrix, phased_state)
+  pd <- msm_optpardata(qmatrix, pastates)
   inds <- as.matrix(pd[pd$name=="markovq",c("from","to"),drop=FALSE])
   nmarkovq <- nrow(inds)
-  qmatrix[inds] <- exp(par[pd$name=="markovq"])
+  par <- constrain_pars(par, pd, family)
+  qmatrix[inds] <- par[pd$name=="markovq"]
 
   ret <- msm_phaseapprox_lik(formula=formula, subject=subject, data=data,
-                             qmatrix=qmatrix, phased_state=phased_state,
-                             # shape = exp(par[pd$name=="shape"]),
-                             shape = constrain_shape(par[pd$name=="shape"],family),
-                             scale = exp(par[pd$name=="scale"]),
+                             qmatrix=qmatrix, pastates=pastates,
+                             shape = par[pd$name=="shape"],
+                             scale = par[pd$name=="scale"],
                              family=family, deriv=deriv, spline=spline)
-  #  opt_progress <<- rbind(opt_progress, c(par, ret)) # name, store
   if (minus) ret else -ret
 }
 
 msm_optim_gr <- function(par, index=NULL, formula, subject, data, qmatrix,
-                         phased_state, family="weibull", spline="linear",minus=TRUE){
+                         pastates, family="weibull", spline="linear",minus=TRUE){
   if (!is.null(index)){
     ind <- match(subject, unique(subject)) %in% index
     data <- data[ind,,drop=FALSE]; subject <- subject[ind]
   }
   msm_optim_fn(par=par, formula=formula, subject=subject,
                data=data, qmatrix=qmatrix,
-               phased_state=phased_state, family=family, deriv=TRUE, spline=spline, minus=minus)
+               pastates=pastates, family=family, deriv=TRUE, spline=spline, minus=minus)
 }
 
-#.onLoad <- function(libname, pkgname) {
-#    assign("msmbayes.globals", new.env(), envir=parent.env(environment()))
-#    assign("opt_progress", numeric(), envir=msm.globals)
-                                        #}
 
 ##' Maximum likelihood estimation of multi-state models for intermittently-observed data where one state has a non-exponential distribution approximated by a phase-type model
 ##'
@@ -119,7 +121,7 @@ msm_optim_gr <- function(par, index=NULL, formula, subject, data, qmatrix,
 ##' @param subject unquoted name as in msm
 ##' @param data data frame
 ##' @param qmatrix 0/1 transition structure as in msm
-##' @param phased_state integer state given phase type distribution. Only one phased state permitted
+##' @param pastates integer state given phase type distribution. Only one phased state permitted
 ##' @param family parametric family approximated by the phase-type distribution: `"weibull"` or `"gamma"`
 ##' @param par initial value vector. shape on natural scale, rest on log scale
 ##' @param spline (advanced) `"linear"` or `"hermite"`
@@ -127,25 +129,19 @@ msm_optim_gr <- function(par, index=NULL, formula, subject, data, qmatrix,
 ##' @param control passed to fit method
 ##' @return list of optimisation results TODO refine
 msm_phaseapprox <- function(formula, subject, data, qmatrix,
-                            phased_state, family="weibull", par, spline="linear",
+                            pastates, family="weibull", par, spline="linear",
                             fit_method = "optim", control=NULL){
   subject <- eval(substitute(subject), data, parent.frame())
   lu <- range(phase5approx(family)$traindat$a)
-  pd <- msm_optpardata(qmatrix, phased_state)
-  lower_bounds <- rep(-Inf, nrow(pd))
-  lower_bounds[pd$name=="shape"] <- log(lu[1])
-  upper_bounds <- rep(Inf, nrow(pd))
-  upper_bounds[pd$name=="shape"] <- log(lu[2])
+  pd <- msm_optpardata(qmatrix, pastates)
 
   par[pd$name=="shape"] <- unconstrain_shape(par[pd$name=="shape"], family)
 
   fn_args <- list(family=family, formula = formula, subject=subject, data=data,
-                   qmatrix = qmatrix, phased_state = phased_state, spline = spline)
+                   qmatrix = qmatrix, pastates = pastates, spline = spline)
   if (fit_method=="optim"){
-    optim_args <- list(par = par, fn=msm_optim_fn, gr=msm_optim_gr,
-                       hessian=TRUE, minus=TRUE, #method="Nelder-Mead",#
-                       method = "L-BFGS-B",
-                       ## lower=lower_bounds, upper=upper_bounds,
+    optim_args <- list(par = par, fn=msm_optim_fn, #gr=msm_optim_gr,
+                       hessian=TRUE, minus=TRUE, method="Nelder-Mead",
                        control=list(maxit=10000, fnscale=1000, trace=1, REPORT=1))
     opt <- do.call("optim", args = c(optim_args, fn_args))
   } else if (fit_method=="SGA") {
@@ -160,14 +156,18 @@ msm_phaseapprox <- function(formula, subject, data, qmatrix,
 
   ## eventually we wont want to store data here
   opt$call <- list(formula=formula, subject=subject, data=data, qmatrix=qmatrix,
-                   phased_state=phased_state, family=family)
+                   pastates=pastates, family=family)
   opt$covmat <- 0.5*solve(opt$hessian)
-  opt$est <- c("q" = exp(opt$par[pd$name=="markovq"]),
-               shape = constrain_shape(opt$par[pd$name=="shape"], family),
-               scale = exp(opt$par[pd$name=="scale"]))
-  ## todo abstract function to (un)constrain, use in msm_optim_fn
-  ## covmat and create fake posterior draws??? mode is special though
+  opt$est <- constrain_pars(opt$par, pd, family)
+  ## uncertainty for est? covmat and create fake posterior draws??? mode is special though
   opt
+}
+
+constrain_pars <- function(pars, pd, family){
+  pars <- c("q" = exp(pars[pd$name=="markovq"]), 
+            shape = constrain_shape(pars[pd$name=="shape"], family),
+            scale = exp(pars[pd$name=="scale"]))
+  pars
 }
 
 unconstrain_shape <- function(shape, family="weibull"){
@@ -183,17 +183,19 @@ constrain_shape <- function(cshape, family="weibull"){
 }
 
 ## TODO craft an output object.
-## and better interface for imput
+## and better interface for input
 
 
-##' @param qmatrix, phased_state
+##' @param qmatrix, pastates
 ##' @return data frame of parameters and their labels
-##' @noRd 
-msm_optpardata <- function(qmatrix, phased_state){
+##' @noRd
+msm_optpardata <- function(qmatrix, pastates){
   qmodel <- form_qmodel(qmatrix)
-  inds <- cbind(qmodel$qrow,qmodel$qcol)[qmodel$qrow != phased_state,,drop=FALSE]
-  ret <- data.frame(name="markovq", from=inds[1], to=inds[2])
-  ret <- rbind(ret, data.frame(name=c("shape","scale"), from=phased_state, to=NA))
+  npastates <- length(pastates)
+  inds <- cbind(qmodel$qrow,qmodel$qcol)[!(qmodel$qrow %in% pastates),,drop=FALSE]
+  ret <- if (nrow(inds)==0) NULL else data.frame(name="markovq", from=inds[1], to=inds[2])
+  ret <- rbind(ret, data.frame(name=rep(c("shape","scale"), npastates),
+                               from=rep(pastates, each=2), to=NA))
   ret
 }
 
@@ -222,7 +224,7 @@ contour_points <- function(opt, pars=c(1,2),
       point[xpar] <- x[i]; point[ypar] <- y[j]
       call <- opt$call
       z[i,j] <- -0.5*msm_optim_fn(point, call$formula, call$subject, call$data,
-                                  call$qmatrix, call$phased_state, call$family)
+                                  call$qmatrix, call$pastates, call$family)
     }
   }
   if (tidy){
@@ -251,23 +253,36 @@ profile_points <- function(opt, par = 2, xrange=NULL, np=10){
     point[xpar] <- x[i]
     call <- opt$call
     y[i] <- -0.5*msm_optim_fn(point, call$formula, call$subject, call$data,
-                              call$qmatrix, call$phased_state, call$family)
+                              call$qmatrix, call$pastates, call$family)
   }
   data.frame(x=x, y=y)
 }
 
-## names for msms parameters that are understood by msmbayes
-panames_msmpars <- function(qphase, imatrix, pdat, phased_state){
-  pinds <- attr(qphase, "prog_inds")
-  ainds <- attr(qphase, "abs_inds")
-  labs <- array(dim=dim(pinds))
-  labs[pinds] <- paste0("p",1:sum(pinds))
-  labs[ainds] <- paste0("a",1:sum(ainds))
+## names for msm's parameters that are understood by msmbayes
+## Needs to handle multiple phased states
+
+panames_msmpars <- function(qphase, imatrix, qmatrix, pastates){
+  qm <- form_qmodel(qmatrix)
+  pm <- form_phasetype(pastates = pastates, Q=qmatrix)
+  qm <- phase_expand_qmodel(qm, pm)
+  pd <- qm$phasedata
+  labs <- array(dim=dim(qphase))
+  for (i in seq_along(pastates)){
+    pinds <- as.matrix(pd[pd$ttype=="prog" & pd$oldfrom==pastates[i], c("qrow","qcol")])
+    ainds <- as.matrix(pd[pd$ttype=="abs" & pd$oldfrom==pastates[i], c("qrow","qcol")])
+    labs[pinds] <- paste0("p",1:nrow(pinds))
+    labs[ainds] <- paste0("a",1:nrow(ainds))
+  }
+
+  #pinds <- attr(qphase, "prog_inds") # easier to get via pdat?
+  #ainds <- attr(qphase, "abs_inds")
+  #labs[pinds] <- paste0("p",1:sum(pinds))
+  #labs[ainds] <- paste0("a",1:sum(ainds))
   phaserate_labs <- t(labs)[!is.na(t(labs)) & t(imatrix)==1]
   timat <- t(imatrix)
   ## keep only parameters relating to transitions from the (single) phased state
   fromstate <- col(timat)[timat==1] # state number in expanded space
-  pstate <- fromstate %in% which(pdat$oldinds==phased_state)
+  pstate <- fromstate %in% which(pd$oldfrom %in% pastates)
   pnames <- character(length(pstate))
   pnames[pstate] <- phaserate_labs
   pnames[!pstate] <- "markovrate"

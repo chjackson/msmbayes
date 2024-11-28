@@ -29,7 +29,7 @@ data {
   array[ntlc] real<lower=0> timelag; // time lags (keeping only those corresponding to distinct (timelag, covariates)
 
   // phasetypeapprox CHANGED INDEX
-  int nderivedq; // number of phase-type intensities (will this always be 9, if nphases=5??)
+  int npaq; // number of phase-type intensities per phased state (will this always be 9, if nphases=5??)
   int npriorq; // number of Markov intensities
   array[npriorq] real logqmean;        // mean of normal prior on markov log(q)
   array[npriorq] real<lower=0> logqsd; // sd of normal prior on log(q)
@@ -53,42 +53,53 @@ data {
 
   // New for phase type approx
 
-  array[nderivedq] int<lower=1> qderived_inds; // indices of phase-type intensities in logq_full, derived from shape and scale 
-  array[npriorq] int<lower=1> qprior_inds; // indices of Markov intensities in logq_full, given direct priors
+  int npastates; // number of states on observable space that have phase-type approximations
+  array[npaq,npastates] int<lower=1> qpa_inds; // indices of intensities for phase-type approximations in logq_full, derived from shape and scale 
+  array[npriorq] int<lower=1> priorq_inds; // indices of Markov intensities in logq_full, given direct priors
   int<lower=1> ntrain;
-  vector[ntrain] train_data_x;
-  matrix[ntrain,nderivedq] train_data_y;
-  matrix[ntrain,nderivedq] train_data_m;
-  real logshapemin;
-  real logshapemax;
-  real logshapemean;
-  real<lower=0> logshapesd;
-  real logscalemean;
-  real<lower=0> logscalesd;
+  vector[ntrain] traindat_x;
+  matrix[ntrain,npaq] traindat_y;
+  matrix[ntrain,npaq] traindat_m;
+  array[npastates,2] int<lower=1> traindat_inds;
+  vector[npastates] logshapemin;
+  vector[npastates] logshapemax;
+  vector[npastates] logshapemean;
+  vector<lower=0>[npastates] logshapesd;
+  vector[npastates] logscalemean;
+  vector<lower=0>[npastates] logscalesd;
   int<lower=1,upper=2> spline;
 }
 
 parameters {
   vector[npriorq] logq_markov; // vector of Markov transition intensities
-  real<lower=logshapemin,upper=logshapemax> logshape;     // for phase type model.  may want to merge with hmm.stan 
-  real logscale;
+  vector<lower=logshapemin,upper=logshapemax>[npastates] logshape;     // for phase type model.  may want to merge with hmm.stan 
+  vector[npastates] logscale;
 
-  array[nepars] real<lower=0,upper=1> evec; // vector of misclassification parameters, given default flat prior.  TODO transform?
+  array[nepars] real<lower=0,upper=1> evec; // vector of misclassification parameters, given default flat prior
   vector[nx] loghr;     // log hazard ratios for covariates
 } 
 
 transformed parameters {
   vector[nqpars] q_full;    
-  real shape = exp(logshape);
-  real scale = exp(logscale);
-
-  vector[nderivedq] prates = shapescale_to_rates(shape, scale, nderivedq, train_data_x, train_data_y, train_data_m, spline);
+  vector[npastates] shape = exp(logshape);
+  vector[npastates] scale = exp(logscale);
+  matrix<lower=0>[npaq,npastates] prates;
+  
+  for (j in 1:npastates){
+    int tstart = traindat_inds[j,1];
+    int tend = traindat_inds[j,2];
+    prates[1:npaq,j] = shapescale_to_rates(shape[j], scale[j], npaq,
+					   traindat_x[tstart:tend],
+					   traindat_y[tstart:tend,],
+					   traindat_m[tstart:tend,],
+					   spline);
+    for (i in 1:npaq){
+      q_full[qpa_inds[i,j]] = prates[i,j];
+    }
+  }
 
   for (i in 1:npriorq){
-    q_full[qprior_inds[i]] = exp(logq_markov[i]);
-  }
-  for (i in 1:nderivedq){
-    q_full[qderived_inds[i]] = prates[i];
+    q_full[priorq_inds[i]] = exp(logq_markov[i]);
   }
 }
 
@@ -133,11 +144,10 @@ model {
   for (i in 1:npriorq){
     logq_markov[i] ~ normal(logqmean[i], logqsd[i]); // or could be gamma
   }
-  // shape ~ gamma(shape_pshape, shape_prate)T[shape_min,shape_max];
-  // scale ~ gamma(scale_pshape, scale_prate);
-  logshape ~ normal(logshapemean, logshapesd)T[logshapemin,logshapemax];
-  logscale ~ normal(logscalemean, logscalesd);
-  
+  for (i in 1:npastates){
+    logshape[i] ~ normal(logshapemean[i], logshapesd[i])T[logshapemin[i],logshapemax[i]];
+    logscale[i] ~ normal(logscalemean[i], logscalesd[i]);
+  }  
   array[K] real mp_jk; // marg prob of data up to time t and true state k at time t, given true state j at time t-1 (recomputed every t, k)
   real loglik = 0;
 

@@ -1,22 +1,26 @@
 #' Simulate intermittently-observed data from a semi-Markov
 #' multi-state model with two states and reversible transitions.
 #' 
-#' State 1 has an exponential sojourn distribution, and state 2 has a
-#' more general sojourn distribution.
+#' Either or both states can have a general sojourn distribution.
 #'
 #' @param nindiv number of individuals
 #' 
 #' @param obstimes observation times, common between individuals
 #'
-#' @param rate Rate of the exponential sojourn distribution for state 1.
-#' 
-#' @param rfn Function to simulate from the sojourn distribution in
+#' @param rfn1 Function to simulate from the sojourn distribution in
+#' state 2.  By default this is the exponential.
+#'
+#' @param pars1 List of arguments to be passed to `rfn1`, specifying
+#' parameter values for the sojourn distribution
+#'
+#' @param rfn2 Function to simulate from the sojourn distribution in
 #' state 2.
 #'
-#' @param pars List of arguments to be passed to `rfn`, specifying
+#' @param pars2 List of arguments to be passed to `rfn`, specifying
 #' parameter values for the sojourn distribution
 #' 
-sim_2state_smm <- function(nindiv, obstimes, rate, rfn, pars){
+sim_2state_smm <- function(nindiv, obstimes, rfn1=rexp, pars1=list(rate=1),
+                           rfn2, pars2){
   maxtime <- max(obstimes)
   done <- rep(FALSE, nindiv)
   tcur <- rep(0, nindiv)
@@ -27,12 +31,12 @@ sim_2state_smm <- function(nindiv, obstimes, rate, rfn, pars){
   ## even-numbered cols - times of infection
   eventnames <- "rec"
   while (!all(tcur > maxtime)){
-    next_inf <- rexp(nindiv, rate) # inefficient to do nindiv every time
+    next_inf <- do.call(rfn1, c(list(n=nindiv), pars1)) # inefficient to do nindiv every time
     tcur <- tcur + next_inf
     res <- cbind(res, tcur) # memory inefficient
     eventnames <- c(eventnames,"inf")
     if (all(tcur > maxtime)) break
-    inf_soj <- do.call(rfn, c(list(n=nindiv), pars))
+    inf_soj <- do.call(rfn2, c(list(n=nindiv), pars2))
     inf_soj_true <- cbind(inf_soj_true, inf_soj)
     tcur <- tcur + inf_soj
     res <- cbind(res, tcur)

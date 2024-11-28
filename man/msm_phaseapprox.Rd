@@ -9,7 +9,7 @@ msm_phaseapprox(
   subject,
   data,
   qmatrix,
-  phased_state,
+  pastates,
   family = "weibull",
   par,
   spline = "linear",
@@ -26,7 +26,7 @@ msm_phaseapprox(
 
 \item{qmatrix}{0/1 transition structure as in msm}
 
-\item{phased_state}{integer state given phase type distribution. Only one phased state permitted}
+\item{pastates}{integer state given phase type distribution. Only one phased state permitted}
 
 \item{family}{parametric family approximated by the phase-type distribution: \code{"weibull"} or \code{"gamma"}}
 

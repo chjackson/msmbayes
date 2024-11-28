@@ -1,25 +1,19 @@
 
 #' Form internal info needed for phase-type models
 #'
-#' TODO for phase5approx.
-#' * DONE: Internal state structure should be 5 phase
-#' * Priors for shape, scale, markovpars.  No priors for phase trans rates
-#' * Training data supplied to stan
-#' * Define indices needed for intensities in stan file
-#' * put functions in stan file. links to work round space thing?
-#'
 #' @inheritParams msmbayes
 #'
 #' @return A list DOCME
 #'
 #' @noRd
-form_phasetype <- function(nphase, Q,
-                           phased_state, phased_family, phased_spline,
+form_phasetype <- function(nphase=NULL, Q,
+                           pastates=NULL, pafamily="weibull",
+                           paspline="linear",
                            call=caller_env()){
   nphase <- check_nphase(nphase, Q, call)
-  nphase <- nphase_from_approx(nphase, phased_state, Q)
+  nphase <- nphase_from_approx(nphase, pastates, Q)
   if (is.null(nphase) || all(nphase==1))
-    return(list(phasetype=FALSE, phaseapprox=FALSE,
+    return(list(phasetype=FALSE, phaseapprox=FALSE, npastates = 0,
                 pdat=NULL, E=NULL, Efix=NULL, Qphase=Q))
   pdat <- form_phasedata(nphase)
   E <- form_Ephase(nphase)
@@ -27,21 +21,37 @@ form_phasetype <- function(nphase, Q,
   Qphase <- form_Qphase(Q, nphase, call=call)
   unphased_states <- pdat$oldinds[!pdat$phase]
   phased_states <- unique(pdat$oldinds[pdat$phase])
+  pafamily <- check_pafamily(pafamily, pastates)
   list(phasetype=TRUE, nphase=nphase, pdat=pdat, E=E, Efix=Efix, Qphase=Qphase,
        phased_states = phased_states, unphased_states = unphased_states,
-       phaseapprox = !is.null(phased_state),
-       phased_family = phased_family,
-       phased_spline = phased_spline,
+       phaseapprox = !is.null(pastates),
+       pastates = pastates,
+       npastates = length(pastates),
+       pafamily = pafamily, 
+       paspline = paspline,
        nstates_orig = max(pdat$oldinds))
 }
 
-nphase_from_approx <- function(nphase, phased_state=NULL, Q, call=caller_env()){
-  if (is.null(nphase) & !is.null(phased_state)) {
+check_pafamily <- function(pafamily, pastates){
+  if (is.null(pastates)) return(NULL)
+  if (length(pafamily) != length(pastates))
+    cli_abort("supplied {.var pastates} of length {length(pastates)}, but {.var pafamily} of length {length(pafamily)}")
+  badpaf <- which(!(pafamily %in% .pafamilies))
+  if (length(badpaf) > 0)
+    cli_abort("{.var pafamily} should be one of {.str { .pafamilies}}. Found {.str {pafamily[badpaf]}}")
+  pafamily <- rep(pafamily, length.out=length(pastates))
+  pafamily
+}
+                           
+nphase_from_approx <- function(nphase, pastates=NULL, Q, call=caller_env()){
+  if (is.null(nphase) & !is.null(pastates)) {
     nstates <- nrow(Q)
-    if (!(phased_state %in% 1:nstates))
-      cli_abort("{.var phased_state} should be an integer from 1 up to the number of states ({nstates})",call)
+    badp <- which(!(pastates %in% 1:nstates))
+    if (length(badp) > 0)
+      cli_abort(c("{.var pastates} should be a vector containing only integers from 1 up to the number of states ({nstates}). Found {pastates[badp]}"),
+                  call=call)
     nphase <- rep(1, nstates)
-    nphase[phased_state] <- 5
+    nphase[pastates] <- 5
   }
   nphase
 }
@@ -217,18 +227,21 @@ phase_expand_qmodel <- function(qm, pm){
                 qcol = col(Qnew)[Qnew > 0])
   qmnew$phasedata <- pd <- form_phasetrans(qmnew, pm$pdat)
 
-  if (pm$phaseapprox){ # won't work with >1 phased state. there would need to store /
-                       #  order by oldfrom
-    qmnew$nderivedq <- sum(pd$phasefrom)
-    stopifnot(qmnew$nderivedq == 9) # 5 phase approx, all rates estimated
-    qmnew$nqprior <- sum(pd$ttype=="markov")
-    qmnew$qderived_inds <- c(which(pd$phasefrom & pd$ttype=="prog"),
-                             which(pd$phasefrom & pd$ttype=="abs"))
-    qmnew$qprior_inds <- which(pd$ttype=="markov")
+  if (pm$phaseapprox){
+    qmnew$npaq <- 9 # for 5-phase approximation
+    pprog <- pd$phasefrom & pd$ttype=="prog"
+    pabs <- pd$phasefrom & pd$ttype=="abs"
+    qmnew$qpa_inds <- matrix(nrow=qmnew$npaq, ncol=pm$npastates)
+    for (i in 1:pm$npastates){
+      qmnew$qpa_inds[,i]  <- c(which(pprog & pd$oldfrom==pm$pastates[i]),
+                                    which(pabs & pd$oldfrom==pm$pastates[i]))
+    }
+    qmnew$priorq_inds <- which(pd$ttype=="markov")
+    qmnew$npriorq <- length(qmnew$priorq_inds)
   } else {
-    qmnew$qderived_inds <- NULL
-    qmnew$qprior_inds <- 1:qmnew$nqpars
-    qmnew$nqprior <- qmnew$nqpars
+    qmnew$qpa_inds <- NULL
+    qmnew$priorq_inds <- 1:qmnew$nqpars
+    qmnew$npriorq <- qmnew$nqpars
   }
 
   qmnew

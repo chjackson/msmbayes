@@ -50,17 +50,29 @@ canpars_to_rates <- function(par, type="vector"){
   else cli_abort("unknown output type {.var {type}}")
 }
 
-rates_to_list <- function(rates){
+rates_to_list <- function(rates, canonical=TRUE){
   ## TODO error if even length
+  if (canonical)
+    return(canpars_to_list(rates))
   nphase <- (length(rates) + 1) / 2
-  list(p=rates[1:(nphase-1)], a=rates[nphase:(2*nphase-1)])
+  if (is.matrix(rates))
+    list(p=rates[,1:(nphase-1)],
+         a=rates[,nphase:(2*nphase-1)])
+  else 
+    list(p=rates[1:(nphase-1)],
+         a=rates[nphase:(2*nphase-1)])
 }
 
 canpars_to_list <- function(rates){
   ## TODO error if even length
   rates <- unname(rates)
   nphase <- (length(rates) + 1) / 2
-  list(qsoj = rates[1],
+  if (is.matrix(rates))
+    list(qsoj = rates[,1],
+         inc = rates[,2:nphase],
+         pabs = rates[,nphase + (1:(nphase-1))])
+  else 
+    list(qsoj = rates[1],
        inc = rates[2:nphase],
        pabs = rates[nphase + (1:(nphase-1))])
 }
@@ -117,8 +129,3 @@ phase_cannames <- function(nphase){
     paste0("inc", 1:(nphase-1)),
     paste0("pabs",1:(nphase-1)))
 }
-
-## todo merge with get_panames, make for all states
-.canparnames5 <- c("qsoj", "inc1", "inc2", "inc3", "inc4",
-                   "pabs1", "pabs2", "pabs3", "pabs4")
-.phaseparnames5 <- c(paste0("p",1:4), paste0("a",1:5))

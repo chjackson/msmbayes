@@ -66,18 +66,35 @@ make_stan_obsdata <- function(dat, qm=NULL, cm=NULL,
 
 form_phaseapprox_standata <- function(qm,pm){
   if (!pm$phaseapprox) return(NULL)
-  traindat <- phase5approx(pm$phased_family)$traindat
-  traindat_grad <- phase5approx(pm$phased_family)$grad
-  list(nderivedq = qm$nderivedq,
+  traindatw <- phase5approx("weibull")$traindat
+  traindatg <- phase5approx("gamma")$traindat
+  traindat <- rbind(traindatw, traindatg)
+  traindatw_grad <- phase5approx("weibull")$grad
+  traindatg_grad <- phase5approx("gamma")$grad
+  traindat_grad <- rbind(traindatw_grad, traindatg_grad)
+  pafamily <- match(pm$pafamily, .pafamilies)
+  winds <- c(1, nrow(traindatw))
+  ginds <- winds + c(1, nrow(traindatg))
+  ## matrix npastates x 2
+  ## start and end row index into traindat for each approximated state
+  traindat_inds <- rbind(winds, ginds)[pafamily,,drop=FALSE]
+  wmin <- log(min(traindatw$a)); wmax <- log(max(traindatw$a))
+  gmin <- log(min(traindatg$a)); gmax <- log(max(traindatg$a))
+  logshapemin <- c(wmin, gmin)[pafamily]
+  logshapemax <- c(wmax, gmax)[pafamily]
+
+  list(npaq = qm$npaq,
        npriorq = qm$npriorq,
-       qprior_inds = as.array(qm$qprior_inds),
-       qderived_inds = as.array(qm$qderived_inds),
+       priorq_inds = as.array(qm$priorq_inds),
+       qpa_inds = as.array(qm$qpa_inds),
+       npastates = pm$npastates,
        ntrain = nrow(traindat),
-       train_data_x = traindat$a,
-       train_data_y = traindat[,phase_cannames(5)],
-       train_data_m = traindat_grad[,phase_cannames(5)],
-       logshapemin = log(min(traindat$a)),
-       logshapemax = log(max(traindat$a)),
-       spline = match(pm$phased_spline, c("linear","hermite"))
+       traindat_x = traindat$a,
+       traindat_y = traindat[,phase_cannames(5)],
+       traindat_m = traindat_grad[,phase_cannames(5)],
+       traindat_inds = traindat_inds,
+       logshapemin = as.array(logshapemin),
+       logshapemax = as.array(logshapemax),
+       spline = match(pm$paspline, c("linear","hermite"))
        )
 }

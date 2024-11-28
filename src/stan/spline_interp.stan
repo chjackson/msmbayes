@@ -15,6 +15,7 @@ functions {
 	canpars[i] = spline_interp_hermite(shape, train_data_x, train_data_y[,i], train_data_m[,i]);
     }
     vector[nprates] rates = canpars_to_rates(canpars, nprates) / scale;
+
     return rates;
   }
 
@@ -39,10 +40,7 @@ functions {
 			    vector x0, // assumes increasing order
 			    vector y0, vector m){
     real ret;
-    int i = 1;
-    while ((x > x0[i+1]) && (i < rows(x0))) {
-      i = i+1;
-    } 
+    int i = findinterval(x, x0);
     real dx = x0[i+1] - x0[i];
     real dy = y0[i+1] - y0[i];
     ret =  y0[i] + (x - x0[i]) * dy / dx; 
@@ -64,20 +62,17 @@ functions {
     real h11 = tt1*t;
     ret = y0[i]*h00 + h*m[i]*h10 + y0[i+1]*h01 + h*m[i+1]*h11;
     return ret; 
+
   }
 
+  // Assumes x is inside x0, will break if outside. 
   int findinterval(real x, vector x0){
     int i = 1;
-    while ((x > x0[i+1]) && (i < rows(x0))) {
+    while ((i <= rows(x0)) && (x > x0[i+1])) {
       i = i+1;
     }
     return i;
   }
 
-// if x is on the grid ret = y0[i]
-
   
 }
-
-// TODO linear interpolation 
-// shd be an easy modification of above. test in R.

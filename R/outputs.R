@@ -419,7 +419,15 @@ phaseapprox_pars <- function(draws){
     return(NULL)
   }
   td <- tidy_draws(draws)
+  state <- rep(attr(draws, "pm")$pastates, 2)
+  family <- rep(attr(draws, "pm")$pafamily, 2)
+  name <- rep(c("shape","scale"), each=attr(draws, "pm")$npastates)
   shape <- td |> gather_rvars(shape[]) |> pull(".value")
   scale <- td |> gather_rvars(scale[]) |> pull(".value")
-  as_msmbres(data.frame(name=c("shape","scale"), value=c(shape, scale)))
+  as_msmbres(data.frame(
+    state = state,
+    family = family,
+    name = name, 
+    value=c(shape, scale)
+  ) |> arrange(state))
 }

@@ -21,7 +21,7 @@
 #'
 #' Then for transition intensities, it should two include indices
 #' indicating the transition, e.g. `"logq(2,3)"` for the log
-#' transition intensity from state 2 to state 3. 
+#' transition intensity from state 2 to state 3.
 #'
 #' For covariate effects, the covariate name is supplied alongside the
 #' transition indices, e.g. `"loghr(age,2,3)"` for the effect of `age`
@@ -86,7 +86,7 @@
 #' mod <- msmbayes(data=infsim2, state="state", time="months", subject="subject",
 #'                 Q=Q,  priors=priors, fit_method="optimize")
 #' summary(mod)
-#' 
+#'
 #' @md
 #'
 #' @export
@@ -214,33 +214,33 @@ extraneous_covname_error <- function(res){
   loghr = list(mean=0, sd=10),
   logshape = list(mean=0, sd=1),
   logscale = list(mean=0, sd=1)
-) 
+)
 
 #' Assemble prior parameters as data to be passed to Stan
 #'
 #' @param priors list of objects created by `msmprior`
 #'
 #' @return logqmean, logqsd, loghrmean, loghrsd etc: vectors passed to Stan
-#' 
+#'
 #'
 #' @noRd
-process_priors <- function(priors, qm, cm=NULL){
+process_priors <- function(priors, qm, cm, pm){
   priors <- check_priors(priors)
-  logqmean <- rep(.default_priors$logq$mean, qm$nqprior)
-  logqsd <- rep(.default_priors$logq$sd, qm$nqprior)
+  logqmean <- rep(.default_priors$logq$mean, qm$npriorq)
+  logqsd <- rep(.default_priors$logq$sd, qm$npriorq)
   loghrmean <- rep(.default_priors$loghr$mean, cm$nx)
   loghrsd <- rep(.default_priors$loghr$sd, cm$nx)
-  logshapemean <- .default_priors$logshape$mean
-  logshapesd <- .default_priors$logshape$sd
-  logscalemean <- .default_priors$logscale$mean
-  logscalesd <- .default_priors$logscale$sd # ugh? separate function?
+  logshapemean <- rep(.default_priors$logshape$mean, pm$npastates)
+  logshapesd <- rep(.default_priors$logshape$sd, pm$npastates)
+  logscalemean <- rep(.default_priors$logscale$mean, pm$npastates)
+  logscalesd <- rep(.default_priors$logscale$sd, pm$npastates) # ugh? separate function?
 
   for (i in seq_along(priors)){
     prior <- priors[[i]]
     qind <- get_prior_qindex(prior, qm)
     if (prior$par_base=="logq"){
-      logqmean[match(qind,qm$qprior_inds)] <- prior$mean
-      logqsd[match(qind,qm$qprior_inds)] <- prior$sd
+      logqmean[match(qind,qm$priorq_inds)] <- prior$mean
+      logqsd[match(qind,qm$priorq_inds)] <- prior$sd
     }
     else if (prior$par_base=="loghr"){
       if (cm$nx==0)
@@ -250,16 +250,17 @@ process_priors <- function(priors, qm, cm=NULL){
         loghrmean[bind] <- prior$mean
         loghrsd[bind] <- prior$sd
       }
+## TODO WITH MULTIPLE
     } else if (prior$par_base=="logshape"){
       logshapemean <- prior$mean; logshapesd <- prior$sd
     } else if (prior$par_base=="logscale"){
       logscalemean <- prior$mean; logscalesd <- prior$sd
     }
   }
-  list(logqmean=as.array(logqmean), logqsd=as.array(logqsd),
-       loghrmean=as.array(loghrmean), loghrsd=as.array(loghrsd),
-       logshapemean = logshapemean, logshapesd = logshapesd,
-       logscalemean = logscalemean, logscalesd = logscalesd)
+  list(logqmean = as.array(logqmean), logqsd = as.array(logqsd),
+       loghrmean = as.array(loghrmean), loghrsd = as.array(loghrsd),
+       logshapemean = as.array(logshapemean), logshapesd = as.array(logshapesd),
+       logscalemean = as.array(logscalemean), logscalesd = as.array(logscalesd))
 }
 
 check_priors <- function(priors){
@@ -267,7 +268,7 @@ check_priors <- function(priors){
     priors <- list(priors)
   for (i in seq_along(priors)){
     if (!inherits(priors[[i]], "msmprior"))
-      cli_abort("each component of the list {.var prior} should be an object returned by {.var msmprior}")    
+      cli_abort("each component of the list {.var prior} should be an object returned by {.var msmprior}")
   }
   priors
 }
@@ -276,7 +277,7 @@ check_priors <- function(priors){
 ##' @noRd
 get_prior_qindex <- function(prior, qm){
   if (prior$ind1 == "all_indices")
-    qind <- seq_len(qm$nqprior)
+    qind <- seq_len(qm$npriorq)
   else
     qind <- which(qm$qrow==prior$ind1 & qm$qcol==prior$ind2)
   if (length(qind)==0){

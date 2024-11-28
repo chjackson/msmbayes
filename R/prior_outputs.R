@@ -42,8 +42,8 @@ prior_to_rvar <- function(mean, sd, n=1000){
 prior_db <- function(priors, qm, cm){
   prior <- NULL
   logq <- data.frame(
-    from = qm$qrow[qm$qprior_inds],
-    to = qm$qcol[qm$qprior_inds],
+    from = qm$qrow[qm$priorq_inds],
+    to = qm$qcol[qm$priorq_inds],
     priormean = priors$logqmean,
     priorsd = priors$logqsd,
     prior = prior_to_rvar(priors$logqmean, priors$logqsd, n=1000)

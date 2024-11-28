@@ -5,22 +5,32 @@
 \title{Simulate intermittently-observed data from a semi-Markov
 multi-state model with two states and reversible transitions.}
 \usage{
-sim_2state_smm(nindiv, obstimes, rate, rfn, pars)
+sim_2state_smm(
+  nindiv,
+  obstimes,
+  rfn1 = rexp,
+  pars1 = list(rate = 1),
+  rfn2,
+  pars2
+)
 }
 \arguments{
 \item{nindiv}{number of individuals}
 
 \item{obstimes}{observation times, common between individuals}
 
-\item{rate}{Rate of the exponential sojourn distribution for state 1.}
+\item{rfn1}{Function to simulate from the sojourn distribution in
+state 2.  By default this is the exponential.}
 
-\item{rfn}{Function to simulate from the sojourn distribution in
+\item{pars1}{List of arguments to be passed to \code{rfn1}, specifying
+parameter values for the sojourn distribution}
+
+\item{rfn2}{Function to simulate from the sojourn distribution in
 state 2.}
 
-\item{pars}{List of arguments to be passed to \code{rfn}, specifying
+\item{pars2}{List of arguments to be passed to \code{rfn}, specifying
 parameter values for the sojourn distribution}
 }
 \description{
-State 1 has an exponential sojourn distribution, and state 2 has a
-more general sojourn distribution.
+Either or both states can have a general sojourn distribution.
 }

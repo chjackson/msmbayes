@@ -1,7 +1,7 @@
 ## Functions relating to approximating shape/scale family
 ## distributions (Weibull, Gamma) with phase-type models
 
-## TODO doc.  One file documenting standard args.  This one 
+## TODO doc.  One file documenting standard args.  This one
 
 ##' Determine parameters of a phase-type model that approximate a parametric shape-scale distribution
 ##'
@@ -14,28 +14,35 @@
 ##' @param spline Type of spline used to interpolate between the training points (pointwise optima) when deriving the function that best maps the shape to each phase-type parameter
 ##'
 ##' @param canonical Return the phase-type parameters in canonical form (phase 1 sojourn rate, sojourn rate increments in subsequent states, absorption probabilities).  If `FALSE` then phase transition rates are returned
-##' 
+##'
 ##' @param type Type of returned object: vector or list.
+##'
+##' @param drop for vectorised operation, return vector TODOC 
+##'
 shapescale_to_rates <- function(shape, scale=1, family="weibull",
                                 canonical=FALSE, spline="linear",
-                                type = "vector"){
+                                type = "vector", drop=TRUE){
 #  check_shape_in_bounds(shape, family)
+  # todo check length of shape, scale
   pars <- phase_cannames(5)
-  res <- numeric(length(pars))
-  names(res) <- pars
-  for (i in seq_along(pars)){
-    tmp <- shape_to_canpar(shape, parname=pars[i],
-                           family=family, spline=spline)
-    if ((length(tmp)==0)) browser()
-    res[i] <- tmp
+  rates <- matrix(nrow=length(shape), ncol=length(pars))
+  colnames(rates) <- pars
+  for (i in seq_along(shape)){
+    for (j in seq_along(pars)){
+      tmp <- shape_to_canpar(shape[i], parname=pars[j],
+                             family=family, spline=spline)
+      rates[i,j] <- tmp
+    }
+    if (!canonical){
+      rates[i,] <- canpars_to_rates(rates[i,])
+    } 
+    rates[i,] <- scale_rates(rates[i,], scale[i], canonical)
   }
-  if (!canonical){
-    rates <- canpars_to_rates(res, type=type)
-    rates <- scale_rates(rates, scale)
-  } else {
-    rates <- scale_canpars(res, scale)
-    if (type=="list") rates <- canpars_to_list(rates)
-  }
+  if (type=="list")
+    rates <- rates_to_list(rates, canonical)
+  if (drop && (type=="vector") && (length(shape)==1))
+    rates <- as.numeric(rates) |>
+      setNames(if(canonical) phase_cannames(5) else phase_ratenames(5))
   rates
 }
 
@@ -58,7 +65,8 @@ shape_to_canpar <- function(shape, parname, family, spline="linear"){
 ##' @inheritParams shapescale_to_rates
 ##' @param rates list or vector of rate parameters TODO standard doc
 ##' @noRd
-scale_rates <- function(rates, scale){
+scale_rates <- function(rates, scale, canonical=FALSE){
+  if (canonical) scale_canpars(rates, scale)
   if (is.list(rates)){
     rates$p <- rates$p / scale
     rates$a <- rates$a / scale
@@ -101,7 +109,7 @@ Dcanpars_dshape  <- function(shape, family="weibull", spline="linear"){
   else cli_abort("spline unknown")
 }
 
-## not vectorised in shape 
+## not vectorised in shape
 Dcanpars_dshape_linear <- function(shape, family="weibull"){
   traindat <- phase5approx(family)$traindat
   if ((shape < min(traindat$a)) || (shape > max(traindat$a)))
@@ -128,60 +136,55 @@ Dcanpars_dshape_hermite <- function(shape, family="weibull"){
 
 
 
-##' Convert a multi-state model intensity matrix with one non-Markov
+##' Convert a multi-state model intensity matrix with one or more non-Markov
 ##' state to an intensity matrix on a phase-type state space, with the
-##' non-Markov state modelled with a shape-scale phase-type distribution
+##' non-Markov states modelled with a shape-scale phase-type distribution
 ##'
 ##' @param qmatrix Intensity matrix on the observable state space.
 ##' Values of rates for transitions out of the phased state are ignored.
 ##'
-##' @param nphases Number of phases per observable state (as in msmbayes)
+##' @param att keep attributes
 ##'
-##' Only supports one phased state (not checked)
-##'
+##' TODO
 ##' Doesn't support multiple absorptions from the phased state (could
 ##' in theory combine using supplied qmatrix, assuming proportional)
 ##'
 ##' @inheritParams msm_phaseapprox
 ##' @inheritParams shapescale_to_rates
 ##' @return Intensity matrix on the phased state space
-qphaseapprox <- function(qmatrix, nphases, shape, scale, family="weibull", spline="linear"){
-  rates <- shapescale_to_rates(shape, scale, family=family, spline=spline, type="list")
-  qnew <- form_Qphase(qmatrix, nphases)
-  qnew[attr(qnew,"prog_inds")] <- rates$p
-  qnew[attr(qnew,"abs_inds")] <- rates$a
+qphaseapprox <- function(qmatrix, pastates, shape, scale, family="weibull", spline="linear", att=TRUE){
+  qm <- form_qmodel(qmatrix)
+  pm <- form_phasetype(pastates = pastates, Q=qmatrix, pafamily=family)
+  qm <- phase_expand_qmodel(qm, pm)
+  qnew <- pm$Qphase
+  for (i in 1:pm$npastates){
+    rates <- shapescale_to_rates(shape[i], scale[i], family=family, spline=spline, type="list")
+    pd <- qm$phasedata
+    pdprog <- as.matrix(pd[pd$ttype=="prog" & pd$oldfrom==pastates[i], c("qrow","qcol")])
+    pdabs <- as.matrix(pd[pd$ttype=="abs" & pd$oldfrom==pastates[i], c("qrow","qcol")])
+    qnew[pdprog] <- rates$p
+    qnew[pdabs] <- rates$a
+  }
+  if (att==FALSE) {attr(qnew,"prog_inds") <- attr(qnew,"abs_inds") <- NULL}
   qnew
 }
 
 
 
-
-
-##' Data to construct phase-type approximations of standard survival distributions
-##'
-##' @name phaseapprox
-##'
-##' @aliases phaseapprox phase5approx
-##'
-##' @format `phase5approx` is a list with components `"weibull"` and `"gamma"`.
-##' Each of these is a list with components
-##'
-##' `traindat`: data frame of training data giving the optimal
-##' phase-type parameters for each of a grid of shape parameters
-##'
-##' `smods`: linear interpolation functions to produce the optimal
-##' phase-type parameters for an arbitrary shape parameter within the
-##' range of the training data
+##' Training data to construct phase-type approximations of standard survival distributions
 ##'
 ##' Only 5-phase approximations are included.
+##' 
+##' @return `traindat`: data frame of training data giving the optimal
+##' phase-type parameters for each of a grid of shape parameters
+##' Do we need anything else?
 ##'
-##' @source Code in kl_pointwise.R to provide...
 ##' TODO document further, work in progress.
-
-
-##' Training data for 5 phase approximation
+##' @source Code in kl_pointwise.R to provide...
 ##'
 ##' @noRd
 phase5approx <- function(family){
   phase5approx_data[[family]]
 }
+
+.pafamilies <- c("weibull","gamma")

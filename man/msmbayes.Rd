@@ -12,10 +12,10 @@ msmbayes(
   Q,
   E = NULL,
   covariates = NULL,
+  pastates = NULL,
+  pafamily = "weibull",
+  paspline = "hermite",
   nphase = NULL,
-  phased_state = NULL,
-  phased_family = "weibull",
-  phased_spline = "hermite",
   priors = NULL,
   soj_priordata = NULL,
   fit_method = "sample",
@@ -71,21 +71,22 @@ linear function of age and sex, and the log 2-1 transition intensity
 is a linear function of age.  You do not have to list all of the
 intensities here if some of them are not influenced by covariates.}
 
+\item{pastates}{For phase-type models, this indicates which states are given
+a Weibull or Gamma sojourn distribution approximated by a 5-phase model.
+Only one phased state is supported for the moment.   Ignored if \code{nphase} is supplied.}
+
+\item{pafamily}{\code{"weibull"} or \code{"gamma"}, indicating the
+approximated sojourn distribution in the phased state.  Either a vector
+of same length as \code{pastates}, or just one to apply to all states.}
+
+\item{paspline}{\code{"linear"} or \code{"hermite"}. Advanced: spline
+used in constructing the approximations. May remove this argument
+if one of these turns out to be good enough.}
+
 \item{nphase}{For phase-type models, this is a vector with one
 element per state, giving the number of phases per state.  This
 element is 1 for states that do not have phase-type sojourn distributions.
 Not required for non-phase-type models.}
-
-\item{phased_state}{For phase-type models, this indicates which state is given
-a Weibull or Gamma sojourn distribution approximated by a 5-phase model.
-Only one phased state is supported for the moment.   Ignored if \code{nphase} is supplied.}
-
-\item{phased_family}{\code{"weibull"} or \code{"gamma"}, indicating the
-approximated sojourn distribution in the phased state.}
-
-\item{phased_spline}{\code{"linear"} or \code{"hermite"}. Advanced: spline
-used in constructing the approximation. May remove this argument
-if one of these turns out to be good enough.}
 
 \item{priors}{A list specifying priors.  Each component should be
 the result of a call to \code{\link{msmprior}}.  Any parameters

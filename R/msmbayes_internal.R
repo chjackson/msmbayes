@@ -25,8 +25,8 @@ form_qmodel <- function(Q,Qfix=NULL){
     qfixrow = qfixrow, qfixcol = qfixcol,
     qfix = qfix,
     nqpars = length(Q[Q>0]))
-  res$nqprior <- res$nqpars
-  res$qprior_inds <- seq_len(res$nqprior)
+  res$npriorq <- res$nqpars
+  res$priorq_inds <- seq_len(res$npriorq)
   res
 }
 

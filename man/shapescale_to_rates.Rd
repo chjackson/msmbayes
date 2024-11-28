@@ -10,7 +10,8 @@ shapescale_to_rates(
   family = "weibull",
   canonical = FALSE,
   spline = "linear",
-  type = "vector"
+  type = "vector",
+  drop = TRUE
 )
 }
 \arguments{
@@ -25,6 +26,8 @@ shapescale_to_rates(
 \item{spline}{Type of spline used to interpolate between the training points (pointwise optima) when deriving the function that best maps the shape to each phase-type parameter}
 
 \item{type}{Type of returned object: vector or list.}
+
+\item{drop}{for vectorised operation, return vector TODOC}
 }
 \description{
 Determine parameters of a phase-type model that approximate a parametric shape-scale distribution
