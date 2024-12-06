@@ -51,6 +51,16 @@
 #' is a linear function of age.  You do not have to list all of the
 #' intensities here if some of them are not influenced by covariates.
 #'
+#' In standard Markov models and models with phase-type approximated
+#' states (specified with `pastates`), the numbers inside `Q()` refer
+#' to the observed state space.  For such phase-type models, the
+#' covariate has an identical multiplicative effect on all rates of
+#' transition between phases for a given states.
+#'
+#' In phase-type models specified with `nphase`, or misclassification
+#' models (specified with `E`), the numbers in `Q()` refer to the
+#' latent state space.
+#'
 #' @param priors A list specifying priors.  Each component should be
 #' the result of a call to \code{\link{msmprior}}.  Any parameters
 #' with priors not specified here are given default priors (normal
@@ -113,28 +123,29 @@
 #' @md
 #' @export
 msmbayes <- function(data, state, time, subject,
-                     Q, E=NULL,
+                     Q,
                      covariates=NULL,
                      pastates=NULL,
                      pafamily="weibull",
                      paspline="hermite",
+                     E=NULL,
                      nphase=NULL,
                      priors=NULL,
                      soj_priordata=NULL,
                      fit_method = "sample",
                      keep_data = FALSE,
                      ...){
-  qm <- form_qmodel(Q)
+  qm <- qmobs <- form_qmodel(Q)
 
   pm <- form_phasetype(nphase, Q, pastates, pafamily, paspline)
   if (pm$phasetype){
-    qm <- phase_expand_qmodel(qm, pm)
+    qm <- phase_expand_qmodel(qmobs, pm)
     E <- pm$E
   }
   em <- form_emodel(E, pm$Efix)
 
   check_data(data, state, time, subject, qm)
-  cm <- form_covariates(covariates, data, qm)
+  cm <- form_covariates(covariates, data, qm, pm, qmobs)
   data <- clean_data(data, state, time, subject, cm$X)
   stanpriors <- process_priors(priors, qm, cm, pm)
   soj_priordata <- form_soj_priordata(soj_priordata)

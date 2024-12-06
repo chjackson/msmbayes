@@ -18,10 +18,11 @@ form_qmodel <- function(Q,Qfix=NULL){
   }
   qrow <- row(Q)[Q>0]
   qcol <- col(Q)[Q>0]
+  qlab <- paste(qrow, qcol, sep="-")
   qvec <- Q[cbind(qrow,qcol)]
   res <- list(
     Q = Q, K = nrow(Q),
-    qvec = qvec, qrow=qrow, qcol=qcol,
+    qvec = qvec, qrow=qrow, qcol=qcol, qlab=qlab,
     qfixrow = qfixrow, qfixcol = qfixcol,
     qfix = qfix,
     nqpars = length(Q[Q>0]))

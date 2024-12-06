@@ -217,6 +217,11 @@ form_Qphase <- function(Q, nphase, call=caller_env()){
   Qnew
 }
 
+##' @param qm List describing the transition model structure on the observable space
+##' 
+##' @param pm List describing the phase-type model information 
+##' 
+##' @return List describing the transition model structure on the latent model space 
 phase_expand_qmodel <- function(qm, pm){
   Qnew <- pm$Qphase
   Qnew[Qnew>0] <- 1 # "initial values" unused but keep code in case
@@ -225,6 +230,7 @@ phase_expand_qmodel <- function(qm, pm){
                 nqpars = sum(Qnew > 0),
                 qrow = row(Qnew)[Qnew > 0],
                 qcol = col(Qnew)[Qnew > 0])
+  qmnew$qlab <- paste(qmnew$qrow, qmnew$qcol, sep="-")
   qmnew$phasedata <- pd <- form_phasetrans(qmnew, pm$pdat)
 
   if (pm$phaseapprox){
@@ -253,9 +259,12 @@ phase_expand_qmodel <- function(qm, pm){
 #'
 #' @noRd
 relabel_phase_states <- function(dat, draws, wide=TRUE){
-  if (is_phasetype(draws)){
-    pdat <- attr(draws, "pmodel")$pdat
-    tdat <- attr(draws, "qmodel")$phasedata
+  pdat <- attr(draws, "pmodel")$pdat
+  tdat <- attr(draws, "qmodel")$phasedata
+  if (is_phaseapprox(draws)){
+    dat[["from"]] <- pdat$oldinds[dat[["from"]]]
+    dat[["to"]] <- pdat$oldinds[dat[["to"]]]
+  } else if (is_phasetype(draws)){
     if (!is.null(dat[["state"]])){
       if (wide) {
         dat[["stateobs"]] <- pdat$oldinds[dat[["state"]]]
@@ -279,7 +288,7 @@ relabel_phase_states <- function(dat, draws, wide=TRUE){
   dat
 }
 
-#' Form phase-type data by transition.
+#' Form database of transition-specific phase-type model information
 #'
 #' Contrast with phase-type data structure by state, as returned by
 #' `form_phasedata`.
@@ -304,6 +313,7 @@ form_phasetrans <- function(qm, pdat){
   tdat <- as.data.frame(qm[c("qrow","qcol")])  # TODO naming. better as truefrom?
   tdat$oldfrom <- pdat$oldinds[tdat$qrow] # better as obsfrom?
   tdat$oldto <- pdat$oldinds[tdat$qcol]
+  tdat$oldlab <- paste(tdat$oldfrom, tdat$oldto, sep="-")
   tdat$phasefrom <- pdat$phase[qm$qrow] # better as isphasefrom?
   tdat$phaseto <- pdat$phase[qm$qcol]
   tdat$ttype <- ifelse(tdat$oldfrom==tdat$oldto &

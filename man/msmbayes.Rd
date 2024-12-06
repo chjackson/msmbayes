@@ -10,11 +10,11 @@ msmbayes(
   time,
   subject,
   Q,
-  E = NULL,
   covariates = NULL,
   pastates = NULL,
   pafamily = "weibull",
   paspline = "hermite",
+  E = NULL,
   nphase = NULL,
   priors = NULL,
   soj_priordata = NULL,
@@ -46,15 +46,6 @@ is sometimes done in \code{msm}.  Initial values for fitting are
 determined by Stan from the prior distributions, and the specific
 values supplied for positive entries of \code{Q} are disregarded.}
 
-\item{E}{If \code{NULL} a non-hidden Markov model is fitted.  If
-non-\code{NULL} this should be a matrix indicating the structure
-of allowed misclassifications, where rows are the true states,
-and columns are the observed states.  A zero \eqn{(r,s)} entry
-indicates that true state \eqn{r} cannot be observed as observed
-state \eqn{s}.  A non-zero \eqn{(r,s)} entry indicates an
-initial value for a permitted misclassification probability.  The
-diagonal of \code{E} is ignored.}
-
 \item{covariates}{Specification of covariates on transition intensities.
 This should be a list of formulae.  Each formula should have a
 left-hand side that looks like \code{Q(r,s)}, and a right hand side
@@ -69,7 +60,17 @@ For example,
 specifies that the log of the 1-2 transition intensity is an additive
 linear function of age and sex, and the log 2-1 transition intensity
 is a linear function of age.  You do not have to list all of the
-intensities here if some of them are not influenced by covariates.}
+intensities here if some of them are not influenced by covariates.
+
+In standard Markov models and models with phase-type approximated
+states (specified with \code{pastates}), the numbers inside \code{Q()} refer
+to the observed state space.  For such phase-type models, the
+covariate has an identical multiplicative effect on all rates of
+transition between phases for a given states.
+
+In phase-type models specified with \code{nphase}, or misclassification
+models (specified with \code{E}), the numbers in \code{Q()} refer to the
+latent state space.}
 
 \item{pastates}{For phase-type models, this indicates which states are given
 a Weibull or Gamma sojourn distribution approximated by a 5-phase model.
@@ -82,6 +83,15 @@ of same length as \code{pastates}, or just one to apply to all states.}
 \item{paspline}{\code{"linear"} or \code{"hermite"}. Advanced: spline
 used in constructing the approximations. May remove this argument
 if one of these turns out to be good enough.}
+
+\item{E}{If \code{NULL} a non-hidden Markov model is fitted.  If
+non-\code{NULL} this should be a matrix indicating the structure
+of allowed misclassifications, where rows are the true states,
+and columns are the observed states.  A zero \eqn{(r,s)} entry
+indicates that true state \eqn{r} cannot be observed as observed
+state \eqn{s}.  A non-zero \eqn{(r,s)} entry indicates an
+initial value for a permitted misclassification probability.  The
+diagonal of \code{E} is ignored.}
 
 \item{nphase}{For phase-type models, this is a vector with one
 element per state, giving the number of phases per state.  This

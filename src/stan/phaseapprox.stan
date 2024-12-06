@@ -117,6 +117,8 @@ model {
   array[ntlc] matrix[K,K] P;
 
   // abstract this block into a function?
+  // input: q_full[nqpars], loghr[nx], X[ntlc, nx], xstart[nqpars], xend[nqpars]
+  // output: Q[ntlc,K,K]?  or a part of this 
   for (j in 1:ntlc){
     Q[j,,] = rep_matrix(0, K, K);
     for (i in 1:nqpars){

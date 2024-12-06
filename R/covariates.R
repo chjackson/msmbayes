@@ -8,28 +8,43 @@
 #'
 #' \code{nx} Total number of covariate effects in the model
 #'
-#' \code{nxq} Vector giving number of covariate effects on each permitted instantaneous
-#' transition intensity. This is a vector of length \code{nqpars}, the number of permitted instantaneous transitions.
+#' \code{nxq} Vector giving number of covariate effects on each
+#' permitted instantaneous transition intensity. This is a vector of
+#' length \code{nqpars}, the number of permitted instantaneous
+#' transitions.
 #'
-#' \code{nxquser} As nxq, but with one per element of the user-supplied covariates list,
-#' 
-#' \code{xstart},\code{xend}. Start and end index defining the block of columns of X
-#' that form the design matrix of covariates (excluding intercepts) for each transition intensity.  These should be
-#' vectors of length \code{nqpars}.
+#' \code{xstart},\code{xend}. Start and end index defining the block
+#' of columns of X that form the design matrix of covariates
+#' (excluding intercepts) for each transition intensity.  These should
+#' be vectors of length \code{nqpars}.  These also serve as indices into
+#' the set of distinct hazard ratio parameters
 #'
-#' \code{blueprint} List of objects of same length as the \code{covariates} list.
-#' Each component is the \code{blueprint} object produced by \code{hardhat::mold}
+#' \code{blueprint} List of objects of same length as the
+#' \code{covariates} list.  Each component is the \code{blueprint}
+#' object produced by \code{hardhat::mold}
 #'
-#' \code{X} Matrix with \code{nx} columns and the same number of rows as \code{dat}
-#' (the data supplied to \code{msmbayes})
+#' \code{X} Matrix with \code{nx} columns and the same number of rows
+#' as \code{dat} (the data supplied to \code{msmbayes})
+#'
+#' \code{nxquser} As \code{nxq}, but including only intensities that have
+#' at least one covariate on them.  Used for presenting the priors in the
+#' model output.
+#'
+#' \code{from,to} Vectors indicating the transition corresponding
+#' to each element of \code{nxquser}
 #'
 #' @noRd
-form_covariates <- function(covariates, dat, qm, call=caller_env()){
+form_covariates <- function(covariates, dat, qm, pm, qmobs, call=caller_env()){
+  if (pm$phaseapprox) {
+    qm_latent <- qm
+    qm <- qmobs
+  }
   nxq <- xstart <- xend <- rep(0, qm$nqpars)
   xlevs <- covnames <- vector(mode="list", length=qm$nqpars)
-  if (is.null(covariates))
-    return(list(nx=0, nxq=nxq, xstart=xstart, xend=xend,
-                X=matrix(0, nrow=nrow(dat), ncol=0)))
+  if (is.null(covariates)){
+    cm <- list(nx=0, nxq=nxq, xstart=xstart, xend=xend,
+               X=matrix(0, nrow=nrow(dat), ncol=0))
+  }
   else if (!is.list(covariates))
     cli_abort("{.var covariates} must be a list", call=call)
   else {
@@ -42,19 +57,52 @@ form_covariates <- function(covariates, dat, qm, call=caller_env()){
       fromto <- res$fromto
       bp[[i]] <- res$hhat$blueprint
       ind <- which(qm$qrow==fromto[1] & qm$qcol==fromto[2])
-      from[i] <- fromto[1]; to[i] <- fromto[2] 
+      from[i] <- fromto[1]; to[i] <- fromto[2]
       nxq[ind] <- nxquser[i] <- ncol(X[[i]])
       xstart[ind] <- prevend + 1
       xend[ind] <- prevend + nxq[ind]
       prevend <- prevend + nxq[ind]
     }
-  }  # no check if specify same transition more than once
-     # also no check for ~ 1 formulae
-  X <- do.call("cbind", X)
-  list(nx=sum(nxq), nxq=nxq, nxquser=nxquser, xstart=xstart, xend=xend,
-       blueprint=bp, X=X, Xnames=colnames(X), from=from, to=to)
+    ## no check if specify same transition more than once
+    ## also no check for ~ 1 formulae
+    X <- do.call("cbind", X)
+    cm <- list(nx=sum(nxq), nxq=nxq, xstart=xstart, xend=xend,
+               blueprint=bp, X=X, Xnames=colnames(X),
+               nxquser=nxquser, from=from, to=to)
+  }
+  if (pm$phaseapprox)
+    cm <- expand_phaseapprox_cm(cm, qm_latent, qmobs)
+  cm
 }
 
+##' xstart, xend are first determined on the observed state space in
+##' form_covariates.
+##'
+##' expand_phaseapprox_cm converts them to indices on the latent state
+##' space by replicating the component for a transition from a
+##' phase-approximated state.
+##'
+##' This component is replicated once for each transition within the
+##' phase space for that state, since the same rate ratio acts on all
+##' of these transitions.
+##'
+##' TODO will need to extend if have more than one exit state
+##' @noRd
+expand_phaseapprox_cm <- function(cm, qm, qmobs){
+  inds <- numeric(qm$nqpars)
+  pdat <- qm$phasedata
+  phaseq_inds <- match(pdat$oldfrom[pdat$phasefrom], qmobs$qrow)
+  markov_inds <- match(pdat$oldlab[!pdat$phasefrom], qmobs$qlab)
+  inds[which(!pdat$phasefrom)] <- markov_inds
+  inds[which(pdat$phasefrom)] <- phaseq_inds
+  cmnew <- cm
+  cmnew$xstart <- cm$xstart[inds]
+  cmnew$xend <- cm$xend[inds]
+  cmnew$nxq <- ifelse(cmnew$xstart==0, 0,
+                      cmnew$xend - cmnew$xstart + 1)
+  ## TODO what to do about nxquser, from, to.  any need for this faff
+  cmnew
+}
 
 #' @inheritParams msmbayes
 #'

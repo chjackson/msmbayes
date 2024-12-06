@@ -62,7 +62,7 @@ prior_db <- function(priors, qm, cm){
   if (cm$nx>0)
     res$loghr <- data.frame(
       par = "loghr",
-      from = rep(cm$from, cm$nxquser), # TESTME
+      from = rep(cm$from, cm$nxquser), # TESTME.  Better naming. 
       to = rep(cm$to, cm$nxquser),
       name = cm$Xnames,
       priormean = priors$loghrmean,
