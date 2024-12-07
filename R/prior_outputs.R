@@ -102,7 +102,7 @@ rvar_to_quantile_string <- function(rvar){
 #'
 #' @noRd
 attach_priors <- function(df, draws, parname, phaseapprox){
-  if (phaseapprox) return(df) # for now
+  return(df) # remove this feature for now, code is rather messy.
   matchcols <- c("from", "to")
   if (parname %in% .msmprior_fnpars)
     basename <- parname

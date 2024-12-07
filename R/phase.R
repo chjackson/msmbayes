@@ -237,11 +237,11 @@ phase_expand_qmodel <- function(qm, pm){
     qmnew$npaq <- 9 # for 5-phase approximation
     pprog <- pd$phasefrom & pd$ttype=="prog"
     pabs <- pd$phasefrom & pd$ttype=="abs"
-    qmnew$qpa_inds <- matrix(nrow=qmnew$npaq, ncol=pm$npastates)
-    for (i in 1:pm$npastates){
-      qmnew$qpa_inds[,i]  <- c(which(pprog & pd$oldfrom==pm$pastates[i]),
-                                    which(pabs & pd$oldfrom==pm$pastates[i]))
-    }
+#    qmnew$qpa_inds <- matrix(nrow=qmnew$npaq, ncol=pm$npastates)
+#    for (i in 1:pm$npastates){
+#      qmnew$qpa_inds[,i]  <- c(which(pprog & pd$oldfrom==pm$pastates[i]),
+#                                    which(pabs & pd$oldfrom==pm$pastates[i]))
+#    }
     qmnew$priorq_inds <- which(pd$ttype=="markov")
     qmnew$npriorq <- length(qmnew$priorq_inds)
   } else {
@@ -258,10 +258,10 @@ phase_expand_qmodel <- function(qm, pm){
 #' phase-type models.
 #'
 #' @noRd
-relabel_phase_states <- function(dat, draws, wide=TRUE){
+relabel_phase_states <- function(dat, draws, wide=TRUE, space="latent"){
   pdat <- attr(draws, "pmodel")$pdat
   tdat <- attr(draws, "qmodel")$phasedata
-  if (is_phaseapprox(draws)){
+  if (is_phaseapprox(draws) && (space=="observed")){
     dat[["from"]] <- pdat$oldinds[dat[["from"]]]
     dat[["to"]] <- pdat$oldinds[dat[["to"]]]
   } else if (is_phasetype(draws)){

@@ -184,6 +184,8 @@ pmatrixdf <- function(draws, t=1, new_data=NULL){
 #'   phase-specific mean sojourn times, because an individual may
 #'   transition out of the state before progressing to the next phase.
 #'
+#' TODO perhaps this would be better named space="latent", space="observed"?
+#'
 #' @return A data frame containing samples from the posterior distribution.
 #' See \code{\link{qdf}} for notes on this format and how to summarise.
 #'
@@ -249,7 +251,7 @@ loghr <- function(draws){
     mutate(from = from, to=to,
            name = cm$Xnames) |>
     select(from, to, name, value) |>
-    relabel_phase_states(draws)
+    relabel_phase_states(draws, space="observed")
   as_msmbres(loghr)
 }
 

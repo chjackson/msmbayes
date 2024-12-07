@@ -1,3 +1,5 @@
+Q <- rbind(c(0, 1), c(1, 0))
+
 test_that("phase-type approximations as sojourn distributions",{
   pmo <- msmbayes(state="statep", time="months", subject="subject",
                   data=infsim, Q=Q, fit_method="optimize",
@@ -12,7 +14,7 @@ test_that("phase-type approximations as sojourn distributions",{
                   pastates = c(2), pafamily=c("weibull"))
 
   ## What to expect?
-  ## data simulated with sim_2state_smm instead? 
+  ## data simulated with sim_2state_smm instead?
 })
 
 
@@ -26,3 +28,4 @@ test_that("phase-type approximations with covariates",{
 
 ## TODO
 ## structures with more than one exit from phased state
+## Get SBC set up for existing features first

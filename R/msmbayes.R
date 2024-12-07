@@ -156,7 +156,7 @@ msmbayes <- function(data, state, time, subject,
     stanmod <- msmbayes_stan_model("msm")
   } else {
     standat <- make_stan_obsdata(dat=data, qm=qm, cm=cm,
-                                 em=em, pm=pm, priors=stanpriors,
+                                 em=em, pm=pm, qmobs=qmobs, priors=stanpriors,
                                  soj_priordata=soj_priordata)
     stanfile <- if (pm$phaseapprox) "phaseapprox" else "hmm"
     stanmod <- msmbayes_stan_model(stanfile)
@@ -273,7 +273,7 @@ summary.msmbayes <- function(object,log=FALSE,time=FALSE,...){
     e_ests <- edf(object, ...) |>
       mutate(name="e") |>
       select(name, from, to, value)
-    if (!pa) e_ests$prior <- NA # TODO
+#    if (!pa) e_ests$prior <- NA # TODO
     res <- rbind(res, e_ests)
   }
   res$rhat <- summary(res, rhat)[,c("rhat")]

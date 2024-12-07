@@ -18,7 +18,9 @@ If \code{TRUE} then one mean sojourn time per phase is returned.
 If \code{FALSE}, then one overall mean sojourn time for the state
 is returned.  This is not generally equal to the sum of the
 phase-specific mean sojourn times, because an individual may
-transition out of the state before progressing to the next phase.}
+transition out of the state before progressing to the next phase.
+
+TODO perhaps this would be better named space="latent", space="observed"?}
 }
 \value{
 A data frame containing samples from the posterior distribution.

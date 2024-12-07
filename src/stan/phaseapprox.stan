@@ -1,6 +1,84 @@
 // modification of hmm.stan.  Might merge eventually
 
-#include spline_interp.stan
+
+functions {
+  vector shapescale_to_rates(real shape, real scale,
+			     int nprates,
+			     vector train_data_x, // ntrain
+			     matrix train_data_y, // ntrain x nprates 
+			     matrix train_data_m, // ntrain x nprates
+			     int spline
+			     ){
+    vector[nprates] canpars;
+    for (i in 1:nprates){
+      if (spline==1)
+	canpars[i] = spline_interp_linear(shape, train_data_x, train_data_y[,i], train_data_m[,i]);
+      else 
+	canpars[i] = spline_interp_hermite(shape, train_data_x, train_data_y[,i], train_data_m[,i]);
+    }
+    vector[nprates] rates = canpars_to_rates(canpars, nprates) / scale;
+
+    return rates;
+  }
+
+  vector canpars_to_rates(vector canpars,
+			  int nprates){
+    vector[nprates] ret;
+    int nphase = (nprates+1) %/% 2;
+    real qsoj1 = canpars[1];
+    vector[nphase-1] incqsoj = canpars[2:nphase];
+    vector[nphase-1] pabs_notlast = canpars[(nphase+1):(2*nphase-1)];
+    vector[nphase]   qsoj = append_row(qsoj1, qsoj1 + cumulative_sum(incqsoj));
+    vector[nphase-1] qsoj_notlast = qsoj[1:(nphase-1)];
+    vector[nphase-1] arate_notlast = qsoj_notlast .* pabs_notlast;
+    real arate_last = qsoj[nphase];
+    vector[nphase]   arate = append_row(arate_notlast, arate_last);
+    vector[nphase-1] prate = qsoj_notlast - arate_notlast;
+    ret = append_row(prate, arate);
+    return ret;
+  }
+  
+  real spline_interp_linear(real x, // assumes inside x0
+			    vector x0, // assumes increasing order
+			    vector y0, vector m){
+    real ret;
+    int i = findinterval(x, x0);
+    real dx = x0[i+1] - x0[i];
+    real dy = y0[i+1] - y0[i];
+    ret =  y0[i] + (x - x0[i]) * dy / dx; 
+    return ret; 
+  }
+
+  real spline_interp_hermite(real x,
+			     vector x0, // assumes increasing order
+			     vector y0, vector m){
+    real ret;
+    int i = findinterval(x, x0);
+    real h = x0[i+1] - x0[i];
+    real t = (x - x0[i])/h; 
+    real t1 = t - 1;
+    real h01 = t*t*(3 - 2*t);
+    real h00 = 1 - h01;
+    real tt1 = t*t1;
+    real h10 = tt1*t1;
+    real h11 = tt1*t;
+    ret = y0[i]*h00 + h*m[i]*h10 + y0[i+1]*h01 + h*m[i+1]*h11;
+    return ret; 
+
+  }
+
+  // Assumes x is inside x0, will break if outside. 
+  int findinterval(real x, vector x0){
+    int i = 1;
+    while ((i <= rows(x0)) && (x > x0[i+1])) {
+      i = i+1;
+    }
+    return i;
+  }
+
+  
+}
+
 
 data {
   int<lower=1> K; // number of states, equal to number of observed states
@@ -52,9 +130,8 @@ data {
   array[nsoj] int<lower=1,upper=ntlc> sojtlcid; // index of covariate value (etc) for these people
 
   // New for phase type approx
-
   int npastates; // number of states on observable space that have phase-type approximations
-  array[npaq,npastates] int<lower=1> qpa_inds; // indices of intensities for phase-type approximations in logq_full, derived from shape and scale 
+  //  array[npaq,npastates] int<lower=1> qpa_inds; // indices of intensities for phase-type approximations in logq_full, derived from shape and scale 
   array[npriorq] int<lower=1> priorq_inds; // indices of Markov intensities in logq_full, given direct priors
   int<lower=1> ntrain;
   vector[ntrain] traindat_x;
@@ -68,6 +145,21 @@ data {
   vector[npastates] logscalemean;
   vector<lower=0>[npastates] logscalesd;
   int<lower=1,upper=2> spline;
+
+  // For phasetype approx with competing exit states
+  int<lower=0> npabs;    // number of competing transition probabilities out of phaseapprox states: zero if only one destination from all 
+  array[npabs] int<lower=1> pabs_base;  // indicator for the first absorption destination per state
+  array[npabs] int<lower=1> pabs_state; // which of the phaseapprox states (1:npastates) we are in
+  array[npabs] int<lower=0> loind;      // index of corresponding logodds (or 0 if first destination)
+
+  int npaqall; // total number of rates (out of nqpars) relating to phaseapprox state
+  array[npaqall] int<lower=1,upper=nqpars>    paq_inds; // index into q_full for each of these
+  array[npaqall] int<lower=1,upper=npaq>      praterow; // which of the npaq=9 sojourn dist phase trans rate pars they relate to
+  array[npaqall] int<lower=1,upper=npastates> pastate;   // which of 1:npastates these relate to
+  array[npaqall] int<lower=0,upper=1>         prate_abs; // is this a competing absorption rate (no if only one destination)
+  array[npaqall] int pabs_inds;                          // index into pabs for each of these (or 0 if a prog rate)
+  int<lower=0> noddsabs;   // number of basic odds ratio parameters
+
 }
 
 parameters {
@@ -77,24 +169,55 @@ parameters {
 
   array[nepars] real<lower=0,upper=1> evec; // vector of misclassification parameters, given default flat prior
   vector[nx] loghr;     // log hazard ratios for covariates
+
+  vector[noddsabs] logoddsabs; // log odds of competing destinations from phase-type approximated states
 } 
 
 transformed parameters {
   vector[nqpars] q_full;    
   vector[npastates] shape = exp(logshape);
   vector[npastates] scale = exp(logscale);
-  matrix<lower=0>[npaq,npastates] prates;
-  
-  for (j in 1:npastates){
-    int tstart = traindat_inds[j,1];
-    int tend = traindat_inds[j,2];
-    prates[1:npaq,j] = shapescale_to_rates(shape[j], scale[j], npaq,
-					   traindat_x[tstart:tend],
-					   traindat_y[tstart:tend,],
-					   traindat_m[tstart:tend,],
-					   spline);
-    for (i in 1:npaq){
-      q_full[qpa_inds[i,j]] = prates[i,j];
+  matrix<lower=0>[npaq,npastates] prates; // parameters of phase-type model which approximates the sojourn distribution 
+
+  // Parameters for competing transition probabilities out of phaseapprox states (SHOULD THESE BE LOCAL)
+  vector[npabs] pabs;    // transition probabilities from phaseapprox states
+  {
+    vector[npabs] odds;    // transition odds from phaseapprox states
+    vector[npastates] sumodds;  // sum of competing odds within a state (including 1 for the first destination)
+
+    for (j in 1:npastates){
+      int tstart = traindat_inds[j,1];
+      int tend = traindat_inds[j,2];
+      prates[1:npaq,j] = shapescale_to_rates(shape[j], scale[j], npaq,
+					     traindat_x[tstart:tend],
+					     traindat_y[tstart:tend,],
+					     traindat_m[tstart:tend,],
+					     spline);
+    }
+
+    // define absorption probs in terms of log odds 
+    if (npabs > 0){
+      for (i in 1:npabs){
+	if (pabs_base[i]) {
+	  odds[i] = 1;
+	  sumodds[pabs_state[i]] = odds[i];
+	}  else {
+	  odds[i] = exp(logoddsabs[loind[i]]);
+	  sumodds[pabs_state[i]] = sumodds[pabs_state[i]] + odds[i];
+	}
+      }
+      for (i in 1:npabs){
+	pabs[i] = odds[i] / sumodds[pabs_state[i]];
+      }
+    }
+  }
+
+  for (i in 1:npaqall){
+    if (npabs > 0 && prate_abs[i]){
+      q_full[paq_inds[i]] = prates[praterow[i], pastate[i]] * 
+	pabs[pabs_inds[i]];
+    } else {
+      q_full[paq_inds[i]] = prates[praterow[i], pastate[i]];
     }
   }
 
