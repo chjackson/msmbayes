@@ -3,15 +3,16 @@ dat_simple <- data.frame(state=1:3, time=1:3, subject=c(1,1,1))
 test_that("msmbayes: basic input validation",{
   Q <- matrix(0, 3, 3); Q[1,2] <- Q[2,1] <- 1
   expect_error(msmbayes(dat = list(1:3), Q=Q), "must be a data frame")
-  expect_error(msmbayes(dat = data.frame(1:3), state=1, Q=Q), "argument \"time\" is missing")
-  expect_error(msmbayes(dat = data.frame(1:3), state=state, time="foo", subject="bar",Q=Q),
+  expect_error(msmbayes(dat = data.frame(1:3), state=1, Q=Q),
+               "\"time\" is not a variable")
+  expect_error(msmbayes(dat = dat_simple,
+                        state=state,Q=Q),
                "names of variables must be quoted")
   expect_error(msmbayes(dat = dat_simple,
                         state="state", time="time", subject=c("subject","baz"), Q=Q),
                "character string of length 1")
-  expect_error(msmbayes(dat = data.frame(x=1:3), Q=Q,
-                        state="state", time="foo", subject="bar"),
-               "\"state\" is not a variable in `dat`")
+  expect_error(msmbayes(dat = data.frame(x=1:3), Q=Q),
+               "\"time\" is not a variable in `dat`")
   expect_error(msmbayes(dat = dat_simple,
                         state="state", time="time", subject="subject"),
                "argument \"Q\" is missing")

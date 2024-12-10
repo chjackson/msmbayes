@@ -33,8 +33,11 @@
 #' \code{from,to} Vectors indicating the transition corresponding
 #' to each element of \code{nxquser}
 #'
+#' \code{xfrom,xto} Vectors indicating the transition corresponding
+#' to each of the \code{nx} effects
+#'
 #' @noRd
-form_covariates <- function(covariates, dat, qm, pm, qmobs, call=caller_env()){
+form_covariates <- function(covariates, data, qm, pm, qmobs, call=caller_env()){
   if (pm$phaseapprox) {
     qm_latent <- qm
     qm <- qmobs
@@ -43,7 +46,7 @@ form_covariates <- function(covariates, dat, qm, pm, qmobs, call=caller_env()){
   xlevs <- covnames <- vector(mode="list", length=qm$nqpars)
   if (is.null(covariates)){
     cm <- list(nx=0, nxq=nxq, xstart=xstart, xend=xend,
-               X=matrix(0, nrow=nrow(dat), ncol=0))
+               X=matrix(0, nrow=nrow(data), ncol=0))
   }
   else if (!is.list(covariates))
     cli_abort("{.var covariates} must be a list", call=call)
@@ -52,7 +55,7 @@ form_covariates <- function(covariates, dat, qm, pm, qmobs, call=caller_env()){
     prevend <- 0
     from <- to <- nxquser <- numeric(length(covariates))
     for (i in seq_along(covariates)){
-      res <- parse_msm_formula(covariates[[i]], dat, qm, call=call)
+      res <- parse_msm_formula(covariates[[i]], data, qm, call=call)
       X[[i]] <- res$hhat$predictors
       fromto <- res$fromto
       bp[[i]] <- res$hhat$blueprint
@@ -69,6 +72,11 @@ form_covariates <- function(covariates, dat, qm, pm, qmobs, call=caller_env()){
     cm <- list(nx=sum(nxq), nxq=nxq, xstart=xstart, xend=xend,
                blueprint=bp, X=X, Xnames=colnames(X),
                nxquser=nxquser, from=from, to=to)
+  }
+  cm$xfrom <- cm$xto <- numeric(cm$nx)
+  for (i in 1:qm$nqpars){
+    cm$xfrom[cm$xstart[i]:cm$xend[i]] <- qm$qrow[i]
+    cm$xto[cm$xstart[i]:cm$xend[i]] <- qm$qcol[i]
   }
   if (pm$phaseapprox)
     cm <- expand_phaseapprox_cm(cm, qm_latent, qmobs)
@@ -116,11 +124,11 @@ expand_phaseapprox_cm <- function(cm, qm, qmobs){
 #' \code{fromto} Vector of two integers: from-state and to-state
 #'
 #' @noRd
-parse_msm_formula <- function(form, dat, qm, call=caller_env()){
+parse_msm_formula <- function(form, data, qm, call=caller_env()){
   if (!inherits(form,"formula"))
     cli_abort("each component of {.var covariates} must be a formula", call=call)
   fromto <- parse_msm_formula_lhs(form, qm, call)
-  hhat <- parse_msm_formula_rhs(form, dat, call)
+  hhat <- parse_msm_formula_rhs(form, data, call)
   list(fromto=fromto, hhat=hhat)
 }
 
@@ -142,9 +150,9 @@ transitions in the model: {trans_allowed}")
   fromto
 }
 
-parse_msm_formula_rhs <- function(form, dat, call=caller_env()){
+parse_msm_formula_rhs <- function(form, data, call=caller_env()){
   formx <- delete.response(terms(form))
-  hhat <- hardhat::mold(formx, dat,
+  hhat <- hardhat::mold(formx, data,
                         blueprint = hardhat::default_formula_blueprint(intercept=TRUE))
   hhat$predictors[["(Intercept)"]] <- NULL
   hhat$blueprint$intercept <- FALSE

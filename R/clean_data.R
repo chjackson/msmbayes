@@ -9,14 +9,13 @@
 ## what does msmhist need from the data
 ## standard col names, but is it OK with missing data? 
 
-check_data <- function(dat, state, time, subject, qm=NULL, call=caller_env()){
+check_data <- function(dat, state="state", time="time", subject="subject",
+                       qm=NULL, prior_sample=FALSE, call=caller_env()){
   check_data_frame(dat, call)
-  check_dat_variables(dat=dat, state=state, time=time, subject=subject, call=call)
-  if (nrow(dat)==0){
-    cli_inform("No observations in the data, carrying on and hoping for the best...")
-    return()
-  }
-  if (!is.null(qm))
+  check_dat_variables(dat=dat, time=time, subject=subject, call=call)
+  if (!prior_sample)
+    check_dat_variables(dat=dat, state=state)
+  if (!is.null(qm) && !prior_sample)
     check_state(dat[[state]], qm, call)
   check_dup_obs(dat[[state]], dat[[time]], dat[[subject]], call)
 }
@@ -167,6 +166,7 @@ check_obs_ordered <- function(time, subject, call=caller_env()){
 }
 
 check_dup_obs <- function(state, time, subject, call=caller_env()){
+  if (length(state) < 2) return()
   inds <- 1 : (length(state) - 1)
   prevsubj <- c(-Inf, subject[inds])
   prevtime <- c(-Inf, time[inds])
@@ -199,16 +199,21 @@ check_dup_obs <- function(state, time, subject, call=caller_env()){
 #'
 #' @md 
 #' @noRd
-clean_data <- function(dat, state, time, subject, X=NULL, call=caller_env()){
+clean_data <- function(dat, state="state", time="time", subject="subject",
+                       X=NULL, prior_sample=FALSE, call=caller_env()){
   if (nrow(dat)==0) return()
+  if (prior_sample) dat[[state]] <- rep(0, nrow(dat)) # temporary to bypass check
   dat <- dat[,c(state, time, subject)]
   names(dat) <- c("state", "time", "subject")
   if (is.factor(dat$state)) dat$state <- as.numeric(as.character(dat$state))
   dat$X <- X
   dat <- drop_missing_data(dat)
-  check_one_subject_obs(dat$subject, call)
+  if (!prior_sample)
+    check_one_subject_obs(dat$subject, call)
   check_obs_ordered(dat$time, dat$subject, call)
   check_subjects_adjacent(dat$subject, call)
+  if (prior_sample)
+    dat[[state]] <- NULL
   dat
 }
 

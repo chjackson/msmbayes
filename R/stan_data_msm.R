@@ -10,6 +10,8 @@
 #' @noRd
 make_stan_aggdata <- function(dat, qm=NULL, cm=NULL, priors=NULL,
                               soj_priordata = NULL){
+  if (length(dat[["time"]])==0)
+    cli_inform("No observations in the data, carrying on and hoping for the best...")
   dat_trans <- form_transition_data(dat)
   dat_agg <- aggregate_transition_data(dat_trans, K=qm$K)
   dwide <- aggdata_towide(dat_agg, K=qm$K)

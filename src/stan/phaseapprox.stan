@@ -67,13 +67,18 @@ functions {
 
   }
 
-  // Assumes x is inside x0, will break if outside. 
   int findinterval(real x, vector x0){
+    int ret;
     int i = 1;
-    while ((i <= rows(x0)) && (x > x0[i+1])) {
-      i = i+1;
+    if (x < x0[1]) ret = 1; // constant extrapolation either side
+    else if (x > x0[rows(x0)]) ret = rows(x0) - 1;
+    else {
+      while ((i <= rows(x0)) && (x > x0[i+1])) {
+	i = i+1;
+      }
+      ret = i;
     }
-    return i;
+    return ret;
   }
 
   
@@ -90,6 +95,7 @@ data {
 
   array[nindiv] int<lower=1> starti; // starting index in the data for each individual
   array[nindiv] int<lower=1> TI; // number of observations per individual
+  int<lower=0> maxTI; // max of TI
 
   array[nindiv,K] real<lower=0,upper=1> initprobs;  // Prob of initial state for each individual, fixed.
 
@@ -159,7 +165,6 @@ data {
   array[npaqall] int<lower=0,upper=1>         prate_abs; // is this a competing absorption rate (no if only one destination)
   array[npaqall] int pabs_inds;                          // index into pabs for each of these (or 0 if a prog rate)
   int<lower=0> noddsabs;   // number of basic odds ratio parameters
-
 }
 
 parameters {
@@ -177,11 +182,11 @@ transformed parameters {
   vector[nqpars] q_full;    
   vector[npastates] shape = exp(logshape);
   vector[npastates] scale = exp(logscale);
-  matrix<lower=0>[npaq,npastates] prates; // parameters of phase-type model which approximates the sojourn distribution 
 
   // Parameters for competing transition probabilities out of phaseapprox states (SHOULD THESE BE LOCAL)
   vector[npabs] pabs;    // transition probabilities from phaseapprox states
   {
+    matrix[npaq,npastates] prates; // parameters of phase-type model which approximates the sojourn distribution 
     vector[npabs] odds;    // transition odds from phaseapprox states
     vector[npastates] sumodds;  // sum of competing odds within a state (including 1 for the first destination)
 
@@ -210,14 +215,14 @@ transformed parameters {
 	pabs[i] = odds[i] / sumodds[pabs_state[i]];
       }
     }
-  }
 
-  for (i in 1:npaqall){
-    if (npabs > 0 && prate_abs[i]){
-      q_full[paq_inds[i]] = prates[praterow[i], pastate[i]] * 
-	pabs[pabs_inds[i]];
-    } else {
-      q_full[paq_inds[i]] = prates[praterow[i], pastate[i]];
+    for (i in 1:npaqall){
+      if (npabs > 0 && prate_abs[i]){
+	q_full[paq_inds[i]] = prates[praterow[i], pastate[i]] * 
+	  pabs[pabs_inds[i]];
+      } else {
+	q_full[paq_inds[i]] = prates[praterow[i], pastate[i]];
+      }
     }
   }
 
@@ -238,6 +243,20 @@ model {
   array[K] vector[K] E = rep_array(rep_vector(0,K), K); 
   vector[nqpars] qtmp;
   array[ntlc] matrix[K,K] P;
+
+  for (i in 1:npriorq){
+    logq_markov[i] ~ normal(logqmean[i], logqsd[i]); // or could be gamma
+  }
+  for (i in 1:npastates){
+    logshape[i] ~ normal(logshapemean[i], logshapesd[i])T[logshapemin[i],logshapemax[i]];
+    logscale[i] ~ normal(logscalemean[i], logscalesd[i]);
+  }  
+
+  if (nx > 0){
+    for (i in 1:nx){
+      loghr[i] ~ normal(loghrmean[i], loghrsd[i]);
+    }
+  }
 
   // abstract this block into a function?
   // input: q_full[nqpars], loghr[nx], X[ntlc, nx], xstart[nqpars], xend[nqpars]
@@ -266,14 +285,8 @@ model {
     E[j,j] = 1 - sum(E[j,1:K]);
   }
 
-  for (i in 1:npriorq){
-    logq_markov[i] ~ normal(logqmean[i], logqsd[i]); // or could be gamma
-  }
-  for (i in 1:npastates){
-    logshape[i] ~ normal(logshapemean[i], logshapesd[i])T[logshapemin[i],logshapemax[i]];
-    logscale[i] ~ normal(logscalemean[i], logscalesd[i]);
-  }  
   array[K] real mp_jk; // marg prob of data up to time t and true state k at time t, given true state j at time t-1 (recomputed every t, k)
+  array[maxTI,K] real mp; // marg prob of data up to time t and true state k at time t.
   real loglik = 0;
 
   for (i in 1:ntlc){
@@ -281,7 +294,6 @@ model {
   }
 
   for (i in 1:nindiv){
-    array[TI[i],K] real mp; // marg prob of data up to time t and true state k at time t.
     
     for (k in 1:K)
       mp[1,k] = E[k,obs[starti[i]]] * initprobs[i, k]; 

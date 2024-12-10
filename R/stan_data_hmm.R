@@ -12,6 +12,8 @@ make_stan_obsdata <- function(dat, qm=NULL, cm=NULL,
                               em=NULL, pm=NULL, qmobs=qmobs, priors=NULL,
                               soj_priordata=NULL){
   na_code <- 0 # keep Stan happy
+  if (length(dat[["time"]])==0)
+    cli_inform("No observations in the data, carrying on and hoping for the best...")
   dat$timelag <- c(na_code, diff(dat[["time"]]))
   dat$timelag[!duplicated(dat[["subject"]])] <- na_code
 
@@ -27,7 +29,8 @@ make_stan_obsdata <- function(dat, qm=NULL, cm=NULL,
 
   nindiv <- length(unique(dat[["subject"]]))
   initprobs <- form_initprobs(em, dat, pm)
-
+  TI <- table(dat[["subject"]])
+  
   standat <- list(
     K = qm$K,
     T = nrow(dat),
@@ -37,7 +40,8 @@ make_stan_obsdata <- function(dat, qm=NULL, cm=NULL,
     nefix = length(em$efix),
 
     starti = as.array(which(!duplicated(dat[["subject"]]))),
-    TI = as.array(table(dat[["subject"]])),
+    TI = as.array(TI),
+    maxTI = max(TI),
     initprobs = initprobs,
     qrow = as.array(qm$qrow),
     qcol = as.array(qm$qcol),

@@ -122,7 +122,7 @@
 #'
 #' @md
 #' @export
-msmbayes <- function(data, state, time, subject,
+msmbayes <- function(data, state="state", time="time", subject="subject",
                      Q,
                      covariates=NULL,
                      pastates=NULL,
@@ -135,30 +135,23 @@ msmbayes <- function(data, state, time, subject,
                      fit_method = "sample",
                      keep_data = FALSE,
                      ...){
-  qm <- qmobs <- form_qmodel(Q)
 
-  pm <- form_phasetype(nphase, Q, pastates, pafamily, paspline)
-  if (pm$phasetype){
-    qm <- phase_expand_qmodel(qmobs, pm)
-    E <- pm$E
-  }
-  em <- form_emodel(E, pm$Efix)
+  m <- msmbayes_form_internals(data=data, state=state, time=time, subject=subject,
+                               Q=Q, covariates=covariates, pastates=pastates,
+                               pafamily=pafamily, paspline=paspline, E=E,
+                               nphase=nphase, priors=priors, soj_priordata=soj_priordata)
 
-  check_data(data, state, time, subject, qm)
-  cm <- form_covariates(covariates, data, qm, pm, qmobs)
-  data <- clean_data(data, state, time, subject, cm$X)
-  stanpriors <- process_priors(priors, qm, cm, pm)
-  soj_priordata <- form_soj_priordata(soj_priordata)
-
-  if (is.null(E)){
-    standat <- make_stan_aggdata(dat=data, qm=qm, cm=cm,
-                                 priors=stanpriors, soj_priordata=soj_priordata)
+  if (!is_hmm(m)){
+    standat <- make_stan_aggdata(dat=m$data, qm = m$qm, cm = m$cm,
+                                 priors = m$priors,
+                                 soj_priordata = m$soj_priordata)
     stanmod <- msmbayes_stan_model("msm")
   } else {
-    standat <- make_stan_obsdata(dat=data, qm=qm, cm=cm,
-                                 em=em, pm=pm, qmobs=qmobs, priors=stanpriors,
-                                 soj_priordata=soj_priordata)
-    stanfile <- if (pm$phaseapprox) "phaseapprox" else "hmm"
+    standat <- make_stan_obsdata(dat=m$data, qm=m$qm, cm=m$cm,
+                                 em=m$em, pm=m$pm, qmobs=m$qmobs,
+                                 priors = m$priors,
+                                 soj_priordata = m$soj_priordata)
+    stanfile <- if (m$pm$phaseapprox) "phaseapprox" else "hmm"
     stanmod <- msmbayes_stan_model(stanfile)
   }
 
@@ -174,18 +167,43 @@ msmbayes <- function(data, state, time, subject,
     attr(res, "diag") <- list(diag = fit$sampler_diagnostics(),
                               summ = fit$diagnostic_summary())
   }
-  attr(res, "qmodel") <- qm
-  attr(res, "emodel") <- em
-  attr(res, "pmodel") <- pm
-  attr(res, "cmodel") <- cm[names(cm)!="X"]
-  if (!pm$phaseapprox)
-    attr(res, "priors") <- prior_db(stanpriors, qm, cm) # TODO for phaseapprox
+  attr(res, "qmodel") <- m$qm
+  attr(res, "qmodel_obs") <- m$qmobs
+  attr(res, "emodel") <- m$em
+  attr(res, "pmodel") <- m$pm
+  attr(res, "cmodel") <- m$cm[names(m$cm)!="X"]
+  if (!m$pm$phaseapprox)
+    attr(res, "priors") <- prior_db(m$priors, m$qm, m$cm) # TODO for phaseapprox
   if (keep_data) {
-    attr(res, "data") <- data
+    attr(res, "data") <- m$data
     attr(res, "standat") <- standat
   }
   class(res) <- c("msmbayes",class(res))
   res
+}
+
+msmbayes_form_internals <- function(data, state="state", time="time", subject="subject",
+                                    Q, covariates=NULL,
+                                    pastates=NULL, pafamily="weibull", paspline="hermite",
+                                    E=NULL, nphase=NULL,
+                                    priors=NULL, soj_priordata=NULL,
+                                    prior_sample = FALSE){
+  qm <- qmobs <- form_qmodel(Q)
+
+  pm <- form_phasetype(nphase, Q, pastates, pafamily, paspline)
+  if (pm$phasetype){
+    qm <- phase_expand_qmodel(qmobs, pm)
+    E <- pm$E
+  }
+  em <- form_emodel(E, pm$Efix)
+  qm$is_hmm <- !is.null(E)
+
+  check_data(data, state, time, subject, qm, prior_sample=prior_sample)
+  cm <- form_covariates(covariates, data, qm, pm, qmobs)
+  data <- clean_data(data, state, time, subject, cm$X, prior_sample=prior_sample)
+  priors <- process_priors(priors, qm, cm, pm)
+  soj_priordata <- form_soj_priordata(soj_priordata)
+  list(qm=qm, pm=pm, cm=cm, em=em, qmobs=qmobs, data=data, priors=priors, soj_priordata=soj_priordata)
 }
 
 msmbayes_stan_model <- function(model_name){
@@ -287,6 +305,10 @@ has_covariates <- function(draws){
 
 is_phasetype <- function(draws){
   attr(draws, "pmodel")$phasetype
+}
+
+is_hmm <- function(m){ # or make polymorphic to m$ and draws
+  (!is.null(m$em)) || (m$pm$phasetype)
 }
 
 is_phaseapprox <- function(draws){

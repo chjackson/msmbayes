@@ -38,7 +38,6 @@ canpars_to_rates <- function(par, type="vector"){
   arate <- c(arate_notlast, arate_last)
   bada <- which(arate_notlast > qsoj[1:(nphase-1)])
   if (any(bada)){
-    browser()
     cli_warn("absorption rates {arate_notlast} should be less than or equal to sojourn rates {qsoj[1:(nphase-1)]}")
   }
   prate <- qsoj[1:(nphase-1)] - arate_notlast

@@ -235,20 +235,16 @@ loghr <- function(draws){
   name <- value <- NULL
   cm <- attr(draws,"cmodel")
   qm <- attr(draws,"qmodel")
-  from <- to <- numeric(cm$nx)
   if (cm$nx==0)
     cli_abort("No covariates in the model")
-  for (i in 1:qm$nqpars){
-    from[cm$xstart[i]:cm$xend[i]] <- qm$qrow[i]
-    to[cm$xstart[i]:cm$xend[i]] <- qm$qcol[i]
-  }
   loghr <- tidy_draws(draws) |>
     gather_rvars(loghr[]) |>
     pull(".value") |>
     t() |>
     as.data.frame() |>
     setNames("value") |>
-    mutate(from = from, to=to,
+    mutate(from = cm$xfrom,
+           to = cm$xto,
            name = cm$Xnames) |>
     select(from, to, name, value) |>
     relabel_phase_states(draws, space="observed")
