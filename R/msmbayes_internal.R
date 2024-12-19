@@ -19,46 +19,89 @@ form_qmodel <- function(Q,Qfix=NULL){
   qrow <- row(Q)[Q>0]
   qcol <- col(Q)[Q>0]
   qlab <- paste(qrow, qcol, sep="-")
-  qvec <- Q[cbind(qrow,qcol)]
+  qvec <- Q[cbind(qrow,qcol)] # supplied values, ignored 
+  tr <- data.frame(
+    qvec = qvec, from=qrow, to=qcol, qlab=qlab,
+    ttype="markov" # may be overwritten
+  )
+
+  ## TODO
+
   res <- list(
     Q = Q, K = nrow(Q),
     qvec = qvec, qrow=qrow, qcol=qcol, qlab=qlab,
+    tr = tr,  # TODO keep this data frame, remove the vectors
     qfixrow = qfixrow, qfixcol = qfixcol,
     qfix = qfix,
-    nqpars = length(Q[Q>0]))
+    nqpars = length(Q[Q>0]),
+    noddsabs = 0) # may be overwritten by phase_expand_qmodel
   res$npriorq <- res$nqpars
   res$priorq_inds <- seq_len(res$npriorq)
   res
 }
 
+form_P_struc <- function(Q){
+  P <- t(expm::expm(Q))
+  nzinds <- row(P)[P>0]
+  nzrows <- col(P)[P>0]
+  nzifrom <- which(!duplicated(nzrows))
+  nzilen <- as.numeric(table(nzrows))
+  nptrans <- length(nzinds)
+  list(nzinds=nzinds, nzifrom=nzifrom, nzilen=nzilen,
+       nptrans=nptrans)
+}
+
 #' @return List of information about the misclassification structure
 #'
+#' \code{E} Binary matrix indicating permitted misclassifications
+#'
+#' \code{erow,ecol} Row and column of E indicating misclassifications
+#' which are estimated from the data as part of the Bayesian model
+#'
+#' \code{efixrow,efixcol} Row and column of E indicating misclassifications
+#' which are fixed at constant values
+#'
+#' \code{efix} Vector of those fixed constant values
+#'
+#' \code{K} Number of states (is this needed?)
+#'
+#' \code{nefix} number of fixed misclassifications
+#'
+#' \code{nepars} number of modelled misclassifications
+#'
+#' \code{ne} number of permitted misclassifications (nefix+nepars)
+#'
 #' @noRd
-form_emodel <- function(E,Efix=NULL){
-  if (is.null(E)) return(NULL)
-  check_E(E)
-  check_Efix(Efix, E)
-
-  erow <- row(E)[E>0 & E<1]
-  ecol <- col(E)[E>0 & E<1]
+form_emodel <- function(E, qm, Efix=NULL){
+  if (is.null(E)) return(list(hmm=FALSE,nepars=0))
+  check_E(E, qm)
+  diag(E) <- 0
   if (!is.null(Efix)){
+    check_Efix(Efix, E)
+    diag(Efix) <- 0
     efixrow <- row(Efix)[Efix!=0]
     efixcol <- col(Efix)[Efix!=0]
-    efix <- E[cbind(efixrow, efixcol)]
+    erow <- row(E)[E>0 & Efix==0] # fix diag?
+    ecol <- col(E)[E>0 & Efix==0]
+    efix <- Efix[cbind(efixrow, efixcol)]
   } else {
+    erow <- row(E)[E>0]
+    ecol <- col(E)[E>0]
     efixrow <- efixcol <- efix <- as.array(numeric(0))
   }
+  ne <- length(E[E>0])
+  nefix <- length(efix)
   diag(E) <- 0
   E[Efix==1] <- 0
   list(
+    hmm = (ne>0),
     E = E,
     K = nrow(E),
-    nepars = length(E[E>0]),
-    erow = row(E)[E>0],
-    ecol = col(E)[E>0],
-    efixrow = efixrow,
-    efixcol = efixcol,
-    efix = efix
+    erow = erow, ecol = ecol,
+    efixrow = efixrow, efixcol = efixcol,
+    efix = efix,
+    ## TODO consistent naming with nq.  change nqprior to nqpars, nqpars to nq [shorter, common]
+    ne = ne,  nefix = nefix , nepars = ne - nefix
   )
 }
 
@@ -108,36 +151,49 @@ Q_to_mst <- function(Q){
   1 / rowSums(Q)
 }
 
-##' Convert phase-type transition intensities to mixture representation
-##'
-##' A higher-level wrapper around `phase_mixture` which does the core calculation
-##'
-##' @param Qphase Intensity matrix on phased space
-##'
-##' @param nphase Numeric vector concatenating number of phases per state
-##'
-##' @return List with the components:
-##'
-##' \code{mix}: Mixture probs and mean sojourn times conditional on mixture component, from \code{\link{phase_mixture}}
-##'
-##' \code{mst}: Marginal mean sojourn times
-##'
-##' @noRd
-Qphase_to_mix <- function(Qphase, nphase){
-  K <- sum(nphase)
-  stopifnot(nrow(Qphase)==K && ncol(Qphase)==K && K>0)
-  qm <- form_qmodel(Qphase)
-  pdat <- form_phasedata(nphase)
-  tdat <- form_phasetrans(qm, pdat)
-  mix <- list()
-  mst <- numeric(length(nphase))
-  for (i in seq_along(nphase)){
-    mix[[i]] <-  cbind(
-      state = i,
-      phase = seq(nphase[i]),
-      phase_mixture(qm$qvec, tdat, i)
-    )
-    mst[i] <- rvarn_sum(mix[[i]]$mixprob * mix[[i]]$mst)
+
+check_Q <- function(Q,call=caller_env()){
+  check_square_matrix(Q, "Q", call)
+  badq <- which(Q < 0 & (row(Q) != col(Q)))
+  badq_str <- glue("({row(Q)[badq]},{col(Q)[badq]})")
+  if (length(badq) > 0){
+    cli_abort(c("off-diagonal entries of {.var Q} should be non-negative",
+                "Found negative value{?s} at {badq_str} entr{?y/ies}"),
+              call=call
+              )
   }
-  list(mix=do.call("rbind",mix), mst=mst)
+  if (all(Q==0)) cli_abort("All entries of Q are zero, so the model doesn't allow any transitions")
+}
+
+check_E <- function(E, qm, call=caller_env()){
+  check_square_matrix(E, "E", call)
+  bade <- which(((E < 0)|(E > 1)) & (row(E) != col(E)))
+  bade_str <- glue("({row(E)[bade]},{col(E)[bade]})")
+  if (length(bade) > 0){
+    cli_abort(c("off-diagonal entries of {.var E} should be in [0,1]",
+                "Found invalid value{?s} at {bade_str} entr{?y/ies}"),
+              call=call
+              )
+  }
+  if (!all(dim(E)==dim(qm$Q)))
+    cli_abort("Dimensions of matrices E and Q should match")  
+}
+
+check_Qfix <- function(Qfix, Q, call=caller_env()){
+  if (is.null(Qfix)) return()
+  check_square_matrix(Qfix, "Qfix", call)
+}
+
+check_Efix <- function(Efix, E, call=caller_env()){
+  if (is.null(Efix)) return()
+  check_square_matrix(Efix, "Efix", call)
+  if (!all(dim(Efix)==dim(E)))
+    cli_abort("Dimensions of matrices E and Efix should match")
+  bade <- which(Efix>0 & E==0)
+  bade_str <- glue("({row(Efix)[bade]},{col(Efix)[bade]})")
+  if (length(bade) > 0){
+    cli_abort(c("E should be > 0 in positions where Efix > 0",
+                "This isn't the case here for these entries of Efix: {bade_str}"),
+              call=call)
+  }
 }

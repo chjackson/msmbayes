@@ -21,17 +21,25 @@ This should start with one of the following:
 
 \code{"logq"}.  Log transition intensity.
 
-\code{"q"}, Transition intensity
+\code{"q"}, Transition intensity.
 
 \code{"time"}. Defined as \code{1/q}.  This can be interpreted as the mean
-time to the next transition to state $s$ for people in state $r$
+time to the next transition to state \eqn{s} for people in state \eqn{r}
 (from the point of view of someone observing one person at a time,
 and switching to observing a different person if a competing
 transition happens).
 
-\code{"loghr"}. Log hazard ratio
+\code{"loghr"}. Log hazard ratio.
 
-\code{"hr"}. Hazard ratio
+\code{"hr"}. Hazard ratio.
+
+\code{"loe"} Log odds of error (relative to no misclassification).
+
+\code{"logshape"} \code{"logscale"} Log shape or scale parameter for the
+sojourn distribution in a phase-type approximation model.
+
+\code{"loa"}.  Log odds of transition to a destination state in a
+phase-type approximation model with competing destination states.
 
 Then for transition intensities, it should two include indices
 indicating the transition, e.g. \code{"logq(2,3)"} for the log
@@ -47,11 +55,29 @@ e.g. \code{"loghr(sexMALE,2,3)"} for level \code{"MALE"} of factor \code{"sex"}.
 The indices or the covariate name can be omitted to indicate that
 the same prior will used for all transitions, or/and all
 covariates.  This can be done with or without the brackets, e.g.
-\code{"logq()"} or \code{"logq"} are both understood.}
+\code{"logq()"} or \code{"logq"} are both understood.
 
-\item{mean}{Prior mean (only used for logq or loghr)}
+For error rates in misclassification models, for example,
+\code{"loe(1,2)"} indicates the log odds of misclassification in state 2
+for true state 1, relative to no misclassifiation.
 
-\item{sd}{Prior standard deviation (only used for logq or loghr)}
+In phase-type approximation models, the index indicates the state,
+e.g. \code{logshape(2)} and \code{logscale(2)} indicate the log shape and
+scale parameter for the sojourn distribution in state 2.
+
+The parameters \code{"loa"} are only used in phase-type approximation
+models where there are multiple potential states that an individual
+could transition to immediately on leaving the state that has a
+phase-type approximation sojourn distribution.  These parameters
+are defined with two indices.  For example, \code{loa(1,2)} is the log
+odds of transition to state 2 on leaving state 1.  The odds
+is the probability of transition to state 2 divided by the
+probability of transition to the first out of the set of potential
+destination states.}
+
+\item{mean}{Prior mean (only used for \code{logq} or \code{loghr})}
+
+\item{sd}{Prior standard deviation (only used for \code{logq} or \code{loghr})}
 
 \item{median}{Prior median}
 
@@ -64,7 +90,7 @@ A list of class \code{"msmprior"}, with components
 
 \code{par} (as supplied by the user)
 
-\code{par_base} (either \code{"logq"} or \code{"loghr"})
+\code{par_base} (e.g. \code{"logq"} if \code{"time"} was provided, or \code{"loghr"} if \code{"hr"} was provided)
 
 \code{covname} (name of covariate effect)
 
@@ -91,8 +117,8 @@ intensity) or \code{time} (the reciprocal of the intensity,
 interpreted as a mean time to this transition when observing a
 sequence of individuals at risk of it).  Or \code{hr} (hazard ratio2)
 
-Two quantiles out of the median, lower or upper should be provided.
-If three are provided, then the upper quantile is ignored.  These
+Two quantiles (out of the median, lower or upper) should be provided.
+If all three are provided, then the upper quantile is ignored.  These
 are transformed back to the scale of \code{logq} or \code{loghr}, and the
 unique normal prior with these quantiles is deduced.
 }

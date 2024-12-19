@@ -21,11 +21,13 @@ msmhist_bardata(
 \item{state}{Character string naming the observed state variable in
 the data.  This variable must either be an integer in 1,2,...,K,
 where K is the number of states, or a factor with these integers
-as level labels.}
+as level labels.  If omitted, this is assumed to be \code{"state"}.}
 
-\item{time}{Character string naming the observation time variable in the data.}
+\item{time}{Character string naming the observation time variable in the data.
+If omitted, this is assumed to be \code{"time"}.}
 
-\item{subject}{Character string naming the individual ID variable in the data.}
+\item{subject}{Character string naming the individual ID variable in the data.
+If omitted, this is assumed to be \code{"subject"}.}
 
 \item{nbins}{Number of time intervals to bin the state observations
 into.  The underlying distribution of states illustrated by the

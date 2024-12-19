@@ -163,12 +163,6 @@ test_that("msmbayes: validation of covariate formulae",{
   expect_error(msmbayes(dat = infsim, state="state", time="months", subject="subject",
                         Q=infsimQ, covariates=covlist_tf, fit_method = "optimize"),
                "")
-
-  ## TODO better error if NAs in covs
-  ## Will be same issue if NAs in state/months/subject - wanna validate those too
-  ## validation functions in mold? they work on $predictors, $outcomes
-  ## https://github.com/tidymodels/hardhat/blob/main/R/validation.R
-  ## hardhat::model_frame . what do we call that on
 })
 
 test_that("msmbayes: validation of new_data",{
@@ -197,17 +191,18 @@ test_that("transformations in formula",{
   expect_no_error({
     covlist_spl <- list(Q(1,2) ~ splines::bs(age10, df=3))
     models <- msmbayes(dat = infsim, state="state", time="months", subject="subject",
-                       Q=infsimQ, covariates=covlist_spl, fit_method = "optimize")
+                       Q=infsimQ, covariates=covlist_spl,
+                       algorithm="Fixed_param", chains=1, iter=1)
     summary(models)
     mean_sojourn(models, new_data=data.frame(age10=1))
     covlist_fac <- list(Q(1,2) ~ factor(sex))
     models <- msmbayes(dat = infsim, state="state", time="months", subject="subject",
-                       Q=infsimQ, covariates=covlist_fac, fit_method = "optimize")
+                       Q=infsimQ, covariates=covlist_fac,
+                       algorithm="Fixed_param", chains=1, iter=1)
     summary(models)
     mean_sojourn(models, new_data=data.frame(sex=c("male","female")))
   })
 })
-
 
 test_that("msmbayes: E validation",{
   Q <- matrix(0, 3, 3); Q[1,2] <- 0.1

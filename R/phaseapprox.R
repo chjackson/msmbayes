@@ -3,7 +3,10 @@
 
 ## TODO doc.  One file documenting standard args.  This one
 
+
 ##' Determine parameters of a phase-type model that approximate a parametric shape-scale distribution
+##'
+##' @details TODO reference file, paper or data that explains the pointwise KL optimisation.  Link to \code{\link{phase5approx}} for the training data
 ##'
 ##' @param shape shape parameter
 ##'
@@ -13,17 +16,22 @@
 ##'
 ##' @param spline Type of spline used to interpolate between the training points (pointwise optima) when deriving the function that best maps the shape to each phase-type parameter
 ##'
-##' @param canonical Return the phase-type parameters in canonical form (phase 1 sojourn rate, sojourn rate increments in subsequent states, absorption probabilities).  If `FALSE` then phase transition rates are returned
+##' @param canonical Return the phase-type parameters in canonical form (phase 1 sojourn rate, sojourn rate increments in subsequent states, absorption probabilities).  If `FALSE` then phase transition rates are returned.
 ##'
-##' @param type Type of returned object: vector or list.
+##' @param type Type of returned object: `"vector"` or `"list"`.
+##' The list version has separate components for progression rates and absorption rates.
+##' @param drop If shape or scale have both have one element, and \code{drop=FALSE}, a matrix with one row is returned.
 ##'
-##' @param drop for vectorised operation, return vector TODOC 
-##'
+##' @export
 shapescale_to_rates <- function(shape, scale=1, family="weibull",
                                 canonical=FALSE, spline="linear",
                                 type = "vector", drop=TRUE){
-#  check_shape_in_bounds(shape, family)
-  # todo check length of shape, scale
+  check_positive_number(shape)
+  check_positive_number(scale) # TESTME
+  ml <- max(length(shape), length(scale))
+  shape <- rep(shape, length.out=ml)
+  scale <- rep(scale, length.out=ml)
+
   pars <- phase_cannames(5)
   rates <- matrix(nrow=length(shape), ncol=length(pars))
   colnames(rates) <- pars
@@ -35,7 +43,7 @@ shapescale_to_rates <- function(shape, scale=1, family="weibull",
     }
     if (!canonical){
       rates[i,] <- canpars_to_rates(rates[i,])
-    } 
+    }
     rates[i,] <- scale_rates(rates[i,], scale[i], canonical)
   }
   if (type=="list")
@@ -44,6 +52,12 @@ shapescale_to_rates <- function(shape, scale=1, family="weibull",
     rates <- as.numeric(rates) |>
       setNames(if(canonical) phase_cannames(5) else phase_ratenames(5))
   rates
+}
+
+check_positive_number <- function(x){
+  namex <- deparse(substitute(x))
+  if (!is.numeric(x)) cli_abort("{.var {namex}} should be numeric")
+  if (any(x < 0)) cli_abort("negative value for {.var {namex}} supplied")
 }
 
 ##' @inheritParams shapescale_to_rates
@@ -66,7 +80,8 @@ shape_to_canpar <- function(shape, parname, family, spline="linear"){
 ##' @param rates list or vector of rate parameters TODO standard doc
 ##' @noRd
 scale_rates <- function(rates, scale, canonical=FALSE){
-  if (canonical) scale_canpars(rates, scale)
+  if (canonical)
+    return(scale_canpars(rates, scale))
   if (is.list(rates)){
     rates$p <- rates$p / scale
     rates$a <- rates$a / scale
@@ -75,8 +90,14 @@ scale_rates <- function(rates, scale, canonical=FALSE){
 }
 
 scale_canpars <- function(canpars, scale, nphase=5){
-  qinames <- c("qsoj",paste0("inc",1:(nphase-1)))
-  canpars[qinames] <- canpars[qinames] / scale
+  if (is.list(canpars)){
+    canpars$qsoj <- canpars$qsoj / scale
+    canpars$inc <- canpars$inc / scale
+  }
+  else {
+    qinames <- c("qsoj",paste0("inc",1:(nphase-1)))
+    canpars[qinames] <- canpars[qinames] / scale
+  }
   canpars
 }
 
@@ -136,22 +157,35 @@ Dcanpars_dshape_hermite <- function(shape, family="weibull"){
 
 
 
+##' Phase-type expansion of a transition intensity matrix to create a
+##' non-Markov multi-state model
+##'
 ##' Convert a multi-state model intensity matrix with one or more non-Markov
-##' state to an intensity matrix on a phase-type state space, with the
-##' non-Markov states modelled with a shape-scale phase-type distribution
+##' states to an intensity matrix on a phase-type state space, where the
+##' non-Markov states are modelled with a phase-type approximation of a
+##' shape/scale distribution.
 ##'
 ##' @param qmatrix Intensity matrix on the observable state space.
-##' Values of rates for transitions out of the phased state are ignored.
+##' Only the rates for transitions out of Markov states are used,
+##' and values of rates for transitions out of the non-Markov state are ignored,
+##' unless there are competing next states.  In that case
+##' the relative value of the intensities are interpreted as the
+##' transition probability to each next state.  These transition
+##' probabilities are multiplied by the phase transition rates of the
+##' sojourn distribution in the non-Markov state to get the transition
+##' rates from the phases to the destination state.
 ##'
-##' @param att keep attributes
+##' @param att keep attributes indicating progression and absorption states
 ##'
-##' TODO
-##' Doesn't support multiple absorptions from the phased state (could
-##' in theory combine using supplied qmatrix, assuming proportional)
+##' TODO do we really need these, they are messy.
 ##'
 ##' @inheritParams msm_phaseapprox
+##'
 ##' @inheritParams shapescale_to_rates
-##' @return Intensity matrix on the phased state space
+##'
+##' @return Intensity matrix on the latent state space.
+##'
+##' @export
 qphaseapprox <- function(qmatrix, pastates, shape, scale, family="weibull", spline="linear", att=TRUE){
   qm <- form_qmodel(qmatrix)
   pm <- form_phasetype(pastates = pastates, Q=qmatrix, pafamily=family)
@@ -164,8 +198,15 @@ qphaseapprox <- function(qmatrix, pastates, shape, scale, family="weibull", spli
     pdabs <- as.matrix(pd[pd$ttype=="abs" & pd$oldfrom==pastates[i], c("qrow","qcol")])
     qnew[pdprog] <- rates$p
     qnew[pdabs] <- rates$a
+    ## Adjust phase exit rates for competing transition probs
+    q_adj <- matrix(1, nrow=qm$K, ncol=qm$K)
+    crrows <- pm$pdat$oldinds %in% qm$pacrdata$oldfrom
+    crcols <- pm$pdat$oldinds %in% qm$pacrdata$oldto
+    q_adj[crrows,crcols] <- qmatrix[pm$pdat$oldinds,pm$pdat$oldinds][crrows,crcols]
+    qnew <- qnew * q_adj
   }
   if (att==FALSE) {attr(qnew,"prog_inds") <- attr(qnew,"abs_inds") <- NULL}
+  diag(qnew) <- 0; diag(qnew) <- -rowSums(qnew)
   qnew
 }
 
@@ -174,15 +215,21 @@ qphaseapprox <- function(qmatrix, pastates, shape, scale, family="weibull", spli
 ##' Training data to construct phase-type approximations of standard survival distributions
 ##'
 ##' Only 5-phase approximations are included.
-##' 
+##'
+##' @inheritParams shapescale_to_rates
+##'
 ##' @return `traindat`: data frame of training data giving the optimal
 ##' phase-type parameters for each of a grid of shape parameters
-##' Do we need anything else?
+##' TODO rename a to shape
+##'
+##' Do we need anything else?  gradient? 
+##'
+##' smods is redundant surely
 ##'
 ##' TODO document further, work in progress.
 ##' @source Code in kl_pointwise.R to provide...
 ##'
-##' @noRd
+##' @export
 phase5approx <- function(family){
   phase5approx_data[[family]]
 }

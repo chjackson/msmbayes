@@ -1,4 +1,6 @@
-value <- function(x){draws_of(x)[1]}
+test_that("summary",{
+  expect_s3_class(summary(infsim_model)$value,"rvar")
+})
 
 test_that("pmatrix",{
   P <- pmatrix(infsim_model)
@@ -42,9 +44,9 @@ test_that("pmatrix with newdata",{
 
 test_that("totlos",{
   tl <- totlos(infsim_model, t=12)
-  expect_equal(sum(draws_of(tl$value)), 12)
+  expect_equal(sum(draws_of(tl$value)[1,]), 12)
   tl <- totlos(infsim_model, t=18, fromt=12)
-  expect_equal(sum(draws_of(tl$value)), 6)
+  expect_equal(sum(draws_of(tl$value)[1,]), 6)
   tld <- totlos(infsim_model, t=18, fromt=12, discount=0.01)
   expect_lt(value(tld$value), value(tl$value))
   expect_error(totlos(infsim_model, t="char"), "should be numeric")

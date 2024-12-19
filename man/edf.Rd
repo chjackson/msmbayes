@@ -2,7 +2,7 @@
 % Please edit documentation in R/outputs.R
 \name{edf}
 \alias{edf}
-\title{Misclassification probabilities from an msmbayes model}
+\title{Misclassification error probabilities from an msmbayes model}
 \usage{
 edf(draws)
 }
@@ -10,11 +10,12 @@ edf(draws)
 \item{draws}{Object returned by \code{\link{msmbayes}}.}
 }
 \value{
-A data frame with one row per misclassification probability.
+A data frame with one row per modelled misclassification probability.
 \code{from} indicates the true state, and \code{to} indicates the observed state.
+Error probabilities fixed by the user are not included.
 }
 \description{
-Misclassification probabilities from an msmbayes model
+Misclassification error probabilities from an msmbayes model
 }
 \seealso{
 \code{\link{qdf}} for more information about the format.

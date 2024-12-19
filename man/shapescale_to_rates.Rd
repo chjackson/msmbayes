@@ -21,14 +21,18 @@ shapescale_to_rates(
 
 \item{family}{parametric family approximated by the phase-type distribution: \code{"weibull"} or \code{"gamma"}}
 
-\item{canonical}{Return the phase-type parameters in canonical form (phase 1 sojourn rate, sojourn rate increments in subsequent states, absorption probabilities).  If \code{FALSE} then phase transition rates are returned}
+\item{canonical}{Return the phase-type parameters in canonical form (phase 1 sojourn rate, sojourn rate increments in subsequent states, absorption probabilities).  If \code{FALSE} then phase transition rates are returned.}
 
 \item{spline}{Type of spline used to interpolate between the training points (pointwise optima) when deriving the function that best maps the shape to each phase-type parameter}
 
-\item{type}{Type of returned object: vector or list.}
+\item{type}{Type of returned object: \code{"vector"} or \code{"list"}.
+The list version has separate components for progression rates and absorption rates.}
 
-\item{drop}{for vectorised operation, return vector TODOC}
+\item{drop}{If shape or scale have both have one element, and \code{drop=FALSE}, a matrix with one row is returned.}
 }
 \description{
 Determine parameters of a phase-type model that approximate a parametric shape-scale distribution
+}
+\details{
+TODO reference file, paper or data that explains the pointwise KL optimisation.  Link to \code{\link{phase5approx}} for the training data
 }

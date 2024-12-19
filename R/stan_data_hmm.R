@@ -15,22 +15,31 @@ make_stan_obsdata <- function(dat, qm=NULL, cm=NULL,
   if (length(dat[["time"]])==0)
     cli_inform("No observations in the data, carrying on and hoping for the best...")
   dat$timelag <- c(na_code, diff(dat[["time"]]))
-  dat$timelag[!duplicated(dat[["subject"]])] <- na_code
+  firstobs <- !duplicated(dat[["subject"]])
+  notfirstobs <- duplicated(dat[["subject"]])
+  dat$timelag[firstobs] <- na_code
 
   ## Set up to just calculate one P matrix per unique (timelag,covind)
-  Xstr <- apply(dat$X, 1, paste, collapse=";")
-  tlc <- paste(dat$timelag, Xstr, sep=";")
+
+  ## take covariate value for transition into current state from previous observation
+  dummy_row <- 1 # not used. don't put NA here to keep stan happy
+  Xprev <- dat$X[c(dummy_row, 1:(nrow(dat)-1)),,drop=FALSE]
+  Xstr <- apply(Xprev, 1, paste, collapse=";")
+  tlc <- paste(dat$timelag, Xstr, sep=";")[notfirstobs]
   ntlc <- length(unique(tlc))
-  timelag <- dat$timelag[!duplicated(tlc)]
-  arbitrary_row <- 1 # not used. don't put NA here to keep stan happy
-  Xprev <- dat$X[c(arbitrary_row, 1:(nrow(dat)-1)),,drop=FALSE] ## take covariate value for transition into current state from previous observation
-  Xuniq <- Xprev[!duplicated(tlc),,drop=FALSE]
-  tlcid <- match(tlc, unique(tlc))
+  timelag <- dat$timelag[notfirstobs][!duplicated(tlc)]
+  Xuniq <- Xprev[notfirstobs,,drop=FALSE][!duplicated(tlc),,drop=FALSE]
+
+  tlcid <- numeric(nrow(dat))
+  tlcid[notfirstobs] <- match(tlc, unique(tlc))
 
   nindiv <- length(unique(dat[["subject"]]))
   initprobs <- form_initprobs(em, dat, pm)
   TI <- table(dat[["subject"]])
-  
+
+  sumefixed <- rep(0, qm$K)
+  sumefixed[em$efixrow] <- tapply(em$efix, em$efixrow, sum)
+
   standat <- list(
     K = qm$K,
     T = nrow(dat),
@@ -50,6 +59,7 @@ make_stan_obsdata <- function(dat, qm=NULL, cm=NULL,
     efixrow = as.array(em$efixrow),
     efixcol = as.array(em$efixcol),
     efix = as.array(em$efix),
+    sumefixed = as.array(sumefixed),
 
     obs = as.array(dat[["state"]]),
     ntlc = ntlc,
@@ -87,12 +97,13 @@ form_phaseapprox_standata <- function(qm,pm,qmobs){
   logshapemin <- c(wmin, gmin)[pafamily]
   logshapemax <- c(wmax, gmax)[pafamily]
 
+  rdat <- qm$paratedata
+  crdat <- qm$pacrdata
 
   c(
     list(npaq = qm$npaq,
          npriorq = qm$npriorq,
          priorq_inds = as.array(qm$priorq_inds),
-#         qpa_inds = as.array(qm$qpa_inds),
          npastates = pm$npastates,
          ntrain = nrow(traindat),
          traindat_x = traindat$a,
@@ -101,54 +112,21 @@ form_phaseapprox_standata <- function(qm,pm,qmobs){
          traindat_inds = traindat_inds,
          logshapemin = as.array(logshapemin),
          logshapemax = as.array(logshapemax),
-         spline = match(pm$paspline, c("linear","hermite"))
-    ),
-    form_phaseapprox_comprisk_data(qm,pm,qmobs)
+         spline = match(pm$paspline, c("linear","hermite")),
+
+         npadest = nrow(crdat),
+         dest_base = as.array(as.numeric(crdat$dest_base)),
+         dest_state = as.array(crdat$dest_state),
+         loind = as.array(crdat$loind),
+
+         npaqall = nrow(rdat),
+         paq_inds = as.array(rdat$paq_inds),
+         pastate = as.array(rdat$pastate),
+         praterow = as.array(rdat$praterow),
+         prate_abs = as.array(rdat$prate_abs),
+         dest_inds = as.array(rdat$dest_inds),
+
+         noddsabs = qm$noddsabs
+         )
   )
-}
-
-## needed if we have more than one oldto for ttype=abs within an oldfrom
-## isnt this easier on the observable state space
-## but qmobs doesn't have "is a phase approx state" indicator
-##
-form_phaseapprox_comprisk_data <- function(qm,pm,qmobs){
-  pdat <- qm$phasedata
-
-  pdat$pafrom <- pdat$oldfrom %in% pm$pastates
-  puq <- unique(pdat[,c("oldfrom","oldto","pafrom")])
-  puq <- puq[puq$oldfrom != puq$oldto,]
-  pdat$ndest <- table(puq$oldfrom)[pdat$oldfrom]
-
-  pdat$pabs <- pdat$ndest > 1 & pdat$ttype=="abs"
-  npabs <- sum(pdat$pabs)
-  pabs_base <- as.numeric(!duplicated(pdat$oldfrom[pdat$pabs]))
-  pabs_notbase <- which(duplicated(pdat$oldfrom[pdat$pabs]))
-  pabs_state <- match(pdat$oldfrom[pdat$pabs], pm$pastates)
-  loind <- rep(0,npabs); loind[pabs_notbase] <- seq_along(pabs_notbase)
-
-  ## TODO these are needed even if not competing risks
-  npaqall <- sum(pdat$pafrom)
-  paq_inds <- which(pdat$pafrom)
-  praterow <- numeric(npaqall)
-  pdatpa <- pdat[pdat$pafrom,,drop=FALSE]
-  pdatpa$pastate <- match(pdatpa$oldfrom, pm$pastates)
-  for (i in 1:pm$npastates){
-    praterow[pdatpa$pastate==i & pdatpa$ttype=="prog"] <- 1:4 # TODO consts
-    praterow[pdatpa$pastate==i & pdatpa$ttype=="abs"] <- 5:9
-  }
-  pabs_inds <- numeric(npaqall)
-  pabs_inds[pdatpa$pabs] <- seq_len(sum(pdatpa$pabs))
-
-  list(npabs=npabs,
-       pabs_base = as.array(pabs_base),
-       pabs_state = as.array(pabs_state),
-       loind = as.array(loind),
-       npaqall = npaqall,
-       paq_inds = as.array(paq_inds),
-       praterow = as.array(praterow),
-       pastate = as.array(pdatpa$pastate),
-       prate_abs = as.array(as.numeric(pdatpa$ndest > 1)),
-       pabs_inds = as.array(pabs_inds),
-       noddsabs = length(pabs_notbase)
-       )
 }

@@ -34,6 +34,7 @@ qmatrix <- function(draws, new_data=NULL, X=NULL, drop=TRUE){
   for (j in 1:ncovvals){
     Q[j,,] <- qvec_rvar_to_Q(qvec[j,], qm)
   }
+  dimnames(Q)[2:3] <- dimnames(qm$Q)
   if (is.null(new_data) && drop) Q <- Q[,,drop=TRUE]
   Q
 }
@@ -75,12 +76,30 @@ qdf <- function(draws, new_data=NULL){
     relocate(from, to, value)
 }
 
-#' Misclassification probabilities from an msmbayes model
+
+##' Matrix of misclassification error probabilities from an msmbayes model
+##'
+##' @inheritParams qmatrix
+##'
+##' @return An array or matrix of `rvar` objects containing the
+##'   misclassification error matrix for each new prediction data point
+##'
+##' @export
+ematrix <- function(draws){
+  td <- tidy_draws(draws)
+  E <- td |>
+    gather_rvars(E[,]) |>
+    pull(".value")
+  E
+}
+
+#' Misclassification error probabilities from an msmbayes model
 #'
 #' @inheritParams qmatrix
 #'
-#' @return A data frame with one row per misclassification probability.
+#' @return A data frame with one row per modelled misclassification probability.
 #' `from` indicates the true state, and `to` indicates the observed state.
+#' Error probabilities fixed by the user are not included.
 #'
 #' @seealso \code{\link{qdf}} for more information about the format.
 #'
@@ -88,8 +107,12 @@ qdf <- function(draws, new_data=NULL){
 #' @export
 edf <- function(draws){
   from <- to <- value <- vecid <- NULL
-  evec <- evector(draws)
   em <- attr(draws, "emodel")
+  if (!em$hmm)
+    cli_abort("Not a misclassification model")
+  if (em$nepars==0)
+    cli_abort("No modelled misclassification probabilities: all are fixed")
+  evec <- evector(draws)
   vecbycovs_to_df(evec, new_data=NULL) |>
     mutate(from = em$erow[vecid],  # should we just name these $row, $col,
            to = em$ecol[vecid]) |> #  if we need to work with e matrix form?
@@ -124,6 +147,8 @@ pmatrix <- function(draws,t=1,new_data=NULL,X=NULL,drop=TRUE){
   ncovvals <- dim(Q)[1]
   qm <- attr(draws, "qmodel")
   P <- array(0, dim=c(ndraws(Q), ncovvals, ntimes, qm$K, qm$K))
+  dimnames(P)[4:5] <- dimnames(qm$Q)
+
   for (d in 1:ndraws(Q)){
     for (i in 1:ncovvals){
       for (j in 1:ntimes){
@@ -166,7 +191,7 @@ pmatrixdf <- function(draws, t=1, new_data=NULL){
     pdf <- pdf |>
       left_join(new_data |> mutate(covid=1:n()), by="covid")
   pdf |>
-    as_msmbres() |> 
+    as_msmbres() |>
     select(-covid) |>
     relabel_phase_states(draws)
 }
@@ -184,8 +209,9 @@ pmatrixdf <- function(draws, t=1, new_data=NULL){
 #'   phase-specific mean sojourn times, because an individual may
 #'   transition out of the state before progressing to the next phase.
 #'
-#' TODO perhaps this would be better named space="latent", space="observed"?
-#'
+#' TODO perhaps this would be better named states="observable", or
+#' states="phase".  Observable better default for pastates 
+#' 
 #' @return A data frame containing samples from the posterior distribution.
 #' See \code{\link{qdf}} for notes on this format and how to summarise.
 #'
@@ -196,6 +222,7 @@ mean_sojourn <- function(draws, new_data=NULL, by_phase=TRUE){
   qvec <- qvector(draws, new_data)
   pm <- attr(draws, "pmodel")
   qm <- attr(draws, "qmodel")
+  qmobs <- attr(draws, "qmodel_obs")
   ncovvals <- dim(Q)[1]
   nstates <- if (by_phase || !is_phasetype(draws)) qm$K else pm$nstates_orig
   mst <- rdo(matrix(nrow=ncovvals, ncol=nstates), ndraws=ndraws(Q))
@@ -214,10 +241,16 @@ mean_sojourn <- function(draws, new_data=NULL, by_phase=TRUE){
   mst <- vecbycovs_to_df(mst, new_data) |>
     mutate(state = (1:nstates)[vecid]) |>
     select(-vecid) |>
-    relocate(state, value) |>
-    slice(transient_states(qm))
-  if (by_phase)
-    mst <- mst |> relabel_phase_states(draws)
+    relocate(state, value)
+  if (by_phase){
+    mst <- mst |>
+      relabel_phase_states(draws) |>
+      slice(transient_states(qm))
+  }
+  else {
+    mst <- mst |>
+      slice(transient_states(qmobs))
+  }
   mst
 }
 
@@ -232,7 +265,7 @@ mean_sojourn <- function(draws, new_data=NULL, by_phase=TRUE){
 #'
 #' @export
 loghr <- function(draws){
-  name <- value <- NULL
+  name <- value <- from <- to <- NULL
   cm <- attr(draws,"cmodel")
   qm <- attr(draws,"qmodel")
   if (cm$nx==0)
@@ -278,7 +311,7 @@ summary.msmbres <- function(object, ...){
 
 #' Convert to "msmbayes result" class
 #' so we can use summary.msmbres
-#' 
+#'
 #' @noRd
 as_msmbres <- function(object){
   class(object) <- c("msmbres", class(object))
@@ -396,7 +429,7 @@ standardize_to <- standardise_to
 ##'
 ##' See \code{\link{qdf}} for notes on the `rvar` format.
 ##'
-##' @md 
+##' @md
 ##' @export
 soj_prob <- function(draws, t, state, new_data=NULL, method="analytic"){
 
@@ -409,7 +442,7 @@ soj_prob <- function(draws, t, state, new_data=NULL, method="analytic"){
 
 
 ##' Summarise posteriors for shape and scale parameters for the sojourn distribution in a semi-Markov msmbayes model
-##' 
+##'
 ##' @inheritParams qmatrix
 ##' @export
 phaseapprox_pars <- function(draws){
@@ -425,7 +458,7 @@ phaseapprox_pars <- function(draws){
   as_msmbres(data.frame(
     state = state,
     family = family,
-    name = name, 
+    name = name,
     value=c(shape, scale)
   ) |> arrange(state))
 }

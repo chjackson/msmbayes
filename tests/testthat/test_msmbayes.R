@@ -1,12 +1,51 @@
 Q <- rbind(c(0, 1), c(1, 0))
 library(msm)
 
+test_that("likelihood at fixed parameters agrees with msm",{
+  init<- list(list(logq=c(0, 0)))
+  draws <- msmbayes(data=infsim,  time="months", Q=Q, init=init,
+                    algorithm="Fixed_param", chains=1, iter=1, keep_data=TRUE)
+  ## Stan multinomial_lpmf function includes this normalising constant
+  mnconst <- attr(draws,"standat")$multinom_const
+  lik_msmbayes <- -2*(draws$loglik - mnconst)
+  lik_msm <- msm(state~months, subject=subject,
+                 data=infsim, qmatrix=Q, fixedpars=TRUE)$minus2loglik
+  expect_equal(lik_msmbayes, lik_msm)
+})
+
+test_that("likelihood with covariates agrees with msm",{
+  init<- list(list(logq=c(0, 0),loghr=c(-2,-2)))
+  draws <- msmbayes(data=infsim,  time="months", Q=Q,
+                    covariates=list(Q(1,2) ~ age10, Q(2,1) ~ age10), init=init,
+                    algorithm="Fixed_param", chains=1, iter=1, keep_data=TRUE)
+  mnconst <- attr(draws,"standat")$multinom_const
+  lik_msmbayes <- -2*(draws$loglik - mnconst)
+  lik_msm <- msm(state~months, subject=subject, covariates = ~age10,
+                 covinits = list(age10 = c(-2, -2)), center=FALSE,
+                 data=infsim, qmatrix=Q, fixedpars=TRUE)$minus2loglik
+  expect_equal(lik_msmbayes, lik_msm)
+})
+
+test_that("likelihood with covariates on one transition agrees with msm",{
+  init<- list(list(logq=c(0, 0),
+                   loghr=as.array(c(-2))))
+  draws <- msmbayes(data=infsim,  time="months", Q=Q,
+                    covariates=list(Q(2,1) ~ age10), init=init,
+                    algorithm="Fixed_param", chains=1, iter=1, keep_data=TRUE)
+  mnconst <- attr(draws,"standat")$multinom_const
+  lik_msmbayes <- -2*(draws$loglik - mnconst)
+  lik_msm <- msm(state~months, subject=subject, covariates = ~age10,
+                 covinits = list(age10 = c(0, -2)), center=FALSE,
+                 data=infsim, qmatrix=Q, fixedpars=TRUE)$minus2loglik
+  expect_equal(lik_msmbayes, lik_msm)
+})
+
 set.seed(1)
 
-test_that("Basic msmbayes model agrees with msm",{
+test_that("Basic msmbayes model fit agrees with msm",{
   # true values 0.5, 3
   draws <- msmbayes(data=infsim, state="state", time="months", subject="subject", Q=Q,
-                    fit_method="laplace")
+                    fit_method="optimize")
   summary(draws)
   bayes_ests <- summary(qdf(draws), ~quantile(.x, c(0.025, 0.975)))
   q12_bayes <- bayes_ests |> filter(from==1, to==2)
@@ -18,13 +57,13 @@ test_that("Basic msmbayes model agrees with msm",{
   expect_true(q21_bayes[["2.5%"]] < qe[2,1] && qe[2,1] < q21_bayes[["97.5%"]])
 })
 
-test_that("Covariates msmbayes model agrees with msm",{
+test_that("Covariates msmbayes model fit agrees with msm",{
   skip_on_cran()
   # true logHRs age 1, -1,  male 2, 0
   draws <- msmbayes(data=infsim, state="statec", time="months", subject="subject", Q=Q,
                     covariates = list(Q(1,2) ~ age10 + sex, Q(2,1) ~ age10 + sex),
-                    fit_method="laplace")
-  bayesplot::mcmc_dens(draws)
+                    fit_method="optimize")
+  if (interactive()) bayesplot::mcmc_dens(draws)
   bayes_ests <- summary(loghr(draws), ~quantile(.x, c(0.025, 0.975)))
   bayes_ests_age <- bayes_ests |> filter(name=="age10")
   bayes_ests_sex <- bayes_ests |> filter(name=="sexmale")
@@ -38,16 +77,4 @@ test_that("Covariates msmbayes model agrees with msm",{
                     (bayes_ests_age |> pull(`97.5%`)  >  msm_age)))
   expect_true(all((bayes_ests_sex |> pull(`2.5%`)  <  msm_sex) &
                     (bayes_ests_sex |> pull(`97.5%`)  >  msm_sex)))
-  expect_s3_class(summary(draws)$value,"rvar")
-})
-
-
-test_that("Phase-type model runs, print and summary",{
-  draws <- msmbayes(infsim2, state="state", time="months", subject="subject",
-                    Q=Q, nphase=c(1,2), fit_method="optimize")
-  expect_s3_class(draws,"msmbayes")
-  print(draws)
-  expect_s3_class(summary(draws)$value,"rvar")
-  expect_true(nrow(mean_sojourn(draws, by_phase=FALSE)) == 2)
-  expect_true(nrow(mean_sojourn(draws, by_phase=TRUE)) == 3)
 })

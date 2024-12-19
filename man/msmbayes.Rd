@@ -6,15 +6,16 @@
 \usage{
 msmbayes(
   data,
-  state,
-  time,
-  subject,
+  state = "state",
+  time = "time",
+  subject = "subject",
   Q,
   covariates = NULL,
   pastates = NULL,
   pafamily = "weibull",
   paspline = "hermite",
   E = NULL,
+  Efix = NULL,
   nphase = NULL,
   priors = NULL,
   soj_priordata = NULL,
@@ -29,11 +30,13 @@ msmbayes(
 \item{state}{Character string naming the observed state variable in
 the data.  This variable must either be an integer in 1,2,...,K,
 where K is the number of states, or a factor with these integers
-as level labels.}
+as level labels.  If omitted, this is assumed to be \code{"state"}.}
 
-\item{time}{Character string naming the observation time variable in the data.}
+\item{time}{Character string naming the observation time variable in the data.
+If omitted, this is assumed to be \code{"time"}.}
 
-\item{subject}{Character string naming the individual ID variable in the data.}
+\item{subject}{Character string naming the individual ID variable in the data.
+If omitted, this is assumed to be \code{"subject"}.}
 
 \item{Q}{Matrix indicating the transition structure.  A zero entry
 indicates that instantaneous transitions from (row) to (column)
@@ -69,60 +72,89 @@ covariate has an identical multiplicative effect on all rates of
 transition between phases for a given states.
 
 In phase-type models specified with \code{nphase}, or misclassification
-models (specified with \code{E}), the numbers in \code{Q()} refer to the
-latent state space.}
+models (specified with \code{E}), the numbers in \code{Q()} refer to transition
+rates on the latent state space.}
 
-\item{pastates}{For phase-type models, this indicates which states are given
-a Weibull or Gamma sojourn distribution approximated by a 5-phase model.
-Only one phased state is supported for the moment.   Ignored if \code{nphase} is supplied.}
+\item{pastates}{This indicates which states (if any) are given a
+Weibull or Gamma sojourn distribution approximated by a 5-phase
+model.  Only one phased state is supported for the moment.
+Ignored if \code{nphase} is supplied.}
 
 \item{pafamily}{\code{"weibull"} or \code{"gamma"}, indicating the
-approximated sojourn distribution in the phased state.  Either a vector
-of same length as \code{pastates}, or just one to apply to all states.}
+approximated sojourn distribution in the phased state.  Either a
+vector of the same length as \code{pastates}, or just one to apply to
+all states.}
 
 \item{paspline}{\code{"linear"} or \code{"hermite"}. Advanced: spline
 used in constructing the approximations. May remove this argument
 if one of these turns out to be good enough.}
 
-\item{E}{If \code{NULL} a non-hidden Markov model is fitted.  If
-non-\code{NULL} this should be a matrix indicating the structure
-of allowed misclassifications, where rows are the true states,
-and columns are the observed states.  A zero \eqn{(r,s)} entry
-indicates that true state \eqn{r} cannot be observed as observed
-state \eqn{s}.  A non-zero \eqn{(r,s)} entry indicates an
-initial value for a permitted misclassification probability.  The
-diagonal of \code{E} is ignored.}
+\item{E}{By default, \code{msmbayes} fits a (non-hidden) Markov model.
+If \code{E} is supplied, then a Markov model with misclassification is
+fitted, a type of hidden Markov model.  \code{E} should then be a
+matrix indicating the structure of allowed misclassifications,
+where rows are the true states, and columns are the observed
+states.  A zero entry in row \eqn{r} and column \eqn{s} indicates
+that true state \eqn{r} cannot be observed as observed state
+\eqn{s}.  A non-zero \eqn{(r,s)} entry indicates that true state
+\eqn{r} may be misclassified as \eqn{s}. The diagonal of \code{E}
+is ignored.}
 
-\item{nphase}{For phase-type models, this is a vector with one
-element per state, giving the number of phases per state.  This
-element is 1 for states that do not have phase-type sojourn distributions.
-Not required for non-phase-type models.}
+\item{Efix}{Misclassfication probabilities in Markov models are
+commonly not identifiable from data, particulary if the data are
+intermittently observed.  Instead of estimating them, a Markov
+model with misclassification can be specified by supplying
+assumed misclassification probabilities in the \code{Efix}
+argument.  This is a matrix with same dimensions as E.  Any
+non-zero entries of \code{Efix} are assumed to indicate the fixed
+known value for the corresponding misclassification probability.
+The r,s entry of \code{Efix} is 0 for any error probabilities
+that are estimated from the data or not permitted.}
+
+\item{nphase}{Only required for models with phase-type sojourn
+distributions specified manually (not through \code{pastates}).
+\code{nphase} is a vector with one element per state, giving the
+number of phases per state.  This element is 1 for states that do
+not have phase-type sojourn distributions.}
 
 \item{priors}{A list specifying priors.  Each component should be
 the result of a call to \code{\link{msmprior}}.  Any parameters
-with priors not specified here are given default priors (normal
-with mean -2 and SD 2 for log intensities, and normal with mean
-0 and SD 10 for log hazard ratios, or normal(0,1) for log shape and scale
-in phase-type approximations).
+with priors not specified here are given default priors: normal
+with mean -2 and SD 2 for log intensities, normal with mean
+0 and SD 10 for log hazard ratios, or normal(0,1) for all others
+(log shape, log scale and log odds parameters in
+phase-type approximation and misclassification models).  See
+\code{\link{msmprior}} for more details.
 
 If only one parameter is given a non-default prior, a single \code{msmprior}
 call can be supplied here instead of a list.}
 
 \item{soj_priordata}{Synthetic data that represents prior information
-about the mean sojourn time.  Experimental feature, currently undocumented.}
+about the mean sojourn time.  Experimental, undocumented feature.}
 
-\item{fit_method}{Quoted name of a function from the \code{cmdstanr}
-package specifying the algorithm to fit the model.  The default
-\code{"sample"} uses MCMC, via \code{\link[cmdstanr:model-method-sample]{cmdstanr::sample()}}.
-Alternatives are \code{\link[cmdstanr:model-method-optimize]{cmdstanr::optimize()}},
-\code{\link[cmdstanr:model-method-pathfinder]{cmdstanr::pathfinder()}}, \code{\link[cmdstanr:model-method-laplace]{cmdstanr::laplace()}} or
-\code{\link[cmdstanr:model-method-variational]{cmdstanr::variational()}}.}
+\item{fit_method}{Quoted string specifying the algorithm to fit the
+model.  The default \code{"sample"} uses NUTS/HMC MCMC, via
+\code{\link[rstan:stanmodel-method-sampling]{rstan::sampling()}}.  Alternatives are
+
+\code{"optimize"} to use posterior mode optimization (with respect
+to parameters on the log scale) followed by Laplace approximation
+around the mode (via rstan::optimizing()).
+
+\code{"variational"} to use variational Bayes (via rstan::vb()).
+
+\code{"pathfinder"}, to use the Pathfinder variational algorithm
+via \code{cmdstanr}.  This requires \code{cmdstan} and \code{cmdstanr} to be
+installed.  The first time this is run for a particular \code{msmbayes}
+model class, the Stan program for that class is compiled, which
+will take a extra minute or two.  The next time, it will not need
+to be recompiled.  This also assumes you have write permission to
+the place where \code{msmbayes} is installed.}
 
 \item{keep_data}{Store a copy of the cleaned data in the returned
 object.  \code{FALSE} by default.}
 
 \item{...}{Other arguments to be passed to the function from
-\code{cmdstanr} that fits the model.}
+\code{rstan} or \code{cmdstanr} that fits the model.}
 }
 \value{
 A data frame in the \code{draws} format of the
@@ -130,7 +162,7 @@ A data frame in the \code{draws} format of the
 the model parameters.
 
 Attributes are added to give information about the model structure,
-and a class \code{"msmbayes"} is appended.
+and a class \code{"msmbayes"} is prepended.
 
 See, e.g. \code{\link{summary.msmbayes}}, \code{\link{qdf}},
 \code{\link{hr}}, and similar functions, to extract parameter

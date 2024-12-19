@@ -1,9 +1,23 @@
 ##' Generate a sample from the prior distribution in a msmbayes model
 ##'
+##' Called in the same way as msmbayes.  The data are required here to
+##' ensure we are simulating from a valid msmbayes model, but it is
+##' sufficient to supply an empty data frame with no rows, and columns
+##' named as if we were fitting a model with these priors.
+##'
 ##' @inheritParams msmbayes
 ##' @param nsim Number of samples to generate
 ##'
-##' @noRd
+##' @return A data frame with one column per model parameter (on a transformed scale, e.g. log intensities), and one row per sample.    The names are in the natural
+##' format as specified in `priors`.
+##'
+##' An attribute \code{"post_names"} contains the names of the
+##' corresponding parameters in the `draws` object that would be
+##' returned by `msmbayes` if this model were to be fitted to data.
+##' These are less user-interpretable than the natural names.
+##'
+##' @md
+##' @export
 msmbayes_prior_sample <- function(data, state="state", time="time", subject="subject",
                                   Q,
                                   covariates = NULL,
@@ -19,14 +33,19 @@ msmbayes_prior_sample <- function(data, state="state", time="time", subject="sub
                                pafamily=pafamily, paspline=paspline, E=E,
                                nphase=nphase, priors=priors,
                                prior_sample = TRUE)
-  qm <- m$qm; pm <- m$pm; priors <- m$priors; cm <- m$cm; data <- m$data
+  qm <- m$qm; pm <- m$pm; priors <- m$priors; cm <- m$cm; em <- m$em; data <- m$data; qmobs <- m$qmobs
 
   logq <- matrix(nrow=nsim, ncol=qm$npriorq)
   for (i in 1:qm$npriorq){
     logq[,i] <- rnorm(nsim, priors$logqmean[i], priors$logqsd[i])
   }
   logq <- as.data.frame(logq)
-  names(logq) <- sprintf("logq[%s,%s]", qm$qrow[qm$priorq_inds], qm$qcol[qm$priorq_inds])
+  pdat <- qm$phasedata
+  if (pm$phaseapprox)
+    names(logq) <- sprintf("logq[%s,%s]",
+                           pdat$oldfrom[pdat$ttype=="markov"],
+                           pdat$oldto[pdat$ttype=="markov"])
+  else names(logq)<- sprintf("logq[%s,%s]",qm$qrow,qm$qcol)
   res <- logq
 
   if (cm$nx > 0){
@@ -38,7 +57,6 @@ msmbayes_prior_sample <- function(data, state="state", time="time", subject="sub
     names(loghr) <- sprintf("loghr[%s,%s,%s]", cm$Xnames, cm$xfrom, cm$xto)
     res <- cbind(res, loghr)
   }
-
   if (pm$phaseapprox){
     logshape <- logscale <- matrix(nrow=nsim, ncol=pm$npastates)
     for (i in 1:pm$npastates){
@@ -50,10 +68,30 @@ msmbayes_prior_sample <- function(data, state="state", time="time", subject="sub
     names(logshape) <- sprintf("logshape[%s]",pm$pastates)
     names(logscale) <- sprintf("logscale[%s]",pm$pastates)
     res <- cbind(res, logshape, logscale)
+    noddsabs <- qm$noddsabs
+    if (noddsabs > 0){
+      loa <- as.data.frame(matrix(nrow=nsim, ncol=noddsabs))
+      names(loa) <- sprintf("logoddsa[%s]", 1:noddsabs)
+      for (i in 1:noddsabs){
+        loa[,i] <- rnorm(nsim, priors$loamean[i], priors$loasd[i])
+      }
+      res <- cbind(res, loa)
+    }
+  }
+  if (em$nepars > 0){
+    loe <- as.data.frame(matrix(nrow=nsim, ncol=em$nepars))
+    names(loe) <- sprintf("logoddse[%s,%s]", em$erow, em$ecol)
+    for (i in 1:em$nepars){
+      loe[,i] <- rnorm(nsim, priors$loemean[i], priors$loesd[i])
+    }
+    res <- cbind(res, loe)
   }
   attr(res,"post_names") <- prior_post_names(names(res), qm, pm)
+  attr(res,"m") <- m
   res
 }
+
+## TODO include loe, loa in these
 
 prior_post_names <- function(prior_names, qm, pm){
   logq_prior_names <- grep("logq", prior_names, value=TRUE)
@@ -75,20 +113,36 @@ prior_post_names <- function(prior_names, qm, pm){
   post_names
 }
 
-#' Generate a dataset from the prior predictive distribution in a msmbayes model
-#'
-#' If complete_obs=FALSE (the default) intermittently-observed states are generated
-#' for the subjects and times supplied in the `data` argument, using msm::simmulti.msm.
-#'
-#' If complete_obs=TRUE, one complete state transition history is generated using
-#' msm::sim.msm.  The `data` argument should then consist of one row, with `time` giving the maximum observation time,
-#' and any covariates supplied, assumed to be time-constant.
-#'
-#' @inheritParams msmbayes
-#' @param complete_obs
-#'
-#' @return See msm::simmulti.msm or msm::sim.msm
-#' @noRd
+##' Generate a dataset from the prior predictive distribution in a msmbayes model
+##'
+##' As in \code{\link{msmbayes_prior_sample}}, the \code{data}
+##' argument is required though it need only be a zero-rows version of
+##' the data that we would fit the model to.
+##'
+##' @details For phase-type approximation models, this simulates from the
+##' phase-type approximation, not the Weibull or Gamma (e.g) distribution
+##' that it is designed to approximate.
+##'
+##' @param complete_obs If \code{complete_obs=FALSE} (the default)
+##'   intermittently-observed states are generated for the subjects
+##'   and times supplied in the `data` argument, using
+##'   \code{msm::simmulti.msm}.  The returned object is a data frame
+##'   made by appending these states to `data`.
+##'
+##' If \code{complete_obs=TRUE}, one complete state transition history
+##' is generated using \code{msm::sim.msm}.  The `data` argument
+##' should then consist of one row, with `time` giving the maximum
+##' observation time, and any covariates supplied, assumed to be
+##' time-constant.  The returned object is a list.
+##'
+##' @inheritParams msmbayes
+##' @param complete_obs
+##'
+##' TODO should we accept fixed parameters rather than prior sampled?
+##'
+##' @return A data frame or a list, see \code{msm::simmulti.msm} or \code{msm::sim.msm} respectively.
+##' @md
+##' @export
 msmbayes_priorpred_sample <- function(data, state="state", time="time", subject="subject",
                                       Q,
                                       covariates = NULL,
@@ -113,24 +167,36 @@ msmbayes_priorpred_sample <- function(data, state="state", time="time", subject=
   names(data) <- gsub("X\\\\.","",names(data))
   covs <- data[["X"]]
   data <- cbind(data[,c("time","subject")],covs)
-  qmatrix <- extract_q(prior_sample, Q, i=1)
+  q_prior <- q_pred <- extract_q(prior_sample, Q, i=1) # on observed state space
+  ## For phaseapprox models, this will have 1 for pa states, real values for others
 
   if (m$pm$phaseapprox){
-    print("prior_sample:")
-    print(prior_sample)
-    qmatrix <- qphaseapprox(qmatrix=qmatrix,
+    if (m$qm$noddsabs > 0){
+      logoddsabs <- extract_logoddsabs(prior_sample)
+      tprobs <- loabs_to_probs(logoddsabs, m$qm, m$qmobs)
+      q_prior[tprobs>0] <- q_prior[tprobs>0] * tprobs[tprobs>0] # adjust the 1s for transition probs to absorbing states
+    }
+    q_pred <- qphaseapprox(qmatrix=q_prior,
                             shape = exp(prior_sample$logshape[1]), scale = exp(prior_sample$logscale[1]),
                             pastates=pastates, family=pafamily, spline=paspline)
     ematrix <- m$em$E
   } else ematrix <- NULL   # TESTME
 
+  if (nrow(data) == 0) {
+    cli_abort("`data` is empty")
+  }
   if (complete_obs){
     beta <- extract_beta(prior_sample, Q, i=1, format="sim.msm")
     covs <- if (m$cm$nx==0) NULL else as.matrix(covs[1,])
-    res <- msm::sim.msm(qmatrix=qmatrix, maxtime=max(data$time), covs=covs, beta=beta)
+    res <- msm::sim.msm(qmatrix=q_pred, maxtime=max(data$time), covs=covs, beta=beta)
   } else {
     covariates <- extract_beta(prior_sample, Q, i=1, format="simmulti.msm")
-    res <- msm::simmulti.msm(data, qmatrix=qmatrix, covariates=covariates, ematrix=ematrix)
+    res <- msm::simmulti.msm(data, qmatrix=q_pred, covariates=covariates, ematrix=ematrix)
+    if (m$pm$phaseapprox){
+      res$latent_state <- res$state
+      res$obs_state <- m$pm$pdat$oldinds[res$latent_state]
+      res$state <- res$obs <- NULL
+    }
   }
   attr(res, "prior_sample") <- prior_sample
   attr(res, "qmodel") <- m$qm
@@ -147,6 +213,7 @@ extract_q <- function(prior_sample, Q, i){
   lqn <- grep(qre,names(prior_sample),value=TRUE)
   qfrom <- as.numeric(gsub(qre, "\\1", lqn))
   qto <- as.numeric(gsub(qre, "\\2", lqn))
+  ## TODO for phasetype models logq on entry is named on phase space
   Q[cbind(qfrom,qto)] <- exp(unlist(prior_sample[i,lqn]))
   Q
 }
@@ -186,4 +253,31 @@ extract_beta <- function(prior_sample, Q, i, format="simmulti.msm"){
     res <- as.list(as.data.frame(t(beta)))
   else res <- beta
   res
+}
+
+extract_logoddsabs <- function(prior_sample, i=1){
+  loare <- "logoddsa\\[([[:digit:]]+)\\]"
+  prior_sample[i,grepl(loare, names(prior_sample))]
+}
+
+##' @param loabs vector of log odds for phaseapprox competing risks transitions
+##'
+##' @return matrix on the observable state space.  The only meaningful entries
+##'   are those corresponding to transitions from
+##'   phaseapprox states to the next destination state, where there is
+##'   more than one next destination state.  These entries are
+##'   populated with the transition probabilities.   All other entries are set
+##'   to zero arbitrarily
+##'
+##' @noRd
+loabs_to_probs <- function(loabs, qm, qmobs){
+  crd <- qm$pacrdata[qm$pacrdata$loind==1,,drop=FALSE]
+  crdbase <- qm$pacrdata[qm$pacrdata$dest_base,,drop=FALSE]
+  mat <- emat <- matrix(0, nrow=qmobs$K, ncol=qmobs$K)
+  mat[cbind(crd$oldfrom, crd$oldto)] <- loabs
+  emat[cbind(crdbase$oldfrom, crdbase$oldto)] <- 1
+  emat[mat!=0] <- exp(mat[mat!=0])
+  pmat <- emat / rowSums(emat)
+  pmat[is.nan(pmat)] <- 0
+  pmat
 }

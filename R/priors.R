@@ -7,21 +7,29 @@
 #'
 #' `"logq"`.  Log transition intensity.
 #'
-#' `"q"`, Transition intensity
+#' `"q"`, Transition intensity.
 #'
 #' `"time"`. Defined as `1/q`.  This can be interpreted as the mean
-#' time to the next transition to state $s$ for people in state $r$
+#' time to the next transition to state \eqn{s} for people in state \eqn{r}
 #' (from the point of view of someone observing one person at a time,
 #' and switching to observing a different person if a competing
 #' transition happens).
 #'
-#' `"loghr"`. Log hazard ratio
+#' `"loghr"`. Log hazard ratio.
 #'
-#' `"hr"`. Hazard ratio
+#' `"hr"`. Hazard ratio.
+#'
+#' `"loe"` Log odds of error (relative to no misclassification).
+#'
+#' `"logshape"` `"logscale"` Log shape or scale parameter for the
+#' sojourn distribution in a phase-type approximation model.
+#' 
+#' `"loa"`.  Log odds of transition to a destination state in a
+#' phase-type approximation model with competing destination states.
 #'
 #' Then for transition intensities, it should two include indices
 #' indicating the transition, e.g. `"logq(2,3)"` for the log
-#' transition intensity from state 2 to state 3.
+#' transition intensity from state 2 to state 3.  
 #'
 #' For covariate effects, the covariate name is supplied alongside the
 #' transition indices, e.g. `"loghr(age,2,3)"` for the effect of `age`
@@ -35,9 +43,28 @@
 #' covariates.  This can be done with or without the brackets, e.g.
 #' `"logq()"` or `"logq"` are both understood.
 #'
-#' @param mean Prior mean (only used for logq or loghr)
+#' For error rates in misclassification models, for example,
+#' `"loe(1,2)"` indicates the log odds of misclassification in state 2
+#' for true state 1, relative to no misclassifiation.
 #'
-#' @param sd Prior standard deviation (only used for logq or loghr)
+#' In phase-type approximation models, the index indicates the state,
+#' e.g. `logshape(2)` and `logscale(2)` indicate the log shape and
+#' scale parameter for the sojourn distribution in state 2. 
+#'
+#' The parameters `"loa"` are only used in phase-type approximation
+#' models where there are multiple potential states that an individual
+#' could transition to immediately on leaving the state that has a
+#' phase-type approximation sojourn distribution.  These parameters
+#' are defined with two indices.  For example, `loa(1,2)` is the log
+#' odds of transition to state 2 on leaving state 1.  The odds 
+#' is the probability of transition to state 2 divided by the
+#' probability of transition to the first out of the set of potential
+#' destination states.
+#' 
+#'
+#' @param mean Prior mean (only used for `logq` or `loghr`)
+#'
+#' @param sd Prior standard deviation (only used for `logq` or `loghr`)
 #'
 #' @param median Prior median
 #'
@@ -58,8 +85,8 @@
 #'   interpreted as a mean time to this transition when observing a
 #'   sequence of individuals at risk of it).  Or `hr` (hazard ratio2)
 #'
-#' Two quantiles out of the median, lower or upper should be provided.
-#' If three are provided, then the upper quantile is ignored.  These
+#' Two quantiles (out of the median, lower or upper) should be provided.
+#' If all three are provided, then the upper quantile is ignored.  These
 #' are transformed back to the scale of `logq` or `loghr`, and the
 #' unique normal prior with these quantiles is deduced.
 #'
@@ -67,7 +94,7 @@
 #'
 #' `par` (as supplied by the user)
 #'
-#' `par_base` (either `"logq"` or `"loghr"`)
+#' `par_base` (e.g. `"logq"` if `"time"` was provided, or `"loghr"` if `"hr"` was provided)
 #'
 #' `covname` (name of covariate effect)
 #'
@@ -146,10 +173,12 @@ transform_mlu <- function(par, mlu){
 }
 
 .msmprior_pars <- list(
-  "logq"  = c("logq", "q", "time"), # TODO capitals, invq?
+  "logq"  = c("logq", "q", "time"), 
   "loghr" = c("loghr", "hr"),
   "logshape" = c("logshape"),
-  "logscale" = c("logscale")
+  "logscale" = c("logscale"),
+  "loe" = c("loe"),
+  "loa" = c("loa")
 )
 .msmprior_pars_df <- data.frame(
   basename = rep(names(.msmprior_pars), lengths(.msmprior_pars)),
@@ -169,15 +198,22 @@ msmprior_parse <- function(par){
   name <- "([[:alnum:]]+)"
   covname <- allow_spaces("([[:alnum:]]+)")
   number <- allow_spaces("([[:digit:]]+)")
-  re_index <- glue("^{name}\\({number},{number}\\)$")
+  re_2index <- glue("^{name}\\({number},{number}\\)$")
+  re_1index <- glue("^{name}\\({number}\\)$")
   re_covindex <- glue("^{name}\\({covname},{number},{number}\\)$")
   re_cov <- glue("^{name}\\({covname}\\)$")
   re_noindex <- glue("^{allow_spaces(name)}(\\(\\))?$")
 
-  if (grepl(re_index, par)){
-    parsed <- stringr::str_match(par, re_index)
+  if (grepl(re_2index, par)){
+    parsed <- stringr::str_match(par, re_2index)
     res <- list(name=parsed[2],
                 ind1=as.numeric(parsed[3]), ind2=as.numeric(parsed[4]))
+  } else if (grepl(re_1index, par)){
+    parsed <- stringr::str_match(par, re_1index)
+    res <- list(name=parsed[2],
+                ind1=as.numeric(parsed[3]))
+    if (res$name %in% unlist(.msmprior_pars[c("logq","loe")]))
+      cli_abort("One index found in the prior for {.str {res$name}}. Expected two indices")
   } else if (grepl(re_covindex, par)){
     parsed <- stringr::str_match(par, re_covindex)
     res <- list(name=parsed[2], covname=parsed[3],
@@ -213,7 +249,9 @@ extraneous_covname_error <- function(res){
   logq = list(mean=-2, sd=2),
   loghr = list(mean=0, sd=10),
   logshape = list(mean=0, sd=1),
-  logscale = list(mean=0, sd=1)
+  logscale = list(mean=0, sd=1),
+  loe = list(mean=0, sd=1),
+  loa = list(mean=0, sd=1)
 )
 
 #' Assemble prior parameters as data to be passed to Stan
@@ -224,7 +262,7 @@ extraneous_covname_error <- function(res){
 #'
 #'
 #' @noRd
-process_priors <- function(priors, qm, cm, pm){
+process_priors <- function(priors, qm, cm, pm, em, qmobs){
   priors <- check_priors(priors)
   logqmean <- rep(.default_priors$logq$mean, qm$npriorq)
   logqsd <- rep(.default_priors$logq$sd, qm$npriorq)
@@ -234,33 +272,48 @@ process_priors <- function(priors, qm, cm, pm){
   logshapesd <- rep(.default_priors$logshape$sd, pm$npastates)
   logscalemean <- rep(.default_priors$logscale$mean, pm$npastates)
   logscalesd <- rep(.default_priors$logscale$sd, pm$npastates) # ugh? separate function?
+  loamean <- rep(.default_priors$loa$mean, qm$noddsabs)
+  loasd <- rep(.default_priors$loa$sd, qm$noddsabs)
+  loemean <- rep(.default_priors$loe$mean, em$nepars)
+  loesd <- rep(.default_priors$loe$sd, em$nepars)
 
   for (i in seq_along(priors)){
     prior <- priors[[i]]
-    qind <- get_prior_qindex(prior, qm)
     if (prior$par_base=="logq"){
-      logqmean[match(qind,qm$priorq_inds)] <- prior$mean
-      logqsd[match(qind,qm$priorq_inds)] <- prior$sd
+      qind <- get_prior_qindex(prior, qmobs, markov_only=TRUE)
+      logqmean[qind] <- prior$mean # fIXME if npriorq<nqpars, qind should go up to npriorq
+      logqsd[qind] <- prior$sd
     }
     else if (prior$par_base=="loghr"){
       if (cm$nx==0)
         cli_warn("Ignoring prior on {.var loghr}, as no covariates in the model")
       else {
-        bind <- get_prior_hrindex(prior, qm, cm, qind)
+        qind <- get_prior_qindex(prior, qmobs, markov_only=FALSE)
+        bind <- get_prior_hrindex(prior, qmobs, cm, qind)
         loghrmean[bind] <- prior$mean
         loghrsd[bind] <- prior$sd
       }
-## TODO WITH MULTIPLE
     } else if (prior$par_base=="logshape"){
-      logshapemean <- prior$mean; logshapesd <- prior$sd
+      ind <- get_prior_ssindex(prior, pm)
+      logshapemean[ind] <- prior$mean; logshapesd[ind] <- prior$sd
     } else if (prior$par_base=="logscale"){
-      logscalemean <- prior$mean; logscalesd <- prior$sd
+      ind <- get_prior_ssindex(prior, pm)
+      logscalemean[ind] <- prior$mean; logscalesd[ind] <- prior$sd
+    } else if (prior$par_base=="loe"){
+      ## For the moment index from 1.
+      ## Perhaps index by (true,obs) later
+      ind <- get_prior_loeindex(prior, em)
+      loemean[ind] <- prior$mean; loesd[ind] <- prior$sd
+    } else if (prior$par_base=="loa"){
+      loamean[prior$ind] <- prior$mean; loasd[prior$ind] <- prior$sd
     }
   }
   list(logqmean = as.array(logqmean), logqsd = as.array(logqsd),
        loghrmean = as.array(loghrmean), loghrsd = as.array(loghrsd),
        logshapemean = as.array(logshapemean), logshapesd = as.array(logshapesd),
-       logscalemean = as.array(logscalemean), logscalesd = as.array(logscalesd))
+       logscalemean = as.array(logscalemean), logscalesd = as.array(logscalesd),
+       loamean = as.array(loamean), loasd = as.array(loasd),
+       loemean = as.array(loemean), loesd = as.array(loesd))
 }
 
 check_priors <- function(priors){
@@ -275,11 +328,14 @@ check_priors <- function(priors){
 
 ##' Which in the set of transition intensities does a prior refer to
 ##' @noRd
-get_prior_qindex <- function(prior, qm){
+get_prior_qindex <- function(prior, qm, markov_only=TRUE){
   if (prior$ind1 == "all_indices")
     qind <- seq_len(qm$npriorq)
-  else
-    qind <- which(qm$qrow==prior$ind1 & qm$qcol==prior$ind2)
+  else {
+    tr <- qm$tr
+    if (markov_only) tr <- tr[tr$ttype=="markov",]
+    qind <- which(tr$from==prior$ind1 & tr$to==prior$ind2)
+  }
   if (length(qind)==0){
     cli_abort("Unknown prior parameter: transition {prior$ind1}-{prior$ind2} is not in the model")
   }
@@ -287,6 +343,7 @@ get_prior_qindex <- function(prior, qm){
 }
 
 ##' Which in the set of covariate effect parameters does a prior refer to
+##'
 ##' @noRd
 get_prior_hrindex <- function(prior, qm, cm, qind){
   binds <- numeric()
@@ -301,4 +358,22 @@ get_prior_hrindex <- function(prior, qm, cm, qind){
                 "Valid names include {.var {unique(cm$Xnames[binds])}}"))
   }
   bind
+}
+
+## Which in the set of misclassification error log odds does a prior refer to
+get_prior_ssindex <- function(prior, pm){
+  ind <- match(prior$ind1, pm$pastates)
+  if (!pm$phaseapprox)
+    cli_abort("Supplied a prior for a shape or scale parameter, but model does not have any states with phase-type approximations")
+  if (!(prior$ind1 %in% pm$pastates))
+    cli_abort("Found state ID of {prior$ind1} in prior for shape or scale parameter. Expected this to be one of the states with phase-type sojourn distributions, {pm$pastates}")
+  ind
+}
+
+get_prior_loeindex <- function(prior, em){
+  ind <- which(em$erow==prior$ind1 & em$ecol==prior$ind2)
+  if (length(ind)==0){
+    cli_abort("Unknown prior parameter: misclassification from {prior$ind1} to {prior$ind2} is not in the model")
+  }
+  ind
 }

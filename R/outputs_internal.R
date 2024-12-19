@@ -73,6 +73,7 @@ standardise_qvector <- function(qvec){
   t(posterior::rvar_apply(qvec, 2, combine_draws))
 }
 
+## Modelled misclassification probabilities
 ## Same as first few lines of qvector
 ## No covs on e so this is simpler.  share code if do this.
 

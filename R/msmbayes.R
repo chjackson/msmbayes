@@ -9,11 +9,13 @@
 #' @param state Character string naming the observed state variable in
 #'   the data.  This variable must either be an integer in 1,2,...,K,
 #'   where K is the number of states, or a factor with these integers
-#'   as level labels.
+#'   as level labels.  If omitted, this is assumed to be `"state"`.
 #'
 #' @param time Character string naming the observation time variable in the data.
+#'   If omitted, this is assumed to be `"time"`.
 #'
 #' @param subject Character string naming the individual ID variable in the data.
+#'   If omitted, this is assumed to be `"subject"`.
 #'
 #' @param Q Matrix indicating the transition structure.  A zero entry
 #'   indicates that instantaneous transitions from (row) to (column)
@@ -25,15 +27,6 @@
 #'   is sometimes done in `msm`.  Initial values for fitting are
 #'   determined by Stan from the prior distributions, and the specific
 #'   values supplied for positive entries of `Q` are disregarded.
-#'
-#' @param E If \code{NULL} a non-hidden Markov model is fitted.  If
-#'   non-\code{NULL} this should be a matrix indicating the structure
-#'   of allowed misclassifications, where rows are the true states,
-#'   and columns are the observed states.  A zero \eqn{(r,s)} entry
-#'   indicates that true state \eqn{r} cannot be observed as observed
-#'   state \eqn{s}.  A non-zero \eqn{(r,s)} entry indicates an
-#'   initial value for a permitted misclassification probability.  The
-#'   diagonal of \code{E} is ignored.
 #'
 #' @param covariates Specification of covariates on transition intensities.
 #' This should be a list of formulae.  Each formula should have a
@@ -58,65 +51,100 @@
 #' transition between phases for a given states.
 #'
 #' In phase-type models specified with `nphase`, or misclassification
-#' models (specified with `E`), the numbers in `Q()` refer to the
-#' latent state space.
+#' models (specified with `E`), the numbers in `Q()` refer to transition
+#' rates on the latent state space.
 #'
-#' @param priors A list specifying priors.  Each component should be
-#' the result of a call to \code{\link{msmprior}}.  Any parameters
-#' with priors not specified here are given default priors (normal
-#' with mean -2 and SD 2 for log intensities, and normal with mean
-#' 0 and SD 10 for log hazard ratios, or normal(0,1) for log shape and scale
-#' in phase-type approximations).
-#'
-#' If only one parameter is given a non-default prior, a single `msmprior`
-#' call can be supplied here instead of a list.
-#'
-#' @param soj_priordata Synthetic data that represents prior information
-#' about the mean sojourn time.  Experimental feature, currently undocumented.
-#'
-#' @param nphase For phase-type models, this is a vector with one
-#'   element per state, giving the number of phases per state.  This
-#'   element is 1 for states that do not have phase-type sojourn distributions.
-#'   Not required for non-phase-type models.
-#'
-#' @param pastates For phase-type models, this indicates which states are given
-#' a Weibull or Gamma sojourn distribution approximated by a 5-phase model.
-#' Only one phased state is supported for the moment.   Ignored if `nphase` is supplied.
+#' @param pastates This indicates which states (if any) are given a
+#'   Weibull or Gamma sojourn distribution approximated by a 5-phase
+#'   model.  Only one phased state is supported for the moment.
+#'   Ignored if `nphase` is supplied.
 #'
 #' @param pafamily `"weibull"` or `"gamma"`, indicating the
-#' approximated sojourn distribution in the phased state.  Either a vector
-#' of same length as `pastates`, or just one to apply to all states.
+#'   approximated sojourn distribution in the phased state.  Either a
+#'   vector of the same length as `pastates`, or just one to apply to
+#'   all states.
 #'
 #' @param paspline `"linear"` or `"hermite"`. Advanced: spline
 #'   used in constructing the approximations. May remove this argument
 #'   if one of these turns out to be good enough.
 #'
-#' @param fit_method Quoted name of a function from the `cmdstanr`
-#'   package specifying the algorithm to fit the model.  The default
-#'   \code{"sample"} uses MCMC, via [cmdstanr::sample()].
-#'   Alternatives are [cmdstanr::optimize()],
-#'   [cmdstanr::pathfinder()], [cmdstanr::laplace()] or
-#'   [cmdstanr::variational()].
+#' @param E By default, `msmbayes` fits a (non-hidden) Markov model.
+#'   If `E` is supplied, then a Markov model with misclassification is
+#'   fitted, a type of hidden Markov model.  `E` should then be a
+#'   matrix indicating the structure of allowed misclassifications,
+#'   where rows are the true states, and columns are the observed
+#'   states.  A zero entry in row \eqn{r} and column \eqn{s} indicates
+#'   that true state \eqn{r} cannot be observed as observed state
+#'   \eqn{s}.  A non-zero \eqn{(r,s)} entry indicates that true state
+#'   \eqn{r} may be misclassified as \eqn{s}. The diagonal of \code{E}
+#'   is ignored.
 #'
+#' @param Efix Misclassfication probabilities in Markov models are
+#'   commonly not identifiable from data, particulary if the data are
+#'   intermittently observed.  Instead of estimating them, a Markov
+#'   model with misclassification can be specified by supplying
+#'   assumed misclassification probabilities in the \code{Efix}
+#'   argument.  This is a matrix with same dimensions as E.  Any
+#'   non-zero entries of \code{Efix} are assumed to indicate the fixed
+#'   known value for the corresponding misclassification probability.
+#'   The r,s entry of \code{Efix} is 0 for any error probabilities
+#'   that are estimated from the data or not permitted.
+#'
+#' @param priors A list specifying priors.  Each component should be
+#' the result of a call to \code{\link{msmprior}}.  Any parameters
+#' with priors not specified here are given default priors: normal
+#' with mean -2 and SD 2 for log intensities, normal with mean
+#' 0 and SD 10 for log hazard ratios, or normal(0,1) for all others
+#' (log shape, log scale and log odds parameters in
+#' phase-type approximation and misclassification models).  See
+#' \code{\link{msmprior}} for more details.
+#'
+#' If only one parameter is given a non-default prior, a single `msmprior`
+#' call can be supplied here instead of a list.
+#'
+#' @param nphase Only required for models with phase-type sojourn
+#'   distributions specified manually (not through `pastates`).
+#'   `nphase` is a vector with one element per state, giving the
+#'   number of phases per state.  This element is 1 for states that do
+#'   not have phase-type sojourn distributions.
+#'
+#' @param soj_priordata Synthetic data that represents prior information
+#' about the mean sojourn time.  Experimental, undocumented feature.
+#'
+#' @param fit_method Quoted string specifying the algorithm to fit the
+#'   model.  The default \code{"sample"} uses NUTS/HMC MCMC, via
+#'   [rstan::sampling()].  Alternatives are
+#'
+#' \code{"optimize"} to use posterior mode optimization (with respect
+#' to parameters on the log scale) followed by Laplace approximation
+#' around the mode (via rstan::optimizing()).
+#'
+#' \code{"variational"} to use variational Bayes (via rstan::vb()).
+#'
+#' \code{"pathfinder"}, to use the Pathfinder variational algorithm
+#' via `cmdstanr`.  This requires `cmdstan` and `cmdstanr` to be
+#' installed.  The first time this is run for a particular `msmbayes`
+#' model class, the Stan program for that class is compiled, which
+#' will take a extra minute or two.  The next time, it will not need
+#' to be recompiled.  This also assumes you have write permission to
+#' the place where `msmbayes` is installed.
 #'
 #' @param keep_data Store a copy of the cleaned data in the returned
 #'   object.  \code{FALSE} by default.
 #'
 #' @param ...  Other arguments to be passed to the function from
-#'   `cmdstanr` that fits the model.
+#'   `rstan` or `cmdstanr` that fits the model.
 #'
 #' @return A data frame in the \code{draws} format of the
 #'   \pkg{posterior} package, containing draws from the posterior of
 #'   the model parameters.
 #'
 #' Attributes are added to give information about the model structure,
-#' and a class `"msmbayes"` is appended.
+#' and a class `"msmbayes"` is prepended.
 #'
 #' See, e.g. \code{\link{summary.msmbayes}}, \code{\link{qdf}},
 #' \code{\link{hr}}, and similar functions, to extract parameter
 #' estimates from the fitted model.
-#'
-#' @importFrom instantiate stan_package_model
 #'
 #' @importFrom posterior as_draws
 #'
@@ -124,49 +152,45 @@
 #' @export
 msmbayes <- function(data, state="state", time="time", subject="subject",
                      Q,
-                     covariates=NULL,
-                     pastates=NULL,
-                     pafamily="weibull",
-                     paspline="hermite",
-                     E=NULL,
-                     nphase=NULL,
-                     priors=NULL,
-                     soj_priordata=NULL,
+                     covariates = NULL,
+                     pastates = NULL,
+                     pafamily = "weibull",
+                     paspline = "hermite",
+                     E = NULL,
+                     Efix = NULL,
+                     nphase = NULL,
+                     priors = NULL,
+                     soj_priordata = NULL,
                      fit_method = "sample",
                      keep_data = FALSE,
                      ...){
 
   m <- msmbayes_form_internals(data=data, state=state, time=time, subject=subject,
                                Q=Q, covariates=covariates, pastates=pastates,
-                               pafamily=pafamily, paspline=paspline, E=E,
+                               pafamily=pafamily, paspline=paspline, E=E, Efix=Efix,
                                nphase=nphase, priors=priors, soj_priordata=soj_priordata)
 
-  if (!is_hmm(m)){
+  if (!m$em$hmm){
     standat <- make_stan_aggdata(dat=m$data, qm = m$qm, cm = m$cm,
                                  priors = m$priors,
                                  soj_priordata = m$soj_priordata)
-    stanmod <- msmbayes_stan_model("msm")
+    stanfile <- "msm"
   } else {
     standat <- make_stan_obsdata(dat=m$data, qm=m$qm, cm=m$cm,
                                  em=m$em, pm=m$pm, qmobs=m$qmobs,
                                  priors = m$priors,
                                  soj_priordata = m$soj_priordata)
     stanfile <- if (m$pm$phaseapprox) "phaseapprox" else "hmm"
-    stanmod <- msmbayes_stan_model(stanfile)
   }
 
-  if (!fit_method %in% c("sample","optimize","laplace","variational","pathfinder"))
-    cli_abort("Unknown fit_method")
+  if (fit_method %in% .cmdstanr_fit_methods)
+    fit <- cmdstanr_fit(stanfile, standat, fit_method, ...)
+  else if (fit_method %in% .rstan_fit_methods)
+    fit <- rstan_fit(stanfile, standat, fit_method, ...)
+  else cli_abort("Unknown {.str fit_method} {.str {fit_method}}")
 
-  fit <- stanmod[[fit_method]](data=standat, ...)
+  res <- posterior::as_draws_df(fit)
 
-  res <- posterior::as_draws_df(fit) # priorsense doesn't like us merging chains of draws_array
-                                     # why is as_draws_df so slow
-
-  if (fit_method == "sample"){
-    attr(res, "diag") <- list(diag = fit$sampler_diagnostics(),
-                              summ = fit$diagnostic_summary())
-  }
   attr(res, "qmodel") <- m$qm
   attr(res, "qmodel_obs") <- m$qmobs
   attr(res, "emodel") <- m$em
@@ -185,7 +209,7 @@ msmbayes <- function(data, state="state", time="time", subject="subject",
 msmbayes_form_internals <- function(data, state="state", time="time", subject="subject",
                                     Q, covariates=NULL,
                                     pastates=NULL, pafamily="weibull", paspline="hermite",
-                                    E=NULL, nphase=NULL,
+                                    E=NULL, Efix=NULL, nphase=NULL,
                                     priors=NULL, soj_priordata=NULL,
                                     prior_sample = FALSE){
   qm <- qmobs <- form_qmodel(Q)
@@ -193,110 +217,74 @@ msmbayes_form_internals <- function(data, state="state", time="time", subject="s
   pm <- form_phasetype(nphase, Q, pastates, pafamily, paspline)
   if (pm$phasetype){
     qm <- phase_expand_qmodel(qmobs, pm)
+    qmobs <- attr(qm, "qmobs")
     E <- pm$E
-  }
-  em <- form_emodel(E, pm$Efix)
-  qm$is_hmm <- !is.null(E)
+    em <- form_emodel(E, qm, pm$Efix)
+  } else
+    em <- form_emodel(E, qmobs, Efix)
 
   check_data(data, state, time, subject, qm, prior_sample=prior_sample)
   cm <- form_covariates(covariates, data, qm, pm, qmobs)
   data <- clean_data(data, state, time, subject, cm$X, prior_sample=prior_sample)
-  priors <- process_priors(priors, qm, cm, pm)
+  priors <- process_priors(priors, qm, cm, pm, em, qmobs)
   soj_priordata <- form_soj_priordata(soj_priordata)
   list(qm=qm, pm=pm, cm=cm, em=em, qmobs=qmobs, data=data, priors=priors, soj_priordata=soj_priordata)
 }
 
-msmbayes_stan_model <- function(model_name){
-  local_path <- sprintf("bin/stan/%s.exe",model_name)
-  if (file.exists(local_path) && requireNamespace("cmdstanr")) # just for development use
-    stanmod <- cmdstanr::cmdstan_model(exe_file = local_path)
-  else stanmod <- stan_package_model(name = model_name, package = "msmbayes")
-  stanmod
+.cmdstanr_fit_methods <- c("pathfinder", "laplace")
+.rstan_fit_methods <- c("sample", "optimize", "variational")
+
+cmdstanr_fit <- function(stanfile, standat, fit_method, call=caller_env(), ...){
+  if (!requireNamespace("cmdstanr",quietly=TRUE)){
+    cli_abort("{.pkg cmdstanr} and {.pkg cmdstan} must be installed to use {.code fit_method={fit_method}}. See {.url https://mc-stan.org/cmdstanr}", call=call)
+  }
+
+  ## TODO TESTME on fresh non local installs
+
+  local_stan_path <- sprintf("inst/stan/%s.stan",stanfile)
+  pkg_stan_path <- system.file(file.path("stan", sprintf("%s.stan",stanfile)), package="msmbayes")
+  stan_path <- if (file.exists(local_stan_path)) local_stan_path else pkg_stan_path
+
+  local_exe_path <- sprintf("bin/stan/%s.exe",stanfile)
+  pkg_exe_path <- system.file(file.path("bin","stan", sprintf("%s.exe",stanfile)), package="msmbayes")
+  exe_path <- if (file.exists(local_exe_path)) local_exe_path else pkg_exe_path
+
+  ## this will compile the Stan model if needed
+  stanmod <- cmdstanr::cmdstan_model(stan_file = stan_path, exe_file = exe_path)
+  if (fit_method %in% .cmdstanr_fit_methods)
+    fit <- stanmod[[fit_method]](data=standat, ...)
+  else cli_abort("unknown {.str fit_method} {.str {fit_method}} for {.var cmdstanr}")
+  fit
 }
 
-#' @export
-print.msmbayes <- function(x,...){
-  cat("msmbayes object\n")
-  cat("Call summary() for basic parameter estimates\n")
-  cat("See e.g. qdf(), hr(), pmatrix(), to summarise specific model quantities\n")
-  NextMethod("print")
+rstan_fit <- function(stanfile, standat, fit_method, ...){
+  mod <- stanmodels[[stanfile]]
+  if (fit_method == "sample"){
+    fit <- rstan::sampling(mod, data=standat, ...)
+  }
+  else if (fit_method == "optimize"){
+    args <- list(...)
+    if (is.null(args$init)) args$init <- prior_mean_inits(standat) # TODO doc
+    if (is.null(args$draws)) args$draws <- 4000
+    args$object <- mod
+    args$data <- standat
+    opt <- do.call(rstan::optimizing, args)
+    fit <- opt$theta_tilde
+    opt$theta_tilde <- NULL
+    attr(fit, "opt") <- opt
+  }
+  else if (fit_method == "variational")
+    fit <- rstan::vb(mod, data=standat, ...) # TESTME
+  else cli_abort("unknown {.str fit_method} {.str {fit_method}} for {.var rstan}")
+  fit
 }
 
-#' Summarise basic parameter estimates from an msmbayes model
-#'
-#' @param object Object returned by \code{\link{msmbayes}}.
-#'
-#' @param log Present log transition intensities and log hazard ratios,
-#' rather than transition intensities and hazard ratios.
-#'
-#' @param time Present inverse transition intensities (i.e. mean times to events)
-#'
-#' @param ... Further arguments passed to both \code{\link{qdf}} and \code{\link{loghr}}.
-#'
-#' @return A data frame with one row for each basic model parameter,
-#'   plus rows for the mean sojourn times.  The posterior distribution
-#'   for the parameter is encoded in the column \code{value}, which
-#'   has the \code{rvar} data type defined by the \pkg{posterior
-#'   package}.  This distribution can be summarised in any way by
-#'   calling \code{summary} again on the data frame (see the
-#'   examples).
-#'
-#' A string summarising a sample from the prior distribution, as a
-#' median and 95% equal-tailed credible interval, is given in the
-#' \code{prior} column.
-#'
-#' Transition intensities, or transformations of transition
-#' intensities, are those for covariate values of zero.
-#'
-#' Remaining parameters (in non-HMMs) are log hazard ratios for
-#' covariate effects.
-#'
-#' @seealso \code{\link{qdf}}, \code{\link{hr}}, \code{\link{loghr}},
-#' \code{\link[posterior:summarise_draws]{posterior::summarise_draws}}
-#'
-#' @examples
-#' summary(infsim_model)
-#' summary(summary(infsim_model))
-#' summary(summary(infsim_model), median, ~quantile(.x, 0.025, 0.975))
-#'
-#' @export
-summary.msmbayes <- function(object,log=FALSE,time=FALSE,...){
-  name <- from <- to <- value <- NULL
-  names <- if (log) c(q="logq",hr="loghr") else c(q="q",hr="hr")
-  qres <- qdf(object, ...)
-  pa <- is_phaseapprox(object)
-  if (time) {
-    names["q"] <- "time"
-    qres$value <- 1/qres$value
-  } else if (log) qres$value <- log(qres$value)
-  res <- qres |>
-    mutate(name=names["q"]) |>
-    select(name, from, to, value) |>
-    attach_priors(object, names["q"], pa)
-  mst <- mean_sojourn(object) |>
-    mutate(name="mst", to=NA) |>
-    rename(from="state") |>
-    select(name, from, to, value) |>
-    attach_priors(object, "mst", pa)
-  res <- rbind(res, mst)
-  if (has_covariates(object)){
-    loghr_ests <-
-      (if (log) loghr(object, ...) else hr(object, ...) )|>
-      select(name, from, to, value) |>
-      attach_priors(object, names["hr"], pa) |>
-      mutate(name=sprintf("%s(%s)", names["hr"], name))
-    res <- rbind(res, loghr_ests)
-  }
-  if (has_misc(object)){
-    e_ests <- edf(object, ...) |>
-      mutate(name="e") |>
-      select(name, from, to, value)
-#    if (!pa) e_ests$prior <- NA # TODO
-    res <- rbind(res, e_ests)
-  }
-  res$rhat <- summary(res, rhat)[,c("rhat")]
-  class(res) <- c("msmbres", class(res))
-  res
+prior_mean_inits <- function(standat){
+ list(logq = standat$logqmean,
+      loghr = standat$loghrmean,
+      logshape = standat$logshapemean,
+      logscale = standat$logscalemean,
+      logoddse = standat$loemean)
 }
 
 has_covariates <- function(draws){
@@ -305,10 +293,6 @@ has_covariates <- function(draws){
 
 is_phasetype <- function(draws){
   attr(draws, "pmodel")$phasetype
-}
-
-is_hmm <- function(m){ # or make polymorphic to m$ and draws
-  (!is.null(m$em)) || (m$pm$phasetype)
 }
 
 is_phaseapprox <- function(draws){

@@ -71,41 +71,6 @@ check_variable_in_data <- function(dat, x, call=caller_env()){
   }
 }
 
-check_Q <- function(Q,call=caller_env()){
-  check_square_matrix(Q, "Q", call)
-  badq <- which(Q < 0 & (row(Q) != col(Q)))
-  badq_str <- glue("({row(Q)[badq]},{col(Q)[badq]})")
-  if (length(badq) > 0){
-    cli_abort(c("off-diagonal entries of {.var Q} should be non-negative",
-                "Found negative value{?s} at {badq_str} entr{?y/ies}"),
-              call=call
-              )
-  }
-  if (all(Q==0)) cli_abort("All entries of Q are zero, so the model doesn't allow any transitions")
-}
-
-check_E <- function(E, call=caller_env()){
-  check_square_matrix(E, "E", call)
-  bade <- which(((E < 0)|(E > 1)) & (row(E) != col(E)))
-  bade_str <- glue("({row(E)[bade]},{col(E)[bade]})")
-  if (length(bade) > 0){
-    cli_abort(c("off-diagonal entries of {.var E} should be in [0,1]",
-                "Found invalid value{?s} at {bade_str} entr{?y/ies}"),
-              call=call
-              )
-  }
-}
-
-check_Qfix <- function(Qfix, Q, call=caller_env()){
-  if (is.null(Qfix)) return()
-  check_square_matrix(Qfix, "Qfix", call)
-}
-
-check_Efix <- function(Efix, E, call=caller_env()){
-  if (is.null(Efix)) return()
-  check_square_matrix(Efix, "Efix", call)
-}
-
 check_square_matrix <- function(mat,matname="mat",call=caller_env()){
   if (!is.matrix(mat))
     cli_abort("{.var {matname}} should be a matrix")
@@ -201,7 +166,7 @@ check_dup_obs <- function(state, time, subject, call=caller_env()){
 #' @noRd
 clean_data <- function(dat, state="state", time="time", subject="subject",
                        X=NULL, prior_sample=FALSE, call=caller_env()){
-  if (nrow(dat)==0) return()
+  if (nrow(dat)==0) return(dat)
   if (prior_sample) dat[[state]] <- rep(0, nrow(dat)) # temporary to bypass check
   dat <- dat[,c(state, time, subject)]
   names(dat) <- c("state", "time", "subject")

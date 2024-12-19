@@ -16,6 +16,7 @@ make_stan_aggdata <- function(dat, qm=NULL, cm=NULL, priors=NULL,
   dat_agg <- aggregate_transition_data(dat_trans, K=qm$K)
   dwide <- aggdata_towide(dat_agg, K=qm$K)
   covind <- as.array(dwide$covind)
+  pstruc <- form_P_struc(qm$Q) # TODO does this go in stan_data_hmm too 
 
   res <- list(K = qm$K,
               N = nrow(dwide),
@@ -36,7 +37,9 @@ make_stan_aggdata <- function(dat, qm=NULL, cm=NULL, priors=NULL,
               xend = as.array(cm$xend),
               X = attr(dat_agg, "Xuniq")
               )
-  res <- c(res, priors, soj_priordata)
+  
+  res$multinom_const <- sum(lfactorial(rowSums(res$ntostate)) - rowSums(lfactorial(res$ntostate)))
+  res <- c(res, priors, pstruc, soj_priordata)
   res
 }
 

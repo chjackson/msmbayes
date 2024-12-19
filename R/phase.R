@@ -27,7 +27,7 @@ form_phasetype <- function(nphase=NULL, Q,
        phaseapprox = !is.null(pastates),
        pastates = pastates,
        npastates = length(pastates),
-       pafamily = pafamily, 
+       pafamily = pafamily,
        paspline = paspline,
        nstates_orig = max(pdat$oldinds))
 }
@@ -42,7 +42,7 @@ check_pafamily <- function(pafamily, pastates){
   pafamily <- rep(pafamily, length.out=length(pastates))
   pafamily
 }
-                           
+
 nphase_from_approx <- function(nphase, pastates=NULL, Q, call=caller_env()){
   if (is.null(nphase) & !is.null(pastates)) {
     nstates <- nrow(Q)
@@ -218,10 +218,11 @@ form_Qphase <- function(Q, nphase, call=caller_env()){
 }
 
 ##' @param qm List describing the transition model structure on the observable space
-##' 
-##' @param pm List describing the phase-type model information 
-##' 
-##' @return List describing the transition model structure on the latent model space 
+##'
+##' @param pm List describing the phase-type model information
+##'
+##' @return List describing the transition model structure on the latent model space
+##' @noRd
 phase_expand_qmodel <- function(qm, pm){
   Qnew <- pm$Qphase
   Qnew[Qnew>0] <- 1 # "initial values" unused but keep code in case
@@ -231,26 +232,60 @@ phase_expand_qmodel <- function(qm, pm){
                 qrow = row(Qnew)[Qnew > 0],
                 qcol = col(Qnew)[Qnew > 0])
   qmnew$qlab <- paste(qmnew$qrow, qmnew$qcol, sep="-")
-  qmnew$phasedata <- pd <- form_phasetrans(qmnew, pm$pdat)
+  qmnew$phasedata <- pd <- form_phasetrans(qmnew, pm)
+  ## TODO rename tr for consistency? Clearer obs/latent distinction. Remove the vectors
 
   if (pm$phaseapprox){
     qmnew$npaq <- 9 # for 5-phase approximation
     pprog <- pd$phasefrom & pd$ttype=="prog"
     pabs <- pd$phasefrom & pd$ttype=="abs"
-#    qmnew$qpa_inds <- matrix(nrow=qmnew$npaq, ncol=pm$npastates)
-#    for (i in 1:pm$npastates){
-#      qmnew$qpa_inds[,i]  <- c(which(pprog & pd$oldfrom==pm$pastates[i]),
-#                                    which(pabs & pd$oldfrom==pm$pastates[i]))
-#    }
     qmnew$priorq_inds <- which(pd$ttype=="markov")
     qmnew$npriorq <- length(qmnew$priorq_inds)
   } else {
-    qmnew$qpa_inds <- NULL
     qmnew$priorq_inds <- 1:qmnew$nqpars
     qmnew$npriorq <- qmnew$nqpars
   }
-
+  qmnew$paratedata <- form_phaseapprox_ratedata(qmnew, pm)
+  qmnew$pacrdata <- form_phaseapprox_comprisk_data(qmnew)
+  qmnew$noddsabs <- attr(qmnew$pacrdata, "noddsabs") # TODO what if no crabs
+  qm$tr$ttype <- ifelse(qm$tr$from %in% pm$phased_states, "phase", "markov")
+  attr(qmnew, "qmobs") <- qm
   qmnew
+}
+
+## One row per rate from a phase of any state given a phaseapprox distribution
+form_phaseapprox_ratedata <- function(qm, pm){
+  ## TODO remove unnecessary cols
+  pdat <- qm$phasedata
+  pdat$pafrom <- pdat$oldfrom %in% pm$pastates
+  npaqall <- sum(pdat$pafrom)
+  rdat <- pdat[pdat$pafrom,,drop=FALSE]
+  rdat$paq_inds <- which(pdat$pafrom)
+  rdat$pastate <- match(rdat$oldfrom, pm$pastates)
+  rdat$praterow <- numeric(npaqall)
+  for (i in 1:pm$npastates){
+    rdat$praterow[rdat$pastate==i & rdat$ttype=="prog"] <- 1:4 # TODO consts
+    rdat$praterow[rdat$pastate==i & rdat$ttype=="abs"] <- 5:9
+  }
+  rdat$prate_abs <- as.numeric(rdat$ndest > 1 & rdat$ttype=="abs")
+  pdatcr <- unique(pdat[pdat$pabs, c("oldfrom","oldto","oldlab")])
+  rdat$dest_inds <- match(rdat$oldlab, pdatcr$oldlab, nomatch=0)
+  rdat
+}
+
+## One row per observable next destination state from states given a phaseapprox state, including only states where there is more than one destination (competing risks)
+form_phaseapprox_comprisk_data <- function(qm){
+  pdat <- qm$phasedata
+  pdatcr <- unique(pdat[pdat$pabs, c("oldfrom","oldto","oldlab")])
+  pdatcr$dest_state <- pdatcr$oldfrom
+  npadest <- length(pdatcr$dest_state)
+  pdatcr$dest_base <- !duplicated(pdatcr$dest_state)
+  noddsabs <- sum(!pdatcr$dest_base)
+  pdatcr$loind <- rep(0, npadest)
+  pdatcr$loind[!pdatcr$dest_base] <- seq_len(noddsabs)
+  attr(pdatcr, "noddsabs") <- noddsabs
+  attr(pdatcr, "npadest") <- npadest
+  pdatcr
 }
 
 #' Convert numeric state IDs variables (in data frames returned by
@@ -309,8 +344,9 @@ relabel_phase_states <- function(dat, draws, wide=TRUE, space="latent"){
 #'
 #' @md
 #' @noRd
-form_phasetrans <- function(qm, pdat){
+form_phasetrans <- function(qm, pm){
   tdat <- as.data.frame(qm[c("qrow","qcol")])  # TODO naming. better as truefrom?
+  pdat <- pm$pdat
   tdat$oldfrom <- pdat$oldinds[tdat$qrow] # better as obsfrom?
   tdat$oldto <- pdat$oldinds[tdat$qcol]
   tdat$oldlab <- paste(tdat$oldfrom, tdat$oldto, sep="-")
@@ -321,5 +357,12 @@ form_phasetrans <- function(qm, pdat){
                 ifelse(tdat$oldfrom != tdat$oldto &
                        tdat$phasefrom, "abs",
                        "markov"))
+  tdat$pafrom <- tdat$oldfrom %in% pm$pastates
+  puq <- unique(tdat[,c("oldfrom","oldto","pafrom")])
+  puq <- puq[puq$oldfrom != puq$oldto,]
+  ## number of absorption destinations from current phased state
+  tdat$ndest <- table(puq$oldfrom)[tdat$oldfrom]
+  ## is this rate a competing risks rate
+  tdat$pabs <- tdat$ndest > 1 & tdat$ttype=="abs"
   tdat
 }

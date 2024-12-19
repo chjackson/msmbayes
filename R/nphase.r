@@ -128,10 +128,12 @@ nphase_generator <- function(prate, arate){
 }
 
 ##' Given a phase-type sojourn distribution, return the corresponding
-##' Markov intensity matrix where state 3 is the absorbing state, and the
-##' the time to absorption is the sojourn distribution.
+##' Markov intensity matrix where the last state is the absorbing
+##' state, and the the time to absorption is the sojourn distribution.
 ##'
-##' @noRd
+##' @inheritParams nphase
+##' 
+##' @export
 nphase_Q <- function(prate, arate){
   nphase <- length(arate)
   Q <- matrix(0, nrow=nphase+1, ncol=nphase+1)

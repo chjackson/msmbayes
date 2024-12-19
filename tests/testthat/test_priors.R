@@ -24,6 +24,7 @@ test_that("msmprior errors",{
                         priors = priors),
                "covariate effect name")
   expect_error(msmbayes(dat, "state","time","subject", Q=Q,
+                        covariates = list(Q(2,1)~age),
                         priors = msmprior("loghr(age,1,37)", upper=0, median=-2)),
                "transition 1-37 is not in the model")
 

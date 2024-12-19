@@ -20,7 +20,8 @@ is returned.  This is not generally equal to the sum of the
 phase-specific mean sojourn times, because an individual may
 transition out of the state before progressing to the next phase.
 
-TODO perhaps this would be better named space="latent", space="observed"?}
+TODO perhaps this would be better named states="observable", or
+states="phase".  Observable better default for pastates}
 }
 \value{
 A data frame containing samples from the posterior distribution.

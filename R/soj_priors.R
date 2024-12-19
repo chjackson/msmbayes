@@ -1,3 +1,9 @@
+## TODO tlcid is just the covariate category in non HMMs
+## but also includes time lag for HMMs.
+## Shouldn't need time lag, but separate Q is calculated by timelag for convenience in hmm.stan, to match dimension of P. 
+## User should just need to supply covariate values in soj_priordata.
+## Low priority, leave if we want it for a paper on priors 
+
 form_soj_priordata <- function(soj_priordata, call=caller_env()){
   check_soj_priordata(soj_priordata, call=call)
   nsoj <- NROW(soj_priordata)

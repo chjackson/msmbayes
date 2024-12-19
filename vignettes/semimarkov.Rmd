@@ -1,0 +1,41 @@
+---
+title: "Semi-Markov models for intermittent observations with msmbayes"
+author: "Christopher Jackson <chris.jackson@mrc-bsu.cam.ac.uk>"
+date: "`r Sys.Date()`"
+output: 
+  rmarkdown::html_document:
+    toc: true
+    toc_float: true
+    theme: simplex
+    number-sections: true
+resource_files:
+  - ../man/figures/twostate.png
+vignette: >
+  %\VignetteIndexEntry{Semi-Markov models with msmbayes}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+`msmbayes` can fit multi-state models where the sojourn distribution in any state has a special two-parameter distribution.   This relaxes the Markov assumption, producing a semi-Markov model, where the transition rate out of a state depends on how long the individual has spent in the state. 
+
+Non-Markov models have traditionally been difficult for intermittently observed data, since we do not know the times of entry to the states. For some transition structures, we may not even know whether or not any particular transition took place within an interval between observations. 
+
+The sojourn distribution used for these models is a _phase-type approximation to a shape-scale distribution_, introduced by Titman S+C 2014.
+
+
+## Phase-type shape-scale distributions
+
+The distribution has two parameters: shape $a$ and scale $b$.  The probability distribution function is defined by 
+
+\[ F(x | a, b) = F_p(x | \lambda  = b*h(a)) \]
+
+where $F_p(x | \lambda)$ is a phase-type distribution with 5 phases and transition rates $\lambda$.   The shape and scale are mapped to the phase-type transition rates through a function $h()$, determined so that the phase-type distribution approximates either a Weibull or a Gamma over a wide range of shape parameters.  This function is pre-determined and stored in the `msmbayes` package.
+
+The full procedure used to determine $h()$ is [documented] - essentially the Kullback-Leibler discrepancy between the phase-type distribution and the Weibull is minimised for a series of points on a fine grid between [min,max]. and interpolated using a Hermite cubic spline, and extended beyond the boundaries with a constant to define a full time-to-event distribution function for positive times x.   
+Done for shape = 1, then re-scaled 
+
+
+## Covariates
+
+
+## Competing exit states 
