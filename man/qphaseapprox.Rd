@@ -26,15 +26,13 @@ probabilities are multiplied by the phase transition rates of the
 sojourn distribution in the non-Markov state to get the transition
 rates from the phases to the destination state.}
 
-\item{pastates}{integer state given phase type distribution. Only one phased state permitted}
-
 \item{shape}{shape parameter}
 
 \item{scale}{scale parameter}
 
 \item{family}{parametric family approximated by the phase-type distribution: \code{"weibull"} or \code{"gamma"}}
 
-\item{spline}{(advanced) \code{"linear"} or \code{"hermite"}}
+\item{spline}{Type of spline used to interpolate between the training points (pointwise optima) when deriving the function that best maps the shape to each phase-type parameter}
 
 \item{att}{keep attributes indicating progression and absorption states
 

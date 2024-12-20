@@ -20,8 +20,11 @@ reference:
   - loghr
   - hr
   - mean_sojourn
+  - soj_prob
   - totlos
   - edf
+  - ematrix
+  - phaseapprox_pars
   - summary.msmbayes
   - standardise_to
 - title: Datasets
@@ -31,6 +34,18 @@ reference:
   - bigdat
   - infsim_model
   - infsim_modelc
+- title: Simulation
+- contents:
+  - msmbayes_prior_sample
+  - msmbayes_priorpred_sample
+- title: Phase-type distribution utilities
+- contents:
+  - nphase
+  - canpars_to_rates
+  - shapescale_to_rates
+  - qphaseapprox
+  - phase5approx
+  - nphase_Q
 - title: Package overview
 - contents:
   - msmbayes-package

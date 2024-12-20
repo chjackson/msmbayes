@@ -18,7 +18,8 @@
 #'
 #' @param pars2 List of arguments to be passed to `rfn`, specifying
 #' parameter values for the sojourn distribution
-#' 
+#'
+#' @noRd
 sim_2state_smm <- function(nindiv, obstimes, rfn1=rexp, pars1=list(rate=1),
                            rfn2, pars2){
   maxtime <- max(obstimes)

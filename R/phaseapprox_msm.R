@@ -128,6 +128,7 @@ msm_optim_gr <- function(par, index=NULL, formula, subject, data, qmatrix,
 ##' @param fit_method  `"optim"` or `"SGA"`
 ##' @param control passed to fit method
 ##' @return list of optimisation results TODO refine
+##' @noRd
 msm_phaseapprox <- function(formula, subject, data, qmatrix,
                             pastates, family="weibull", par, spline="linear",
                             fit_method = "optim", control=NULL){

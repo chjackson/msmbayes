@@ -178,9 +178,7 @@ Dcanpars_dshape_hermite <- function(shape, family="weibull"){
 ##' @param att keep attributes indicating progression and absorption states
 ##'
 ##' TODO do we really need these, they are messy.
-##'
-##' @inheritParams msm_phaseapprox
-##'
+##' 
 ##' @inheritParams shapescale_to_rates
 ##'
 ##' @return Intensity matrix on the latent state space.
