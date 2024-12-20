@@ -1,5 +1,5 @@
 ---
-title: "Advanced multi-state models in msmbayes"
+title: "Advanced phase-type models in msmbayes"
 author: "Christopher Jackson <chris.jackson@mrc-bsu.cam.ac.uk>"
 date: "`r Sys.Date()`"
 output: 
@@ -13,10 +13,21 @@ resource_files:
   - ../man/figures/threestatephase.png
   - ../man/figures/twostate.png
 vignette: >
-  %\VignetteIndexEntry{Phase-type and misclassification models}
+  %\VignetteIndexEntry{Advanced phase-type models}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
+
+
+
+To fit a model with non-exponential sojourn distributions (semi-Markov
+model) in `msmbayes`, the easiest way is to use phase-type
+approximations to Weibull and Gamma distributions, as explained in the
+[vignette about this technique](semimarkov.html)  These represent the sojourn distribution with two parameters - which may be all that is possible to identify from data
+where the state is only intermittently observed.
+
+A more advanced approach to semi-Markov modelling in `msmbayes` is to
+specify a phase-type distribution directly.
 
 
 
@@ -25,12 +36,16 @@ vignette: >
 In a multi-state model, suppose we do not believe the sojourn time in a particular state follows an exponential distribution.  For example, in the infection model, suppose we do not believe that the time spent in the "test positive" state is exponential. 
 
 ```{r,echo=FALSE,out.width="500px"}
+#| fig.alt: >
+#|   A two-state Markov model
 knitr::include_graphics("../man/figures/twostate.png")
 ```
 
 We can relax this assumption by building a **"semi-Markov"** model, where the sojourn time in this state follows a more complex distribution.    One way to do this is to replace this state by a series of two (or more) latent or hidden states, known as "phases".  For example, with two phases: 
 
 ```{r,echo=FALSE,out.width="600px"}
+#| fig.alt: >
+#|   A phase-type model with two observable states, one of which has two phases
 knitr::include_graphics("../man/figures/twostatephase.png")
 ```
 
@@ -60,7 +75,7 @@ library(msmbayes)
 Q <- rbind(c(0, 1), 
            c(1, 0))
 draws <- msmbayes(infsim2, state="state", time="months", subject="subject",
-                  Q=Q, nphase=c(1,2))
+                  Q=Q, nphase=c(1,2), fit_method = "optimize")
 ```
 
 ```{r}
@@ -75,6 +90,8 @@ The phased states are labelled specially here, e.g. the first phase of state 2 i
 The following code simulates a dataset from the following phase-type model structure 
 
 ```{r,echo=FALSE,out.width="600px"}
+#| fig.alt: >
+#|   A phase-type model with three observable states, where the first state has two phases
 knitr::include_graphics("../man/figures/threestatephase.png")
 ```
 
@@ -98,17 +115,20 @@ sim.df <- simmulti.msm(sim.df[,1:2], qmatrix=Qg, ematrix=E)
 
 We fit the phase-type model to the simulated data using both `msmbayes` and `msm`.
 
-The `"pathfinder"` variational inference algorithm is used to approximate the Bayesian posterior.  There are some warning messages from using this algorithm in this example, so in practice we might have wanted to cross-check the results with MCMC.
+The fast optimization-based method is used to approximate the Bayesian posterior here,
+for speed of demonstration, but in practice we would generally want to cross-check the results with MCMC.
+The posterior distributions for these models are likely to have a skewed and multimodal 
+shape which is not represented well by a normal approximation.
 
 ```{r,cache=TRUE,results="hide",warning=FALSE,error=FALSE,message=FALSE}
+#| fig.alt: >
+#|   Posterior density estimates
 Q3 <- rbind(c(0,1,1),c(0,0,1),c(0,0,0))
 draws <- msmbayes(data=sim.df, state="obs", time="time", subject="subject",
-                  Q=Q3, nphase=c(2,1,1), fit_method="pathfinder")
+                  Q=Q3, nphase=c(2,1,1), fit_method="optimize")
 bayesplot::mcmc_dens(draws, pars=sprintf("logq[%s]",1:6))
 ```
 
-The posterior distribution appears awkwardly shaped, with evidence of
-several local maxima or "saddle points".
 
 `msm` needs some tuning to converge, in particular the use of `fnscale` and 
 explicit initial values for the transition rate.  In practice, sensitivity analysis
@@ -132,13 +152,13 @@ qmatrix.msm(s.msm,ci="none")
 Qg
 ```
 
-The mean sojourn times in states of a phase-type model can either be calculated for the latent state space (`by_phase=TRUE`, the default), or the observable state space (`by_phase=FALSE`). 
+The mean sojourn times in states of a phase-type model can either be calculated for the observable state space (`states="obs"`, the default), or the latent state space (`states="phase"`). 
 ```{r}
 mean_sojourn(draws)
-mean_sojourn(draws, by_phase=FALSE) 
+mean_sojourn(draws, states="phase") 
 ```
 
-More practical experience of using these phase-type models is needed.  In particular:
+More practical experience of using general phase-type models for intermittently-observed multi-state data is needed.  In particular:
 
 * How to specify substantive prior information.  In the examples above, the default
 log-normal(-2,2) priors were used for transition intensities.  But we need a better 
@@ -148,58 +168,6 @@ way to choose these based on judgements about interpretable quantities, e.g. the
 
 * How to build and interpret models with covariates on intensities.  Covariates can be placed on intensities for transitions in the phased state-space, but this has not been tested in practice.  There is a risk of over-fitting, and strong constraints on covariate effects are expected to be necessary.
 
-
-
-# Multi-state models with misclassification
-
-Another application of hidden Markov models is to account for misclassification of states in a multi-state model. 
-
-To fit a misclassification multi-state models in `msmbayes`, the structure of allowed misclassifications is supplied in the `E` argument (the "e" stands for "emission"). This is a matrix with off-diagonal entries: 
-
-* 1 if true state [row number] can be misclassified as [column number]
-
-* 0 if true state [row number] cannot be misclassified as [column number]
-
-The diagonal entries of `E` are ignored (as for the `Q` argument).
-
-The following example is discussed in the [`msm` user guide](https://cran.r-project.org/web/packages/msm/vignettes/msm-manual.pdf) (Section 2.14).  We model progression between three states of CAV (a disease experienced by heart transplant recipients), and allow death from any of these states.   True state 1 can be misclassified as 2, true state 2 can be misclassified as 1 or 3, and true state 3 can be misclassified as 2. 
-
-For speed in this demo, we use Stan's `"optimize"` method, which simply determines the posterior mode, and no other posterior summaries.
-
-```{r,results="hide"}
-Qcav <- rbind(c(0, 1, 0, 1),
-              c(0, 0, 1, 1), 
-              c(0, 0, 0, 1),
-              c(0, 0, 0, 0))
-Ecav <- rbind(c(0, 1, 0, 0),
-              c(1, 0, 1, 0),
-              c(0, 1, 0, 0),
-              c(0, 0, 0, 0))
-draws <- msmbayes(data=cav, state="state", time="years", subject="PTNUM", 
-                  Q=Qcav, E=Ecav, fit_method="optimize")
-```
-
-```{r}
-qmatrix(draws)
-```
-
-The function `edf` extracts the misclassification (or "emission") probabilities in a tidy data frame form. 
-```{r}
-edf(draws)
-```
-
-An identical non-Bayesian model is fitted using `msm()`.
-
-> **Note**: this is different from the model fitted in the `msm` manual, since "exact death times" are not supported in `msmbayes`.  Also note that `msm` requires informative initial values for the non-zero intensities and misclassification probabilities here. For hidden Markov models, `msm` is not smart enough to determine good initial values automatically given the transition structure.
-
-```{r}
-Qcav <- rbind(c(0, 0.148, 0, 0.0171), c(0, 0, 0.202, 0.081), 
-              c(0, 0, 0, 0.126), c(0, 0, 0, 0))
-Ecav <- rbind(c(0, 0.1, 0, 0),c(0.1, 0, 0.1, 0),
-              c(0, 0.1, 0, 0),c(0, 0, 0, 0))
-cav.msm <- msm(state ~ years, subject=PTNUM, data=cav, qmatrix=Qcav, ematrix=Ecav)
-qmatrix.msm(cav.msm, ci="none")
-ematrix.msm(cav.msm, ci="none")
-```
-
-The parameter estimates from `msm` are close to those from `msmbayes`, with any differences explainable by the influence of the weak prior.
+However, with intermittently-observed data, it is uncertain to what extent we will be 
+able to identify a detailed shape for the sojourn distribution from the data.  
+Therefore using [phase-type approximations to shape-scale distributions](semimarkov.html) is expected to be a more useful approach to semi-Markov modelling.

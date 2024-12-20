@@ -1,3 +1,29 @@
+
+msmbayes_form_internals <- function(data, state="state", time="time", subject="subject",
+                                    Q, covariates=NULL,
+                                    pastates=NULL, pafamily="weibull", paspline="hermite",
+                                    E=NULL, Efix=NULL, nphase=NULL,
+                                    priors=NULL, soj_priordata=NULL,
+                                    prior_sample = FALSE){
+  qm <- qmobs <- form_qmodel(Q)
+
+  pm <- form_phasetype(nphase, Q, pastates, pafamily, paspline, E)
+  if (pm$phasetype){
+    qm <- phase_expand_qmodel(qmobs, pm)
+    qmobs <- attr(qm, "qmobs")
+    E <- pm$E
+    em <- form_emodel(E, qm, pm$Efix)
+  } else
+    em <- form_emodel(E, qmobs, Efix)
+
+  check_data(data, state, time, subject, qm, prior_sample=prior_sample)
+  cm <- form_covariates(covariates, data, qm, pm, qmobs)
+  data <- clean_data(data, state, time, subject, cm$X, prior_sample=prior_sample)
+  priors <- process_priors(priors, qm, cm, pm, em, qmobs)
+  soj_priordata <- form_soj_priordata(soj_priordata)
+  list(qm=qm, pm=pm, cm=cm, em=em, qmobs=qmobs, data=data, priors=priors, soj_priordata=soj_priordata)
+}
+
 #' @return List of information about the transition structure
 #'
 #' (TODO document fully)

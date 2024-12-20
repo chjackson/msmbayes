@@ -34,6 +34,8 @@ These examples all use a simulated dataset designed to mimic a longitudinal stud
 We assume a two-state multi-state model, with states "test positive" and "test negative".
 
 ```{r,echo=FALSE,out.width="400px"}
+#| fig.alt: >
+#|   A two-state Markov model
 knitr::include_graphics("../man/figures/twostate.png")
 ```
 
@@ -95,7 +97,7 @@ The argument `Q` to `msmbayes()` is a square matrix that indicates the transitio
 
 * The **off-diagonal** entries of `Q` which are **1** indicate the transitions that are allowed in continuous time (here, state 1 to state 2, and 2 to 1).
 
-* The **off-diagonal** entries of `Q` which are **0** indicate the transitions that are not allowed in continuous time. 
+* The **off-diagonal** entries of `Q` which are **0** indicate the transitions that are not allowed in continuous time (here, all transitions are allowed). 
 
 
 ### Prior distributions for transition intensities {#sec-priors}
@@ -150,7 +152,7 @@ mcmc_trace(draws, pars=c("logq[1]","logq[2]"))
 mcmc_dens(draws, pars=c("logq[1]","logq[2]"))
 ```
 
-To summarise the basic parameter estimates (transition intensities here) use the `summary()` function.   This gives a summary of the posterior for each parameter (variable `value`), alongside a summary of the prior for that parameter.   Since transition intensities are hard to interpret in isolation, the mean sojourn times in each state are included alongside, labelled `mst`.
+The `summary()` function can be used to summarise the basic parameter estimates (transition intensities here).   This gives a summary of the posterior for each parameter (variable `value`), alongside a summary of the prior for that parameter.   Since transition intensities are hard to interpret in isolation, the mean sojourn times in each state are included alongside, labelled `mst`.
 
 ```{r}
 summary(draws)
@@ -197,7 +199,7 @@ priors <- list(msmprior("hr(age10,1,2)",median=1,upper=50),
                msmprior("hr(sexmale,2,1)",median=1,upper=50))
 draws <- msmbayes(infsim, state="statec", time="months", subject="subject",
                   Q=Q,  covariates = list(Q(1,2)~sex+age10, Q(2,1)~sex+age10),
-                  fit_method="pathfinder",
+                  fit_method="optimize",
                   priors = priors)
 ```
 
@@ -247,15 +249,15 @@ For any priors for log hazard ratios not specified through `priors`, a default n
 
 ## Notes on computation and tuning {#sec-comp}
 
-* The `fit_method` argument specifies the quoted name of a function in `cmdstanr` to be used to do the sampling.  ["sample"](https://mc-stan.org/cmdstanr/reference/model-method-sample.html) is the default. Users can pass arguments to these functions in to `msmbayes` to control sampling, e.g. initial values, parallel processing.
+* The `fit_method` argument specifies the algorithm used to fit the Bayesian model. `"sample"` is the default, which uses the standard Hamiltonian MCMC algorithm, via the function [rstan::sampling](https://mc-stan.org/rstan/reference/stanmodel-method-sampling.html).  Users can pass arguments to this functions through `msmbayes` to control sampling, e.g. initial values, parallel processing.
 
-   	* `fit_method="laplace"` uses a [Laplace approximation](https://mc-stan.org/cmdstanr/reference/model-method-laplace.html) which determines the posterior mode exactly, then uses a normal approximation to the distribution around this mode.   MCMC reveals some skewed posterior distributions in this case, so the Laplace approximation is not ideal.  However, it is much faster than MCMC.
+   	* `fit_method="optimize"` uses the function [rstan::optimizing](https://mc-stan.org/rstan/reference/stanmodel-method-optimizing.html) which determines the posterior mode exactly for the parameters on their real-line scales (e.g. log intensities, log hazard ratios), then uses a normal (Laplace) approximation to the distribution around this mode.   MCMC reveals some skewed posterior distributions in this case, so this approximation is not ideal.  However, it is much faster than MCMC.
 
-    * `fit_method="pathfinder"` implements a [variational approximation to the posterior](https://mc-stan.org/cmdstanr/reference/model-method-pathfinder.html).
-This is designed to be better than Laplace, and better than the standard variational method.  It runs much faster than MCMC in this case, and is used in the example above.
-However it is still based on a normal approximation that may not represent the true posterior shape.  If the approximation is poor, then a warning message referring to the "Pareto k value" will be printed when the model is fitted. 
-
-    * `fit_method="variational"` runs quickly, similar to the Laplace method, but seems to give less nuanced posterior distributions than the Pathfinder method.
+    * Variational Bayes methods are also available, via `fit_method="vb"` which calls [rstan::vb](https://mc-stan.org/rstan/reference/stanmodel-method-vb.html), and 
+	`fit_method="pathfinder"` which calls the more advanced [Pathfinder method](https://mc-stan.org/cmdstanr/reference/model-method-pathfinder.html).
+	The Pathfinder method requires `cmdstanr` and `cmdstan` to be installed manually.   These methods are designed to be much faster than MCMC and approximate
+	the posterior in a slightly more sophisticated way than the Laplace method.  If the approximation is poor, then a warning message referring to the "Pareto k value" 
+	will be printed when the model is fitted. 
 
 * This example works with Stan's default MCMC initial values, which are sampled from the priors.  Users could also supply the `init` argument to `msmbayes`, which is passed to Stan.
 
@@ -272,9 +274,9 @@ to find the global optimum.
 
 ```{r,cache=TRUE}
 library(msm)
-msm(statec~months, subject=subject, data=infsim, qmatrix=Q, 
-    covariates=list("1-2"=~sex+age10, "2-1"=~sex+age10),
-    control=list(fnscale=1000, maxit=10000))
+msm(statec~months, subject = subject, data = infsim, qmatrix = Q, 
+    covariates = list("1-2" = ~sex+age10, "2-1" = ~sex+age10),
+    control = list(fnscale=1000, maxit=10000))
 exp(c(2,1,0,-1))
 ```
 
@@ -285,24 +287,30 @@ from the data is not strong enough to overcome the influence of the prior, and
 suggests that priors should be thoughtfully chosen and transparently communicated if this
 were a real example. 
 
-One common problem with multi-state models for intermittently-observed data is that
-the likelihood surface is awkwardly shaped.  When using `msm`, this can lead to the optimiser appearing to "converge", but to a local optimum, or "saddle point", rather than the true global maximum
-of the likelihood.   Symptoms of this problem may include very large confidence intervals (which happens here if `fnscale` is not set), or a warning related to the Hessian matrix being non-invertible.
-More seriously, there may be convergence to the wrong optimum but with no obvious symptoms - this 
-can only be detected by running the optimiser many times with different initial values.
+One common problem with multi-state models for intermittently-observed
+data is that the likelihood surface is awkwardly shaped.  When using
+`msm`, this can lead to the optimiser appearing to "converge", but to
+a local optimum, or "saddle point", rather than the true global
+maximum of the likelihood.  Symptoms of this problem may include very
+large confidence intervals (which happens here if `fnscale` is not
+set), or a warning related to the Hessian matrix being non-invertible.
+More seriously, there may be convergence to the wrong optimum but with
+no obvious symptoms - this can only be detected by running the
+optimiser many times with different initial values.
 
 An advantage of the Bayesian estimation methods used here is that after sampling, 
-we can see the full shape of the posterior distribution.   In this example, the 
-posterior is skewed for all the model parameters, and there is evidence that it 
-may be "multimodal", i.e. has several peaks. 
-
-```{r}
-mcmc_dens(draws, pars=c("logq[1]","logq[2]","loghr[1]","loghr[2]","loghr[3]","loghr[4]"),
-          adjust=1)
-```
+we can see the full shape of the posterior distribution.   In this example, 
+if we had used MCMC (`fit_method="sample"` rather than `fit_method="optimize"`),
+we could observe that the true (non-approximated) posterior is skewed for all the model parameters, and may be "multimodal", i.e. has several peaks.  Though that
+would be much slower to run. 
 
 
+# More advanced multi-state models in `msmbayes`
 
-# Phase-type semi-Markov models, and misclassification models
+See the separate vignettes for 
 
-See the vignette about [advanced multi-state models](advanced.html) in `msmbayes`.
+* [Misclassification multi-state models](misclass.html)
+
+* [Semi-Markov models using phase-type approximations](semimarkov.html)
+
+* [General phase-type semi-Markov models](nphase.html)

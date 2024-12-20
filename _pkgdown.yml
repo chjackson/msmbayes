@@ -53,3 +53,11 @@ home:
   links:
   - text: Questions, suggestions
     href: https://github.com/chjackson/msmbayes/issues
+articles:
+  - title: Vignettes
+    navbar: ~
+    contents:
+    - examples
+    - misclass
+    - semimarkov
+    - nphase

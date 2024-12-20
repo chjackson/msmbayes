@@ -191,44 +191,19 @@ msmbayes <- function(data, state="state", time="time", subject="subject",
 
   res <- posterior::as_draws_df(fit)
 
-  attr(res, "qmodel") <- m$qm
-  attr(res, "qmodel_obs") <- m$qmobs
+  attr(res, "qmodel") <- m$qm # or just keep m, and use extractor functions?
+  attr(res, "qmobs") <- m$qmobs
   attr(res, "emodel") <- m$em
   attr(res, "pmodel") <- m$pm
   attr(res, "cmodel") <- m$cm[names(m$cm)!="X"]
-  if (!m$pm$phaseapprox)
-    attr(res, "priors") <- prior_db(m$priors, m$qm, m$cm) # TODO for phaseapprox
+  attr(res, "stanpriors") <- m$priors
+  attr(res, "priors") <- prior_db(m$priors, m$qm, m$cm, m$pm, m$qmobs, m$em)
   if (keep_data) {
     attr(res, "data") <- m$data
     attr(res, "standat") <- standat
   }
   class(res) <- c("msmbayes",class(res))
   res
-}
-
-msmbayes_form_internals <- function(data, state="state", time="time", subject="subject",
-                                    Q, covariates=NULL,
-                                    pastates=NULL, pafamily="weibull", paspline="hermite",
-                                    E=NULL, Efix=NULL, nphase=NULL,
-                                    priors=NULL, soj_priordata=NULL,
-                                    prior_sample = FALSE){
-  qm <- qmobs <- form_qmodel(Q)
-
-  pm <- form_phasetype(nphase, Q, pastates, pafamily, paspline)
-  if (pm$phasetype){
-    qm <- phase_expand_qmodel(qmobs, pm)
-    qmobs <- attr(qm, "qmobs")
-    E <- pm$E
-    em <- form_emodel(E, qm, pm$Efix)
-  } else
-    em <- form_emodel(E, qmobs, Efix)
-
-  check_data(data, state, time, subject, qm, prior_sample=prior_sample)
-  cm <- form_covariates(covariates, data, qm, pm, qmobs)
-  data <- clean_data(data, state, time, subject, cm$X, prior_sample=prior_sample)
-  priors <- process_priors(priors, qm, cm, pm, em, qmobs)
-  soj_priordata <- form_soj_priordata(soj_priordata)
-  list(qm=qm, pm=pm, cm=cm, em=em, qmobs=qmobs, data=data, priors=priors, soj_priordata=soj_priordata)
 }
 
 .cmdstanr_fit_methods <- c("pathfinder", "laplace")
@@ -239,15 +214,13 @@ cmdstanr_fit <- function(stanfile, standat, fit_method, call=caller_env(), ...){
     cli_abort("{.pkg cmdstanr} and {.pkg cmdstan} must be installed to use {.code fit_method={fit_method}}. See {.url https://mc-stan.org/cmdstanr}", call=call)
   }
 
-  ## TODO TESTME on fresh non local installs
-
   local_stan_path <- sprintf("inst/stan/%s.stan",stanfile)
   pkg_stan_path <- system.file(file.path("stan", sprintf("%s.stan",stanfile)), package="msmbayes")
   stan_path <- if (file.exists(local_stan_path)) local_stan_path else pkg_stan_path
 
   local_exe_path <- sprintf("bin/stan/%s.exe",stanfile)
-  pkg_exe_path <- system.file(file.path("bin","stan", sprintf("%s.exe",stanfile)), package="msmbayes")
-  exe_path <- if (file.exists(local_exe_path)) local_exe_path else pkg_exe_path
+  pkg_exe_path <- system.file(file.path("stan", sprintf("%s.exe",stanfile)), package="msmbayes")
+  exe_path <- if (file.exists(local_exe_path)) local_exe_path else if (file.exists(pkg_exe_path)) pkg_exe_path else NULL
 
   ## this will compile the Stan model if needed
   stanmod <- cmdstanr::cmdstan_model(stan_file = stan_path, exe_file = exe_path)

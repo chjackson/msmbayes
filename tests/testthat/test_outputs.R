@@ -69,4 +69,7 @@ test_that("soj_prob",{
     soj_prob(infsim_modelp, t=c(5,10), state=2)
     soj_prob(infsim_modelpc, t=c(5,10), new_data = nd, state=2)
   })
+  expect_error(
+    soj_prob(infsim_model, t=c(5), state=c(1,2)),
+    "`state` should be a single number")
 })

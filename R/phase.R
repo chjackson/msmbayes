@@ -9,12 +9,16 @@
 form_phasetype <- function(nphase=NULL, Q,
                            pastates=NULL, pafamily="weibull",
                            paspline="linear",
+                           E=NULL,
                            call=caller_env()){
   nphase <- check_nphase(nphase, Q, call)
   nphase <- nphase_from_approx(nphase, pastates, Q)
   if (is.null(nphase) || all(nphase==1))
     return(list(phasetype=FALSE, phaseapprox=FALSE, npastates = 0,
                 pdat=NULL, E=NULL, Efix=NULL, Qphase=Q))
+  if (!is.null(E))
+    cli_abort(c("Found non-null {.var E}, but a phase-type model was requested.",
+                "msmbayes does not currently support misclassification on top of phase-type models"),call=call)
   pdat <- form_phasedata(nphase)
   E <- form_Ephase(nphase)
   Efix <- form_Efixphase(E)
@@ -34,7 +38,8 @@ form_phasetype <- function(nphase=NULL, Q,
 
 check_pafamily <- function(pafamily, pastates){
   if (is.null(pastates)) return(NULL)
-  if (length(pafamily) != length(pastates))
+  pafamily <- rep(pafamily, length.out = length(pastates))
+  if (length(pafamily) != length(pastates)) # not used 
     cli_abort("supplied {.var pastates} of length {length(pastates)}, but {.var pafamily} of length {length(pafamily)}")
   badpaf <- which(!(pafamily %in% .pafamilies))
   if (length(badpaf) > 0)
@@ -241,6 +246,7 @@ phase_expand_qmodel <- function(qm, pm){
     pabs <- pd$phasefrom & pd$ttype=="abs"
     qmnew$priorq_inds <- which(pd$ttype=="markov")
     qmnew$npriorq <- length(qmnew$priorq_inds)
+    qm$priorq_inds <- which(!(qm$qrow %in% pm$pastates))
   } else {
     qmnew$priorq_inds <- 1:qmnew$nqpars
     qmnew$npriorq <- qmnew$nqpars

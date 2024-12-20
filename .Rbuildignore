@@ -2,6 +2,7 @@
 ^\.Rproj\.user$
 ^LICENSE\.md$
 src/.+.exe
+inst/stan/.+.exe
 data-raw
 TODO.md
 docs
@@ -9,8 +10,10 @@ vignettes/*_cache
 vignettes/*_files
 vignettes/figures*
 _pkgdown.yml
-vignettes/examples*
+vignettes/examples_*
+vignettes/advanced*
 bin
 ^codecov\.yml$
 ^\.github$
 .Rprofile
+^vignettes/articles$

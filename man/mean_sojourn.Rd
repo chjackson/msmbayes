@@ -4,24 +4,21 @@
 \alias{mean_sojourn}
 \title{Mean sojourn times from an msmbayes model}
 \usage{
-mean_sojourn(draws, new_data = NULL, by_phase = TRUE)
+mean_sojourn(draws, new_data = NULL, states = "obs")
 }
 \arguments{
 \item{draws}{Object returned by \code{\link{msmbayes}}.}
 
 \item{new_data}{Data frame with covariate values to predict for}
 
-\item{by_phase}{For states with phase type distributions:
+\item{states}{If "obs" then this describes mean sojourn times in
+the observable states.  For phase-type models this is not
+generally equal to the sum of the phase-specific mean sojourn
+times, because an individual may transition out of the state
+before progressing to the next phase.
 
-If \code{TRUE} then one mean sojourn time per phase is returned.
-
-If \code{FALSE}, then one overall mean sojourn time for the state
-is returned.  This is not generally equal to the sum of the
-phase-specific mean sojourn times, because an individual may
-transition out of the state before progressing to the next phase.
-
-TODO perhaps this would be better named states="observable", or
-states="phase".  Observable better default for pastates}
+If "phase" then for phase-type models, this describes mean sojourn times
+in the latent state space.}
 }
 \value{
 A data frame containing samples from the posterior distribution.

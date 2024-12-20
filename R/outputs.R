@@ -200,34 +200,31 @@ pmatrixdf <- function(draws, t=1, new_data=NULL){
 #'
 #' @inheritParams qmatrix
 #'
-#' @param by_phase For states with phase type distributions:
+#' @param states If "obs" then this describes mean sojourn times in
+#'   the observable states.  For phase-type models this is not
+#'   generally equal to the sum of the phase-specific mean sojourn
+#'   times, because an individual may transition out of the state
+#'   before progressing to the next phase.
 #'
-#'   If \code{TRUE} then one mean sojourn time per phase is returned.
-#'
-#'   If \code{FALSE}, then one overall mean sojourn time for the state
-#'   is returned.  This is not generally equal to the sum of the
-#'   phase-specific mean sojourn times, because an individual may
-#'   transition out of the state before progressing to the next phase.
-#'
-#' TODO perhaps this would be better named states="observable", or
-#' states="phase".  Observable better default for pastates 
+#'   If "phase" then for phase-type models, this describes mean sojourn times
+#'   in the latent state space. 
 #' 
 #' @return A data frame containing samples from the posterior distribution.
 #' See \code{\link{qdf}} for notes on this format and how to summarise.
 #'
 #' @export
-mean_sojourn <- function(draws, new_data=NULL, by_phase=TRUE){
+mean_sojourn <- function(draws, new_data=NULL, states="obs"){
   vecid <- state <- value <- NULL
   Q <- qmatrix(draws, new_data, drop=FALSE)
   qvec <- qvector(draws, new_data)
   pm <- attr(draws, "pmodel")
   qm <- attr(draws, "qmodel")
-  qmobs <- attr(draws, "qmodel_obs")
+  qmobs <- attr(draws, "qmobs")
   ncovvals <- dim(Q)[1]
-  nstates <- if (by_phase || !is_phasetype(draws)) qm$K else pm$nstates_orig
+  nstates <- if ((states=="phase") || !is_phasetype(draws)) qm$K else pm$nstates_orig
   mst <- rdo(matrix(nrow=ncovvals, ncol=nstates), ndraws=ndraws(Q))
   for (i in 1:ncovvals){
-    if (by_phase || !is_phasetype(draws))
+    if ((states=="phase") || !is_phasetype(draws))
       mst[i,] <- -1 / diag(Q[i,,,drop=TRUE])
     else {
       for (j in pm$unphased_states){
@@ -242,7 +239,7 @@ mean_sojourn <- function(draws, new_data=NULL, by_phase=TRUE){
     mutate(state = (1:nstates)[vecid]) |>
     select(-vecid) |>
     relocate(state, value)
-  if (by_phase){
+  if (states=="phase"){
     mst <- mst |>
       relabel_phase_states(draws) |>
       slice(transient_states(qm))
@@ -419,9 +416,9 @@ standardize_to <- standardise_to
 ##' @inheritParams qmatrix
 ##' @inheritParams nphase
 ##'
-##' @param t Time since state entry
+##' @param t Time since state entry.  A single time or a vector can be supplied.
 ##'
-##' @param state State of interest (integer)
+##' @param state State of interest (A single integer)
 ##'
 ##' @return A data frame with column `value` giving the probability of
 ##'   remaining in `state` by time `t` since state entry, as an `rvar`
@@ -432,7 +429,8 @@ standardize_to <- standardise_to
 ##' @md
 ##' @export
 soj_prob <- function(draws, t, state, new_data=NULL, method="analytic"){
-
+  if (length(state) > 1)
+    cli_abort("{.var state} should be a single number")
   if (is_phasetype(draws) &&
       state %in% attr(draws,"pmodel")$phased_states)
     soj_prob_phase(draws, t, state, new_data, method=method)

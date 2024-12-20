@@ -9,9 +9,9 @@ soj_prob(draws, t, state, new_data = NULL, method = "analytic")
 \arguments{
 \item{draws}{Object returned by \code{\link{msmbayes}}.}
 
-\item{t}{Time since state entry}
+\item{t}{Time since state entry.  A single time or a vector can be supplied.}
 
-\item{state}{State of interest (integer)}
+\item{state}{State of interest (A single integer)}
 
 \item{new_data}{Data frame with covariate values to predict for}
 

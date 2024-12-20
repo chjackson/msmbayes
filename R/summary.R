@@ -46,7 +46,7 @@ print.msmbayes <- function(x,...){
 #'
 #' @export
 summary.msmbayes <- function(object,log=FALSE,time=FALSE,...){
-  name <- from <- to <- value <- NULL
+  name <- from <- to <- value <- prior_string <- NULL
   names <- if (log) c(q="logq",hr="loghr") else c(q="q",hr="hr")
   qres <- qdf(object, ...)
   pa <- is_phaseapprox(object)
@@ -56,19 +56,16 @@ summary.msmbayes <- function(object,log=FALSE,time=FALSE,...){
   } else if (log) qres$value <- log(qres$value)
   res <- qres |>
     mutate(name=names["q"]) |>
-    select(name, from, to, value) |>
-    attach_priors(object, names["q"], pa)
+    select(name, from, to, value)
   mst <- mean_sojourn(object) |>
     mutate(name="mst", to=NA) |>
     rename(from="state") |>
-    select(name, from, to, value) |>
-    attach_priors(object, "mst", pa)
+    select(name, from, to, value)
   res <- rbind(res, mst)
   if (has_covariates(object)){
     loghr_ests <-
       (if (log) loghr(object, ...) else hr(object, ...) )|>
       select(name, from, to, value) |>
-      attach_priors(object, names["hr"], pa) |>
       mutate(name=sprintf("%s(%s)", names["hr"], name))
     res <- rbind(res, loghr_ests)
   }
@@ -76,10 +73,21 @@ summary.msmbayes <- function(object,log=FALSE,time=FALSE,...){
     e_ests <- edf(object, ...) |>
       mutate(name="e") |>
       select(name, from, to, value)
-#    if (!pa) e_ests$prior <- NA # TODO
     res <- rbind(res, e_ests)
   }
   res$rhat <- summary(res, rhat)[,c("rhat")]
+  prior_db <- attr(object,"priors") |> select(name,from,to,prior_string)
+  if (is.character(res$from)){
+    prior_db$from <- as.character(prior_db$from)
+    prior_db$to <- as.character(prior_db$to)
+  }
+  res <- res |>
+    left_join(prior_db,
+              by=c("name","from","to"))
   class(res) <- c("msmbres", class(res))
   res
+}
+
+summary_priors <- function(object){
+  attr(object, "priors")
 }

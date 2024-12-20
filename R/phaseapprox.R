@@ -179,6 +179,7 @@ Dcanpars_dshape_hermite <- function(shape, family="weibull"){
 ##'
 ##' TODO do we really need these, they are messy.
 ##' 
+##' @inheritParams msmbayes
 ##' @inheritParams shapescale_to_rates
 ##'
 ##' @return Intensity matrix on the latent state space.

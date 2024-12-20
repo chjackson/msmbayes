@@ -6,6 +6,6 @@ test_that("Phase-type model runs, print and summary",{
   expect_s3_class(draws,"msmbayes")
   print(draws)
   expect_s3_class(summary(draws)$value,"rvar")
-  expect_true(nrow(mean_sojourn(draws, by_phase=FALSE)) == 2)
-  expect_true(nrow(mean_sojourn(draws, by_phase=TRUE)) == 3)
+  expect_true(nrow(mean_sojourn(draws, states="obs")) == 2)
+  expect_true(nrow(mean_sojourn(draws, states="phase")) == 3)
 })

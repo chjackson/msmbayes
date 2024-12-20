@@ -3,8 +3,8 @@ Q <- rbind(c(0, 1), c(1, 0))
 test_that("phase-type approximations with tight prior on shape give results close to markov",{
   compare_soj <- function(fpa){
     expect_equal(
-      med_rvar(mean_sojourn(fpa, by_phase=FALSE) |> filter(state==2)),
-      med_rvar(mean_sojourn(fit_mk, by_phase=FALSE) |> filter(state==2)),
+      med_rvar(mean_sojourn(fpa, states="obs") |> filter(state==2)),
+      med_rvar(mean_sojourn(fit_mk, states="phase") |> filter(state==2)),
       tolerance = 0.02
     )
   }
@@ -33,6 +33,13 @@ test_that("phase-type approximations with tight prior on shape give results clos
   expect_equal(med_rvar(phaseapprox_pars(fit_pa) |> filter(name=="shape")),
                c(1.0, 1.0), tolerance=0.01)
   compare_soj(fit_pa)
+})
+
+test_that("phase type approximations: error handling",{
+  E <- rbind(c(0, 1), c(1, 0))
+  expect_error(msmbayes(data=infsim, state="statep", time="months",
+                        Q=Q, E=E, pastates = 1),
+               "does not currently support misclassification on top of phase-type models")
 })
 
 test_that("phase type approximations: error handling in prior specification",{
