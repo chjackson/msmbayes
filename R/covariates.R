@@ -78,6 +78,7 @@ form_covariates <- function(covariates, data, qm, pm, qmobs, call=caller_env()){
     cm$xfrom[cm$xstart[i]:cm$xend[i]] <- qm$qrow[i]
     cm$xto[cm$xstart[i]:cm$xend[i]] <- qm$qcol[i]
   }
+  cm$covnames_orig <- unique(unlist(lapply(covariates, all.vars)))
   if (pm$phaseapprox)
     cm <- expand_phaseapprox_cm(cm, qm_latent, qmobs)
   cm
