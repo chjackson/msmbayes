@@ -35,17 +35,20 @@ msmbayes_prior_sample <- function(data, state="state", time="time", subject="sub
                                prior_sample = TRUE)
   qm <- m$qm; pm <- m$pm; priors <- m$priors; cm <- m$cm; em <- m$em; data <- m$data; qmobs <- m$qmobs
 
-  logq <- matrix(nrow=nsim, ncol=qm$npriorq)
-  for (i in 1:qm$npriorq){
-    logq[,i] <- rnorm(nsim, priors$logqmean[i], priors$logqsd[i])
-  }
-  logq <- as.data.frame(logq)
-  pdat <- qm$phasedata
-  if (pm$phaseapprox)
-    names(logq) <- sprintf("logq[%s,%s]",
-                           pdat$oldfrom[pdat$ttype=="markov"],
-                           pdat$oldto[pdat$ttype=="markov"])
-  else names(logq)<- sprintf("logq[%s,%s]",qm$qrow,qm$qcol)
+  if (qm$npriorq > 0){
+    logq <- matrix(nrow=nsim, ncol=qm$npriorq)
+    for (i in 1:qm$npriorq){
+      logq[,i] <- rnorm(nsim, priors$logqmean[i], priors$logqsd[i])
+    }
+    logq <- as.data.frame(logq)
+    pdat <- qm$phasedata
+    if (pm$phaseapprox)
+      names(logq) <- sprintf("logq[%s,%s]",
+                             pdat$oldfrom[pdat$ttype=="markov"],
+                             pdat$oldto[pdat$ttype=="markov"])
+    else names(logq)<- sprintf("logq[%s,%s]",qm$qrow,qm$qcol)
+  } else logq <- as.data.frame(matrix(nrow=nsim, ncol=0))
+
   res <- logq
 
   if (cm$nx > 0){
@@ -86,16 +89,18 @@ msmbayes_prior_sample <- function(data, state="state", time="time", subject="sub
     }
     res <- cbind(res, loe)
   }
-  attr(res,"post_names") <- prior_post_names(names(res), qm, pm)
+  attr(res,"post_names") <- prior_post_names(names(res), qm, pm, cm)
   attr(res,"m") <- m
   res
 }
 
 ## TODO include loe, loa in these
 
-prior_post_names <- function(prior_names, qm, pm){
+prior_post_names <- function(prior_names, qm, pm, cm){
   logq_prior_names <- grep("logq", prior_names, value=TRUE)
   trans_names <- gsub("logq\\[(.+),(.+)\\]","\\1-\\2",logq_prior_names)
+  loghr_post_names <- if (cm$nx > 0) sprintf("loghr[%s]", 1:cm$nx) else NULL
+
   if (pm$phaseapprox){
     pd <- qm$phasedata
     qind <- match(trans_names, pd$oldlab[pd$ttype=="markov"])
@@ -105,10 +110,12 @@ prior_post_names <- function(prior_names, qm, pm){
     ssind <- match(pm$pastates, unique(pm$pastates))
     logshape_post_names <- sprintf("logshape[%s]",ssind)
     logscale_post_names <- sprintf("logscale[%s]",ssind)
-    post_names <- c(logq_post_names, logshape_post_names, logscale_post_names)
+    post_names <- c(logq_post_names, loghr_post_names,
+                    logshape_post_names, logscale_post_names)
   } else {
     qind <- match(trans_names, qm$qlab)
-    post_names <- logq_post_names <- sprintf("logq[%s]",qind)
+    logq_post_names <- sprintf("logq[%s]",qind)
+    post_names <- c(logq_post_names, loghr_post_names)
   }
   post_names
 }
@@ -152,17 +159,20 @@ msmbayes_priorpred_sample <- function(data, state="state", time="time", subject=
                                       nphase = NULL,
                                       E = NULL,
                                       priors = NULL,
-                                      complete_obs = FALSE
+                                      complete_obs = FALSE,
+                                      cov_format = "orig"
                                       ){
   prior_sample <- msmbayes_prior_sample(data=data, state=state, time=time, subject=subject,
-                                Q=Q, covariates=covariates, pastates=pastates, pafamily=pafamily, paspline=paspline,
-                                nphase=nphase, E=E, priors=priors,
-                                nsim = 1)
+                                        Q=Q, covariates=covariates,
+                                        pastates=pastates, pafamily=pafamily, paspline=paspline,
+                                        nphase=nphase, E=E, priors=priors,
+                                        nsim = 1)
   m <- msmbayes_form_internals(data=data, state=state, time=time, subject=subject,
                                Q=Q, covariates=covariates, pastates=pastates,
                                pafamily=pafamily, paspline=paspline, E=E,
                                nphase=nphase, priors=priors,
                                prior_sample = TRUE)
+  data_orig <- data
   data <- m$data # do we need any other components
   names(data) <- gsub("X\\\\.","",names(data))
   covs <- data[["X"]]
@@ -174,11 +184,14 @@ msmbayes_priorpred_sample <- function(data, state="state", time="time", subject=
     if (m$qm$noddsabs > 0){
       logoddsabs <- extract_logoddsabs(prior_sample)
       tprobs <- loabs_to_probs(logoddsabs, m$qm, m$qmobs)
-      q_prior[tprobs>0] <- q_prior[tprobs>0] * tprobs[tprobs>0] # adjust the 1s for transition probs to absorbing states
+      q_prior[tprobs>0] <- q_prior[tprobs>0] * tprobs[tprobs>0]
+      ## adjust the 1s for transition probs to absorbing states
     }
+    shapes <- exp(unlist(prior_sample[grep("logshape",names(prior_sample),value=TRUE)]))
+    scales <- exp(unlist(prior_sample[grep("logscale",names(prior_sample),value=TRUE)]))
     q_pred <- qphaseapprox(qmatrix=q_prior,
-                            shape = exp(prior_sample$logshape[1]), scale = exp(prior_sample$logscale[1]),
-                            pastates=pastates, family=pafamily, spline=paspline)
+                           shape = shapes, scale=scales,
+                           pastates=pastates, family=pafamily, spline=paspline)
     ematrix <- m$em$E
   } else ematrix <- NULL   # TESTME
 
@@ -195,7 +208,11 @@ msmbayes_priorpred_sample <- function(data, state="state", time="time", subject=
     if (m$pm$phaseapprox){
       res$latent_state <- res$state
       res$obs_state <- m$pm$pdat$oldinds[res$latent_state]
-      res$state <- res$obs <- NULL
+      res$state <- res$obs <- NULL # should one of these be named "state" for consistency?
+    }
+    if (cov_format == "orig"){
+      res[names(covariates)] <- NULL
+      res <- cbind(res, data_orig[res$keep,m$cm$covnames_orig])
     }
   }
   attr(res, "prior_sample") <- prior_sample
@@ -211,6 +228,7 @@ msmbayes_priorpred_sample <- function(data, state="state", time="time", subject=
 extract_q <- function(prior_sample, Q, i){
   qre <- "logq\\[([[:digit:]]+),([[:digit:]])+\\]"
   lqn <- grep(qre,names(prior_sample),value=TRUE)
+  if (length(lqn)==0) return(Q) # no Markov states
   qfrom <- as.numeric(gsub(qre, "\\1", lqn))
   qto <- as.numeric(gsub(qre, "\\2", lqn))
   ## TODO for phasetype models logq on entry is named on phase space
