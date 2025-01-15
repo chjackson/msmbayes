@@ -51,16 +51,15 @@ make_stan_aggdata <- function(dat, qm=NULL, cm=NULL, priors=NULL,
 #' The covariate design matrix is stored in a "matrix column" \code{X}.
 #'
 #' @noRd
-form_transition_data <- function(dat){
+form_transition_data <- function(dat, time=TRUE){
   state <- dat[["state"]]
   nobs <- length(state)
   firstobs <- !duplicated(dat[["subject"]])
   lastobs <- rev(!duplicated(rev(dat[["subject"]])))
   fromstate <- c(NA, state[1:(nobs-1)])
-  timelag <- c(NA, diff(dat[["time"]]))
-
-  datnew <- data.frame(subject=dat[["subject"]], fromstate, tostate=state,
-                       timelag)
+  datnew <- data.frame(subject=dat[["subject"]], fromstate, tostate=state)
+  if (time)
+    datnew$timelag <- c(NA, diff(dat[["time"]]))
   datnew <- datnew[!firstobs,,drop=FALSE]
   datnew$X <- dat$X[!lastobs,,drop=FALSE] ## covariate value at start of interval
   datnew
