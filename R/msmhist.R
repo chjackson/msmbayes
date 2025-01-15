@@ -34,9 +34,9 @@
 #'   or `msm` model, to check the fit of the model.
 #'
 #' The method used by "observed prevalences" plots places a strong
-#'   assumption on the individual data, that individuals stay in the
-#'   same state between observations, or transition at the midpoint
-#'   between observations.
+#'   assumption on the (unobserved) individual data, that individuals
+#'   stay in the same state between observations, or transition at the
+#'   midpoint between observations.
 #'
 #'   `msmhist` places no assumption on the individual data.  Instead
 #'   the assumption is placed on the distribution underlying the data.
