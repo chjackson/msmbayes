@@ -1,0 +1,104 @@
+---
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+# Plan for simulation based calibration 
+
+Infection - recovery model 
+
+Priors:  6 months before next infection (2, 15), 14 days time spent infected (5, 30). Converted to normal. 
+
+Covariate effects. centred around zero, package default is SD 10 for loghr too vague in this example.  SBC likes informative priors. N(0,1) might be strong for age effects on infection riskbut fine for purpose of simulation
+
+Phaseapprox.  Prior doesn't have to be substantive (re infection example) but it should represent a range of values that people will use the software for in practice. 
+
+Misclassification TODO.  for infection example, fixed 5 percent false pos and neg rate. 
+Prob more sensible via cav example for estimation 
+
+```{r}
+priors <- list(
+  p1 = msmprior("time(1,2)", median=6, upper=18),
+  p2 = msmprior("time(2,1)", median=14/30, upper=30/30)
+)
+priors_covs <- c(priors, 
+                 list(loghr = msmprior("loghr", mean = 0, sd = 1))
+)
+priors_phase <- 
+  list(logshape1 = msmprior("logshape(1)", mean=0, sd=0.35), 
+       logshape2 = msmprior("logshape(2)", mean=0, sd=0.35), 
+       logscale1 = msmprior("logscale(1)", mean=priors$p1$mean, sd=priors$p1$sd),
+       logscale2 = msmprior("logscale(2)", mean=priors$p2$mean, sd=priors$p2$sd))
+```
+
+100 individuals, moderate, though small enough that big model may not converge. 
+
+One test every month, for 12 months. Or 24 months if that doesn't work. 
+
+Covariates:  4 age group x male interaction gives 7 predictors.  Balanced distribution 
+
+
+```{r}
+nindiv <- 100
+nobspt <- 12
+subjdf <- data.frame(
+  subject = 1:100, 
+  agegroup = factor(rep(rep(c("0-60", "60-70", "70-80", "80+"), c(2,2,3,3)), 10)),
+  male = factor(rep(c("male","female"), 10*c(6,4)))
+)
+dat <- subjdf[rep(1:100,each=nobspt),]
+dat$time <- rep(1:nobspt, 100)
+
+Q <- rbind(c(0,1),c(1,0)) 
+```
+
+
+
+Test on small number of iterations 
+
+```{r}
+
+source("vignettes/articles/sbc.R") # don't store in the package, due to parallel faff
+
+res <- sbc_rank(iter=1, 
+                data=dat, Q=Q, priors=priors, 
+                fit_method = "sample", cores=4,
+                outdir="vignettes/articles/out")
+
+res <- sbc_rank(iter=i, 
+                data=dat, Q=Q, pastates=c(1,2), pafamily="weibull", priors=priors_phase, 
+                fit_method = "optimize",
+                outdir="vignettes/articles/out")
+
+res <- sbc_rank_all_serial(nsim=4, data=dat, Q=Q, 
+                           pastates=c(1,2), pafamily="weibull", priors=priors_phase, 
+                           outdir="vignettes/articles/out",
+                           fit_method="optimize") 
+
+res <- sbc_rank_all_localparallel(nsim=4, ncores=2, data=dat, Q=Q, 
+                                  priors=priors, 
+#                                  pastates=c(1,2), pafamily="weibull", priors=priors_phase, 
+                                  outdir="vignettes/articles/out", 
+                                  logdir="vignettes/articles/out", 
+                                  local_objs =list("dat","Q","priors"),
+                                  fit_method="sample", cores=4)
+res
+
+library(ggplot2)
+na.omit(do.call("rbind",ranks)) |>
+  as.data.frame() |>
+  tidyr::pivot_longer(names_to="name",values_to="val",cols=everything()) |>
+  ggplot(aes(val)) + geom_histogram(binwidth=0.1) + facet_grid(~name)
+
+```
+
+
+Now set it up on HPC
+
+
+# Scenario design
+
+* Model: markov, markov+covs, phaseapprox, misc
+
+* Computation: mcmc, opt 

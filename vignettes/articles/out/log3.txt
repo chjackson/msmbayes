@@ -1,0 +1,20 @@
+Starting fit...
+msmbayes object
+Call summary() for basic parameter estimates
+See e.g. qdf(), hr(), pmatrix(), to summarise specific model quantities
+# A draws_df: 1000 iterations, 4 chains, and 6 variables
+   logq[1] logq[2] loglik prior_logq[1] prior_logq[2] lp__
+1     1.08    -1.6   -6.0       -0.3163         -0.42 -6.7
+2     0.97    -1.6   -5.8       -0.1154         -0.41 -6.4
+3     0.44    -2.1   -6.6       -0.3263         -0.54 -7.5
+4     0.59    -2.3   -7.5       -0.0695         -0.72 -8.3
+5     0.91    -1.8   -5.4       -0.0492         -0.34 -5.7
+6     0.86    -1.7   -5.2       -0.0059         -0.34 -5.5
+7     0.75    -1.8   -5.5        0.0254         -0.34 -5.8
+8     0.79    -1.9   -5.0        0.0226         -0.35 -5.4
+9     0.58    -1.7   -8.0       -0.0801         -0.35 -8.5
+10    0.89    -1.9   -5.7       -0.0278         -0.36 -6.1
+# ... with 3990 more draws
+# ... hidden reserved variables {'.chain', '.iteration', '.draw'}
+[1] 4000
+Finished fit...

@@ -115,7 +115,7 @@ prior.  It can be used in two ways:
 transformations of these.  These may include \code{q} (the transition
 intensity) or \code{time} (the reciprocal of the intensity,
 interpreted as a mean time to this transition when observing a
-sequence of individuals at risk of it).  Or \code{hr} (hazard ratio2)
+sequence of individuals at risk of it).  Or \code{hr} (hazard ratio)
 
 Two quantiles (out of the median, lower or upper) should be provided.
 If all three are provided, then the upper quantile is ignored.  These

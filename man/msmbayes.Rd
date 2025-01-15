@@ -77,7 +77,7 @@ rates on the latent state space.}
 
 \item{pastates}{This indicates which states (if any) are given a
 Weibull or Gamma sojourn distribution approximated by a 5-phase
-model.  Only one phased state is supported for the moment.
+model.
 Ignored if \code{nphase} is supplied.}
 
 \item{pafamily}{\code{"weibull"} or \code{"gamma"}, indicating the
@@ -95,7 +95,7 @@ fitted, a type of hidden Markov model.  \code{E} should then be a
 matrix indicating the structure of allowed misclassifications,
 where rows are the true states, and columns are the observed
 states.  A zero entry in row \eqn{r} and column \eqn{s} indicates
-that true state \eqn{r} cannot be observed as observed state
+that true state \eqn{r} cannot be observed as state
 \eqn{s}.  A non-zero \eqn{(r,s)} entry indicates that true state
 \eqn{r} may be misclassified as \eqn{s}. The diagonal of \code{E}
 is ignored.}
@@ -138,9 +138,9 @@ model.  The default \code{"sample"} uses NUTS/HMC MCMC, via
 
 \code{"optimize"} to use posterior mode optimization (with respect
 to parameters on the log scale) followed by Laplace approximation
-around the mode (via rstan::optimizing()).
+around the mode (via \code{\link[rstan:stanmodel-method-optimizing]{rstan::optimizing()}}).
 
-\code{"variational"} to use variational Bayes (via rstan::vb()).
+\code{"variational"} to use variational Bayes (via \code{\link[rstan:stanmodel-method-vb]{rstan::vb()}}).
 
 \code{"pathfinder"}, to use the Pathfinder variational algorithm
 via \code{cmdstanr}.  This requires \code{cmdstan} and \code{cmdstanr} to be

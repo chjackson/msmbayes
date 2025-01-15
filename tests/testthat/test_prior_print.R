@@ -1,4 +1,5 @@
 Q <- rbind(c(0, 1), c(1, 0))
+source("illdeath_data.R")
 
 test_that("summary attaches prior database",{
   expect_no_error({

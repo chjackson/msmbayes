@@ -1,10 +1,10 @@
 url: https://chjackson.github.io/msmbayes/
 template:
-  bootstrap: 5
   assets: web_assets
 reference:
 - title: Exploratory data analysis
 - contents:
+  - statetable
   - msmhist
   - msmhist_bardata
 - title: Fitting models

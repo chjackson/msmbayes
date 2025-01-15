@@ -28,7 +28,7 @@ rates from the phases to the destination state.}
 
 \item{pastates}{This indicates which states (if any) are given a
 Weibull or Gamma sojourn distribution approximated by a 5-phase
-model.  Only one phased state is supported for the moment.
+model.
 Ignored if \code{nphase} is supplied.}
 
 \item{shape}{shape parameter}
