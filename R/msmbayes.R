@@ -56,7 +56,7 @@
 #'
 #' @param pastates This indicates which states (if any) are given a
 #'   Weibull or Gamma sojourn distribution approximated by a 5-phase
-#'   model.  Only one phased state is supported for the moment.
+#'   model.  
 #'   Ignored if `nphase` is supplied.
 #'
 #' @param pafamily `"weibull"` or `"gamma"`, indicating the
@@ -74,7 +74,7 @@
 #'   matrix indicating the structure of allowed misclassifications,
 #'   where rows are the true states, and columns are the observed
 #'   states.  A zero entry in row \eqn{r} and column \eqn{s} indicates
-#'   that true state \eqn{r} cannot be observed as observed state
+#'   that true state \eqn{r} cannot be observed as state
 #'   \eqn{s}.  A non-zero \eqn{(r,s)} entry indicates that true state
 #'   \eqn{r} may be misclassified as \eqn{s}. The diagonal of \code{E}
 #'   is ignored.
@@ -117,9 +117,9 @@
 #'
 #' \code{"optimize"} to use posterior mode optimization (with respect
 #' to parameters on the log scale) followed by Laplace approximation
-#' around the mode (via rstan::optimizing()).
+#' around the mode (via [rstan::optimizing()]).
 #'
-#' \code{"variational"} to use variational Bayes (via rstan::vb()).
+#' \code{"variational"} to use variational Bayes (via [rstan::vb()]).
 #'
 #' \code{"pathfinder"}, to use the Pathfinder variational algorithm
 #' via `cmdstanr`.  This requires `cmdstan` and `cmdstanr` to be
