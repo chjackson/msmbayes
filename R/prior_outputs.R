@@ -40,9 +40,12 @@ prior_to_rvar <- function(mean, sd, n=1000){
 #'
 #' @return A tidy data frame.
 #'
-#' TODO: untransform log shape, log scale,
+#' TODO: untransform
 #' misclassification probs and log transition odds.
-#' Might need simulation for multinomial logit.  Do when needed. 
+#' Might need simulation for multinomial logit.  Do when needed.
+#'
+#' "prior" variable doesn't get transformed.  Drop if exporting summary_priors,
+#' or keep if may be helpful for plotting
 #'
 #' @noRd
 prior_db <- function(priors, qm, cm, pm, qmobs, em){
@@ -80,7 +83,15 @@ prior_db <- function(priors, qm, cm, pm, qmobs, em){
       select(all_of(keep))
   } else loghr <- hr <- NULL
   if (pm$phaseapprox) {
-    papars <- prior_papars_db(priors, pm, qm) |> select(all_of(keep))
+    papars <- prior_papars_db(priors, pm, qm)
+    sspars <- papars |>
+      filter(name %in% c("logshape", "logscale")) |>
+      mutate(name = gsub("^log(.+)","\\1",name)) |>
+      mutate(prior_string = exp_prior_string) |>
+      select(all_of(keep))
+    papars <- papars |>
+      select(all_of(keep)) |>
+      rbind(sspars)
   } else papars <- NULL
   res <- rbind(logq, q, mst, loghr, hr, loe, papars)
 }
@@ -152,7 +163,8 @@ prior_papars_db <- function(priors, pm, qm){
   } else res$to <- NA
   res |>
     arrange(from) |>
-    mutate(prior_string = rvar_to_quantile_string(prior))
+    mutate(prior_string = rvar_to_quantile_string(prior),
+           exp_prior_string = rvar_to_quantile_string(exp(prior)))
 }
 
 prior_loe_db <- function(priors, em){
