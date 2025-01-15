@@ -16,7 +16,7 @@ check_data <- function(dat, state="state", time="time", subject="subject",
   if (!prior_sample)
     check_dat_variables(dat=dat, state=state)
   if (!is.null(qm) && !prior_sample)
-    check_state(dat[[state]], qm, call)
+    check_state_leq_nstates(dat[[state]], qm, call)
   check_dup_obs(dat[[state]], dat[[time]], dat[[subject]], call)
 }
 
@@ -85,7 +85,7 @@ check_square_matrix <- function(mat,matname="mat",call=caller_env()){
 
 ## TODO does it have to be an integer, or is a factor with these labels OK
 
-check_state <- function(state, qm, call=caller_env()){
+check_state_leq_nstates <- function(state, qm, call=caller_env()){
   nst <- qm$K
   badst <- which(!is.na(state) & !(state %in% 1:nst))
   if (length(badst) > 0){
@@ -158,7 +158,7 @@ check_dup_obs <- function(state, time, subject, call=caller_env()){
 #'
 #' * Apply standard names (state, time, subject) to columns
 #'
-#' * Attach a concatenated design matrix (if supplied) as a matrix column
+#' * Converts the covariates (if supplied) to a design matrix, as a matrix column X
 #'
 #' * Return cleaned data frame ready to be passed to standata.R
 #'
