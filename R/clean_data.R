@@ -1,5 +1,3 @@
-## TODO ordering of check_data, form_covariates, clean_data.
-
 ## what does form_covariates need from the data exactly?
 ## to have a nrow, to be understood by hardhat::mold.
 ## so needs basic checks eg data frame, variables exist
@@ -82,8 +80,6 @@ check_square_matrix <- function(mat,matname="mat",call=caller_env()){
 }
 
 ## see https://search.r-project.org/CRAN/refmans/cli/html/inline-markup.html for things like .var, .cls, .str, and doc for collapsing vectors (e.g. truncates at 20)
-
-## TODO does it have to be an integer, or is a factor with these labels OK
 
 check_state_leq_nstates <- function(state, qm, call=caller_env()){
   nst <- qm$K

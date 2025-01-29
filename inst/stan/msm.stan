@@ -70,7 +70,7 @@ data {
 
   // Information about structural zeros in transition probabilities
   // Structural zeros are excluded in the Stan code, to avoid the
-  // multinomial likelihood propagating an infinite gradient when prob
+  // multinomial likelihood propagating an infinite gradient when prob 0 or 1
   int nptrans;  // number of allowed transition probabilities (not intensities)
   array[nptrans] int nzinds; // column indices (to-states) for these probabilities
   array[K] int nzifrom; // start index in nzinds for each from-state

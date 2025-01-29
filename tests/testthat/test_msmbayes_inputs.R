@@ -68,8 +68,15 @@ test_that("msmbayes: data validation",{
     "Only one complete observation")
 })
 
+test_that("msmbayes: state can be a factor with number levels",{
+  Q <- rbind(c(0, 1), c(1, 0))
+  infsim$statef <- factor(infsim$state)
+  expect_no_error(msmbayes(data=infsim, state="statef", time="months", Q=Q,
+                           algorithm="Fixed_param", chains=1, iter=1, keep_data=TRUE))
+})
+
+Q <- matrix(0, 3, 3); Q[1,2] <- Q[2,1] <- 1
 test_that("missing values",{
-  Q <- matrix(0, 3, 3); Q[1,2] <- Q[2,1] <- 1
   oldopt <- options()$warn
   options(warn=2)
 

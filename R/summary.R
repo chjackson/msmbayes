@@ -26,15 +26,19 @@ print.msmbayes <- function(x,...){
 #'   calling \code{summary} again on the data frame (see the
 #'   examples).
 #'
-#' A string summarising a sample from the prior distribution, as a
-#' median and 95% equal-tailed credible interval, is given in the
-#' \code{prior} column.
-#'
 #' Transition intensities, or transformations of transition
 #' intensities, are those for covariate values of zero.
 #'
 #' Remaining parameters (in non-HMMs) are log hazard ratios for
 #' covariate effects.
+#'
+#' The columns `prior_string` and `prior_rvar` summarise the
+#' corresponding prior distribution in two different ways.
+#' `prior_rvar` is a quasi-random sample from the prior in the `rvar`
+#' data type, and is printed as mean and standard deviation.  This
+#' sample can then be used to produce any summary or plot of the
+#' prior.  The string `prior_string` is a summary of this sample,
+#' showing the median and 95% equal tailed credible interval.
 #'
 #' @seealso \code{\link{qdf}}, \code{\link{hr}}, \code{\link{loghr}},
 #' \code{\link[posterior:summarise_draws]{posterior::summarise_draws}}
@@ -49,7 +53,6 @@ summary.msmbayes <- function(object,log=FALSE,time=FALSE,...){
   name <- from <- to <- value <- prior_string <- NULL
   names <- if (log) c(q="logq",hr="loghr") else c(q="q",hr="hr")
   qres <- qdf(object, ...)
-  pa <- is_phaseapprox(object)
   if (time) {
     names["q"] <- "time"
     qres$value <- 1/qres$value
@@ -62,6 +65,12 @@ summary.msmbayes <- function(object,log=FALSE,time=FALSE,...){
     rename(from="state") |>
     select(name, from, to, value)
   res <- rbind(res, mst)
+  if (is_phaseapprox(object)){
+    pa <- phaseapprox_pars(object) |>
+      mutate(to=NA) |>
+      select(name, from=state, to, value)
+    res <- rbind(res, pa)
+  }
   if (has_covariates(object)){
     loghr_ests <-
       (if (log) loghr(object, ...) else hr(object, ...) )|>
@@ -76,18 +85,42 @@ summary.msmbayes <- function(object,log=FALSE,time=FALSE,...){
     res <- rbind(res, e_ests)
   }
   res$rhat <- summary(res, rhat)[,c("rhat")]
-  prior_db <- attr(object,"priors") |> select(name,from,to,prior_string)
-  if (is.character(res$from)){
-    prior_db$from <- as.character(prior_db$from)
-    prior_db$to <- as.character(prior_db$to)
-  }
-  res <- res |>
-    left_join(prior_db,
-              by=c("name","from","to"))
+  res <- res |> attach_priors(object)
   class(res) <- c("msmbres", class(res))
   res
 }
 
 summary_priors <- function(object){
   attr(object, "priors")
+}
+
+#' @param object data frame of summarised results for some estimand
+#' @param draws msmbayes object
+#' @param basename "base" name of the estimand, excluding state/from/to indices
+#' and covariate names
+#' @return data frame with prior rvars and strings left-joined to `object`
+#'
+#' Might want to make this user visible
+#' 
+#' @noRd
+attach_priors <- function(object, draws, basename=NULL, cov=FALSE){
+  string <- rvar <- from <- NULL
+  prior_db <- attr(draws,"priors") |>
+    select("name", "from", "to", prior_string=string, prior_rvar=rvar)
+  if (is.character(object[["from"]])){
+    prior_db$from <- as.character(prior_db$from)
+    prior_db$to <- as.character(prior_db$to)
+  }
+  if (cov) # covariate name
+    object$name <- sprintf("%s(%s)", basename, object$name)
+  else if (!is.null(basename))
+    object$name <- basename
+  if (is.null(object[["to"]])) {
+    joinby <- c("name","state")
+    prior_db <- prior_db |> rename(state=from)
+  } else {
+    joinby <- c("name","from","to")
+  }
+  object |>
+    left_join(prior_db, by=joinby)
 }

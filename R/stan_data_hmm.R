@@ -10,7 +10,8 @@
 #' @noRd
 make_stan_obsdata <- function(dat, qm=NULL, cm=NULL,
                               em=NULL, pm=NULL, qmobs=qmobs, priors=NULL,
-                              soj_priordata=NULL){
+                              prob_initstate=NULL,
+                              soj_priordata=NULL, call=caller_env()){
   na_code <- 0 # keep Stan happy
   if (length(dat[["time"]])==0)
     cli_inform("No observations in the data, carrying on and hoping for the best...")
@@ -34,7 +35,7 @@ make_stan_obsdata <- function(dat, qm=NULL, cm=NULL,
   tlcid[notfirstobs] <- match(tlc, unique(tlc))
 
   nindiv <- length(unique(dat[["subject"]]))
-  initprobs <- form_initprobs(em, dat, pm)
+  initprobs <- form_initprobs(prob_initstate, em, dat, pm, call)
   TI <- table(dat[["subject"]])
 
   sumefixed <- rep(0, qm$K)
@@ -45,8 +46,10 @@ make_stan_obsdata <- function(dat, qm=NULL, cm=NULL,
     T = nrow(dat),
     nqpars = qm$nqpars,
     nepars = em$nepars,
+    npriorq = qm$npriorq,
     nindiv = nindiv,
     nefix = length(em$efix),
+##    misc = (pm$npastates == 0), ## DELETEME
 
     starti = as.array(which(!duplicated(dat[["subject"]]))),
     TI = as.array(TI),
@@ -77,9 +80,21 @@ make_stan_obsdata <- function(dat, qm=NULL, cm=NULL,
   standat
 }
 
-
+pa_nulldata <- function(qm){
+  dummy <- 1
+  list(npaq = 0, npastates = 0, priorq_inds = as.array(qm$priorq_inds),
+       ntrain = 1, traindat_x = array(dummy, dim=c(1)),
+       traindat_y = array(dummy, dim=c(1,0)), traindat_m = array(dummy, dim=c(1,0)),
+       traindat_inds = array(dim=c(0,2)), 
+       spline = 1, npadest =  0, dest_base = array(dim=0), dest_state = array(dim=0),
+       loind = array(dim=0), npaqall=0, paq_inds = array(dim=0), praterow = array(dim=0),
+       pastate = array(dim=0), prate_abs = array(dim=0), dest_inds = array(dim=0),
+       noddsabs = 0)
+}
+                    
 form_phaseapprox_standata <- function(qm,pm,qmobs){
-  if (!pm$phaseapprox) return(NULL)
+  if (!pm$phaseapprox) return(pa_nulldata(qm))
+
   traindatw <- phase5approx("weibull")$traindat
   traindatg <- phase5approx("gamma")$traindat
   traindat <- rbind(traindatw, traindatg)
@@ -102,7 +117,6 @@ form_phaseapprox_standata <- function(qm,pm,qmobs){
 
   c(
     list(npaq = qm$npaq,
-         npriorq = qm$npriorq,
          priorq_inds = as.array(qm$priorq_inds),
          npastates = pm$npastates,
          ntrain = nrow(traindat),

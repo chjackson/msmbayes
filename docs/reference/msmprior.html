@@ -17,7 +17,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">msmbayes</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.2</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.3</span>
       </span>
     </div>
 
@@ -88,41 +88,34 @@
 
 <dl><dt id="arg-par">par<a class="anchor" aria-label="anchor" href="#arg-par"></a></dt>
 <dd><p>Character string indicating the model parameter to place
-the prior on</p>
-<p>This should start with one of the following:</p>
-<p><code>"logq"</code>.  Log transition intensity.</p>
-<p><code>"q"</code>, Transition intensity.</p>
+the prior on.  This should start with one of the following:</p>
+<p><code>"logq"</code>.  Log transition intensity.  It should then two include indices
+indicating the transition, e.g. <code>"logq(2,3)"</code> for the log
+transition intensity from state 2 to state 3.</p>
+<p><code>"q"</code>, Transition intensity (in the same format)</p>
 <p><code>"time"</code>. Defined as <code>1/q</code>.  This can be interpreted as the mean
 time to the next transition to state \(s\) for people in state \(r\)
 (from the point of view of someone observing one person at a time,
 and switching to observing a different person if a competing
-transition happens).</p>
-<p><code>"loghr"</code>. Log hazard ratio.</p>
-<p><code>"hr"</code>. Hazard ratio.</p>
-<p><code>"loe"</code> Log odds of error (relative to no misclassification).</p>
-<p><code>"logshape"</code> <code>"logscale"</code> Log shape or scale parameter for the
-sojourn distribution in a phase-type approximation model.</p>
-<p><code>"loa"</code>.  Log odds of transition to a destination state in a
-phase-type approximation model with competing destination states.</p>
-<p>Then for transition intensities, it should two include indices
-indicating the transition, e.g. <code>"logq(2,3)"</code> for the log
-transition intensity from state 2 to state 3.</p>
-<p>For covariate effects, the covariate name is supplied alongside the
+transition happens).  The same format as <code>logq</code> and <code>q</code> with two indices.</p>
+<p><code>"loghr"</code>. Log hazard ratio.
+The covariate name is supplied alongside the
 transition indices, e.g. <code>"loghr(age,2,3)"</code> for the effect of <code>age</code>
-on the log hazard ratio of transitioning from state 2 to state 3.</p>
-<p>For factor covariates, this should include the level,
+on the log hazard ratio of transitioning from state 2 to state 3.
+For factor covariates, this should include the level,
 e.g. <code>"loghr(sexMALE,2,3)"</code> for level <code>"MALE"</code> of factor <code>"sex"</code>.</p>
-<p>The indices or the covariate name can be omitted to indicate that
-the same prior will used for all transitions, or/and all
-covariates.  This can be done with or without the brackets, e.g.
-<code>"logq()"</code> or <code>"logq"</code> are both understood.</p>
-<p>For error rates in misclassification models, for example,
+<p><code>"hr"</code>. Hazard ratio.</p>
+<p><code>"loe"</code> Log odds of error (relative to no misclassification).
 <code>"loe(1,2)"</code> indicates the log odds of misclassification in state 2
 for true state 1, relative to no misclassifiation.</p>
-<p>In phase-type approximation models, the index indicates the state,
+<p><code>"logshape"</code> <code>"logscale"</code> Log shape or scale parameter for the
+sojourn distribution in a phase-type approximation model.
+The index indicates the state,
 e.g. <code>logshape(2)</code> and <code>logscale(2)</code> indicate the log shape and
 scale parameter for the sojourn distribution in state 2.</p>
-<p>The parameters <code>"loa"</code> are only used in phase-type approximation
+<p><code>"loa"</code>.  Log odds of transition to a destination state in a
+phase-type approximation model with competing destination states.
+These parameters are only used in phase-type approximation
 models where there are multiple potential states that an individual
 could transition to immediately on leaving the state that has a
 phase-type approximation sojourn distribution.  These parameters
@@ -130,15 +123,19 @@ are defined with two indices.  For example, <code>loa(1,2)</code> is the log
 odds of transition to state 2 on leaving state 1.  The odds
 is the probability of transition to state 2 divided by the
 probability of transition to the first out of the set of potential
-destination states.</p></dd>
+destination states.</p>
+<p>The indices or the covariate name can be omitted to indicate that
+the same prior will used for all transitions, or/and all
+covariates.  This can be done with or without the brackets, e.g.
+<code>"logq()"</code> or <code>"logq"</code> are both understood.</p></dd>
 
 
 <dt id="arg-mean">mean<a class="anchor" aria-label="anchor" href="#arg-mean"></a></dt>
-<dd><p>Prior mean (only used for <code>logq</code> or <code>loghr</code>)</p></dd>
+<dd><p>Prior mean.  This is only used for the parameters that have direct normal priors, that is <code>logq</code>, <code>loghr</code>, <code>logshape</code>, <code>logscale</code>, <code>loe</code>, <code>loa</code>.  That is, excluding <code>time</code>, <code>q</code> and <code>hr</code>, whose priors are defined by transformations of a normal distribution.</p></dd>
 
 
 <dt id="arg-sd">sd<a class="anchor" aria-label="anchor" href="#arg-sd"></a></dt>
-<dd><p>Prior standard deviation (only used for <code>logq</code> or <code>loghr</code>)</p></dd>
+<dd><p>Prior standard deviation (only for parameters with direct normal priors)</p></dd>
 
 
 <dt id="arg-median">median<a class="anchor" aria-label="anchor" href="#arg-median"></a></dt>
@@ -174,7 +171,7 @@ prior.  It can be used in two ways:</p>
 transformations of these.  These may include <code>q</code> (the transition
 intensity) or <code>time</code> (the reciprocal of the intensity,
 interpreted as a mean time to this transition when observing a
-sequence of individuals at risk of it).  Or <code>hr</code> (hazard ratio2)</p>
+sequence of individuals at risk of it).  Or <code>hr</code> (hazard ratio)</p>
 <p>Two quantiles (out of the median, lower or upper) should be provided.
 If all three are provided, then the upper quantile is ignored.  These
 are transformed back to the scale of <code>logq</code> or <code>loghr</code>, and the
@@ -191,13 +188,13 @@ unique normal prior with these quantiles is deduced.</p>
 <span class="r-in"><span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="msmbayes.html">msmbayes</a></span><span class="op">(</span>data<span class="op">=</span><span class="va">infsim2</span>, state<span class="op">=</span><span class="st">"state"</span>, time<span class="op">=</span><span class="st">"months"</span>, subject<span class="op">=</span><span class="st">"subject"</span>,</span></span>
 <span class="r-in"><span>                Q<span class="op">=</span><span class="va">Q</span>,  priors<span class="op">=</span><span class="va">priors</span>, fit_method<span class="op">=</span><span class="st">"optimize"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">mod</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 4 × 6</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   name   from    to        value  rhat prior_string        </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;rvar[1d]&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>               </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> q         1     2  0.61 <span style="color: #949494;">± 0.23</span>  1.00 <span style="color: #949494;">"</span>0.14 (0.018, 0.99)<span style="color: #949494;">"</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> q         2     1  3.61 <span style="color: #949494;">± 1.31</span>  1.00 <span style="color: #949494;">"</span>0.10 (0.001, 9.88)<span style="color: #949494;">"</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> mst       1    <span style="color: #BB0000;">NA</span>  1.86 <span style="color: #949494;">± 0.70</span>  1.00 <span style="color: #949494;">"</span> 7.4 (1.0,  54)<span style="color: #949494;">"</span>   </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> mst       2    <span style="color: #BB0000;">NA</span>  0.31 <span style="color: #949494;">± 0.12</span>  1.00 <span style="color: #949494;">"</span>10.0 (0.1, 988)<span style="color: #949494;">"</span>   </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 4 × 7</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   name   from    to        value  rhat prior_string                   prior_rvar</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;rvar[1d]&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                          <span style="color: #949494; font-style: italic;">&lt;rvar[1d]&gt;</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> q         1     2  0.62 <span style="color: #949494;">± 0.23</span>  1.00 <span style="color: #949494;">"</span> 0.14 ( 0.018,   0.994…    0.23 <span style="color: #949494;">± 0.29</span>  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> q         2     1  3.63 <span style="color: #949494;">± 1.33</span>  1.00 <span style="color: #949494;">"</span> 0.10 ( 0.001,   9.878…    1.33 <span style="color: #949494;">± 6.90</span>  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> mst       1    <span style="color: #BB0000;">NA</span>  1.83 <span style="color: #949494;">± 0.68</span>  1.00 <span style="color: #949494;">"</span> 7.4 (1.0,  54)<span style="color: #949494;">"</span>          12.37 <span style="color: #949494;">± 15.68</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> mst       2    <span style="color: #BB0000;">NA</span>  0.31 <span style="color: #949494;">± 0.11</span>  1.00 <span style="color: #949494;">"</span>10.0 (0.1, 988)<span style="color: #949494;">"</span>         133.30 <span style="color: #949494;">± 690.33</span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

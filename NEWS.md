@@ -17,4 +17,12 @@
 
 # Version 0.3 (??)
 
-* Semi-Markov models with phase-type approximations to Weibull and Gamma sojourn distributions. 
+* `msmbayes` now supports semi-Markov models with phase-type approximations to Weibull and Gamma sojourn distributions.
+
+* Misclassification models with fixed misclassification probabilities new supported.
+
+* Computation now uses `rstan` instead of `cmdstanr`.  `cmdstanr` is now only used for Pathfinder, and is no longer a dependency.
+
+
+
+TODO list any new exported functions 

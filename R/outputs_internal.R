@@ -42,10 +42,6 @@ qvector <- function(draws, new_data=NULL, X=NULL){
   qvec
 }
 
-logq_add_covs <- function(logq, loghr, new_data, X, draws){
-  ## TODO for getting the prior .  Support this, or just summary() for now?
-}
-
 check_X <- function(X,draws){
   if (!is.matrix(X)) cli_abort("{.var X} should be a matrix")
   if (!is.numeric(X)) cli_abort("{.var X} should be numeric")

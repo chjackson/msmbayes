@@ -7,9 +7,9 @@ in intermittently-observed multistate data}
 \usage{
 msmhist(
   data,
-  state,
-  time,
-  subject,
+  state = "state",
+  time = "time",
+  subject = "subject",
   nbins,
   absorbing = NULL,
   censtimes = NULL,
@@ -94,8 +94,9 @@ midpoint between observations.
 
 \code{msmhist} places no assumption on the individual data.  Instead
 the assumption is placed on the distribution underlying the data.
-The histogram-like visualisation assumes, essentially, that the
-distribution of states is the same at all times within each bin.
+In a similar fashion to a histogram, it assumes that the
+distribution of states is the same at all times within each
+time interval bin.
 }
 \examples{
 msmhist(infsim, "state", "months", "subject", nbins=30)

@@ -31,19 +31,13 @@ The distribution has two parameters: shape $a$ and scale $b$.  The probability d
 
 where $F_p(x | \lambda)$ is a phase-type distribution with 5 phases and transition rates $\lambda$.   The shape and scale are mapped to the phase-type transition rates through a function $h()$, determined so that the phase-type distribution approximates either a Weibull or a Gamma over a wide range of shape parameters.  This function is pre-determined and stored in the `msmbayes` package.
 
-The full procedure used to determine $h()$ is [documented] - essentially the Kullback-Leibler discrepancy between the phase-type distribution and the Weibull is minimised for a series of points on a fine grid between [min,max]. and interpolated using a Hermite cubic spline, and extended beyond the boundaries with a constant to define a full time-to-event distribution function for positive times x.  Done for shape = 1, then re-scaled 
+Essentially $h()$ is determined by minimising the Kullback-Leibler discrepancy between the phase-type distribution and the Weibull, for a series of points on a fine grid.  The optimal solutions are interpolated using a Hermite cubic spline, and extended beyond the grid boundaries with a constant, to define a full time-to-event distribution function for positive times $x$.  This is done for a scale parameter of $b=1$, then generalised to other values of $b$ through the accelerated failure time property of the Weibull or Gamma and phase-type models.  This process will be described more formally in a forthcoming paper, but for now, the code is in `data-raw/kl_pointwise.R` in the package source.
 
-* Covariates are applied to the scale parameter $b$, in the typical fashion as a linear model on $log(b)$. 
+* Covariates are applied to the scale parameter $b$, in the typical fashion as a linear model on $\log(b)$. 
 
 * When this model is used as a sojourn distribution in some state $r$, additional assumptions are needed if there are multiple alternative states $s$ that an individual can transition to immediately on leaving $r$.   In `msmbayes`, this transition is governed by a constant transition probability $\pi_{rs}$, as is done in [Titman, 2014](https://doi.org/10.1007/s11222-012-9360-6). This assumes that the transition probability does not depend on the length of time spent in state $r$ --- the supplementary material to [Titman, 2014](https://doi.org/10.1007/s11222-012-9360-6) discusses some more flexible alternatives.
 
 
 ## Implementation in msmbayes 
 
-Workflow, including priors, sojourn distribution graphics, model comparison 
-
-
-## Covariates
-
-
-## Competing exit states 
+Some worked examples will appear here soon, including prior specification, model fitting, and summarising the sojourn distribution. 

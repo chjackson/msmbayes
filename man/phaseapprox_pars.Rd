@@ -4,7 +4,7 @@
 \alias{phaseapprox_pars}
 \title{Summarise posteriors for shape and scale parameters for the sojourn distribution in a semi-Markov msmbayes model}
 \usage{
-phaseapprox_pars(draws)
+phaseapprox_pars(draws, log = FALSE)
 }
 \arguments{
 \item{draws}{Object returned by \code{\link{msmbayes}}.}

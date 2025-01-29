@@ -6,7 +6,7 @@
 \title{A simulated multistate dataset with lots of observations and
 covariates}
 \format{
-See \code{infsim/bigdata.R} in the source for simulation settings.
+See \code{data-raw/bigdata.R} in the source for simulation settings.
 }
 \usage{
 bigdat

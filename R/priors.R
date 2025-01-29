@@ -1,57 +1,42 @@
 #' Constructor for a prior distribution in msmbayes
 #'
 #' @param par Character string indicating the model parameter to place
-#'   the prior on
+#'   the prior on.  This should start with one of the following:
 #'
-#' This should start with one of the following:
+#' `"logq"`.  Log transition intensity.  It should then two include indices
+#' indicating the transition, e.g. `"logq(2,3)"` for the log
+#' transition intensity from state 2 to state 3.  
 #'
-#' `"logq"`.  Log transition intensity.
-#'
-#' `"q"`, Transition intensity.
+#' `"q"`, Transition intensity (in the same format)
 #'
 #' `"time"`. Defined as `1/q`.  This can be interpreted as the mean
 #' time to the next transition to state \eqn{s} for people in state \eqn{r}
 #' (from the point of view of someone observing one person at a time,
 #' and switching to observing a different person if a competing
-#' transition happens).
+#' transition happens).  The same format as `logq` and `q` with two indices.
 #'
 #' `"loghr"`. Log hazard ratio.
+#' The covariate name is supplied alongside the
+#' transition indices, e.g. `"loghr(age,2,3)"` for the effect of `age`
+#' on the log hazard ratio of transitioning from state 2 to state 3.
+#' For factor covariates, this should include the level,
+#' e.g. `"loghr(sexMALE,2,3)"` for level `"MALE"` of factor `"sex"`.
 #'
 #' `"hr"`. Hazard ratio.
 #'
 #' `"loe"` Log odds of error (relative to no misclassification).
-#'
-#' `"logshape"` `"logscale"` Log shape or scale parameter for the
-#' sojourn distribution in a phase-type approximation model.
-#' 
-#' `"loa"`.  Log odds of transition to a destination state in a
-#' phase-type approximation model with competing destination states.
-#'
-#' Then for transition intensities, it should two include indices
-#' indicating the transition, e.g. `"logq(2,3)"` for the log
-#' transition intensity from state 2 to state 3.  
-#'
-#' For covariate effects, the covariate name is supplied alongside the
-#' transition indices, e.g. `"loghr(age,2,3)"` for the effect of `age`
-#' on the log hazard ratio of transitioning from state 2 to state 3.
-#'
-#' For factor covariates, this should include the level,
-#' e.g. `"loghr(sexMALE,2,3)"` for level `"MALE"` of factor `"sex"`.
-#'
-#' The indices or the covariate name can be omitted to indicate that
-#' the same prior will used for all transitions, or/and all
-#' covariates.  This can be done with or without the brackets, e.g.
-#' `"logq()"` or `"logq"` are both understood.
-#'
-#' For error rates in misclassification models, for example,
 #' `"loe(1,2)"` indicates the log odds of misclassification in state 2
 #' for true state 1, relative to no misclassifiation.
 #'
-#' In phase-type approximation models, the index indicates the state,
+#' `"logshape"` `"logscale"` Log shape or scale parameter for the
+#' sojourn distribution in a phase-type approximation model.
+#'The index indicates the state,
 #' e.g. `logshape(2)` and `logscale(2)` indicate the log shape and
 #' scale parameter for the sojourn distribution in state 2. 
-#'
-#' The parameters `"loa"` are only used in phase-type approximation
+#' 
+#' `"loa"`.  Log odds of transition to a destination state in a
+#' phase-type approximation model with competing destination states.
+#' These parameters are only used in phase-type approximation
 #' models where there are multiple potential states that an individual
 #' could transition to immediately on leaving the state that has a
 #' phase-type approximation sojourn distribution.  These parameters
@@ -60,11 +45,18 @@
 #' is the probability of transition to state 2 divided by the
 #' probability of transition to the first out of the set of potential
 #' destination states.
+#'
+#'
+#' The indices or the covariate name can be omitted to indicate that
+#' the same prior will used for all transitions, or/and all
+#' covariates.  This can be done with or without the brackets, e.g.
+#' `"logq()"` or `"logq"` are both understood.
+#'
 #' 
 #'
-#' @param mean Prior mean (only used for `logq` or `loghr`)
+#' @param mean Prior mean.  This is only used for the parameters that have direct normal priors, that is `logq`, `loghr`, `logshape`, `logscale`, `loe`, `loa`.  That is, excluding `time`, `q` and `hr`, whose priors are defined by transformations of a normal distribution.
 #'
-#' @param sd Prior standard deviation (only used for `logq` or `loghr`)
+#' @param sd Prior standard deviation (only for parameters with direct normal priors)
 #'
 #' @param median Prior median
 #'
@@ -248,8 +240,8 @@ extraneous_covname_error <- function(res){
   ## currently must be normal priors, can't change family.
   logq = list(mean=-2, sd=2),
   loghr = list(mean=0, sd=10),
-  logshape = list(mean=0, sd=1),
-  logscale = list(mean=0, sd=1),
+  logshape = list(mean=0, sd=0.5),
+  logscale = list(mean=0, sd=0.5),
   loe = list(mean=0, sd=1),
   loa = list(mean=0, sd=1)
 )

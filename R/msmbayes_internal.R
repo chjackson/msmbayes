@@ -4,10 +4,11 @@ msmbayes_form_internals <- function(data, state="state", time="time", subject="s
                                     pastates=NULL, pafamily="weibull", paspline="hermite",
                                     E=NULL, Efix=NULL, nphase=NULL,
                                     priors=NULL, soj_priordata=NULL,
-                                    prior_sample = FALSE){
+                                    prior_sample = FALSE,
+                                    call = caller_env()){
   qm <- qmobs <- form_qmodel(Q)
 
-  pm <- form_phasetype(nphase, Q, pastates, pafamily, paspline, E)
+  pm <- form_phasetype(nphase, Q, pastates, pafamily, paspline, E, Efix, call)
   if (pm$phasetype){
     qm <- phase_expand_qmodel(qmobs, pm)
     qmobs <- attr(qm, "qmobs")
@@ -45,7 +46,7 @@ form_qmodel <- function(Q,Qfix=NULL){
   qrow <- row(Q)[Q>0]
   qcol <- col(Q)[Q>0]
   qlab <- paste(qrow, qcol, sep="-")
-  qvec <- Q[cbind(qrow,qcol)] # supplied values, ignored 
+  qvec <- Q[cbind(qrow,qcol)] # supplied values, ignored
   tr <- data.frame(
     qvec = qvec, from=qrow, to=qcol, qlab=qlab,
     ttype="markov" # may be overwritten
@@ -98,9 +99,9 @@ form_P_struc <- function(Q){
 #' \code{ne} number of permitted misclassifications (nefix+nepars)
 #'
 #' @noRd
-form_emodel <- function(E, qm, Efix=NULL){
+form_emodel <- function(E, qm, Efix=NULL, initprobs=NULL){
   if (is.null(E)) return(list(hmm=FALSE,nepars=0))
-  check_E(E, qm)
+  check_E(E, qm$Q)
   diag(E) <- 0
   if (!is.null(Efix)){
     check_Efix(Efix, E)
@@ -131,32 +132,58 @@ form_emodel <- function(E, qm, Efix=NULL){
   )
 }
 
-form_initprobs <- function(em, dat, pm){
-  nindiv <- length(unique(dat[["subject"]]))
-  initprobs <- matrix(0, nrow=nindiv, ncol=em$K)
+##' @return Matrix with one row per individual, one column per true state
+##' @noRd
+form_initprobs <- function(initprobs=NULL, em, dat, pm, call=caller_env()){
+  initstate <- dat[["state"]][!duplicated(dat[["subject"]])]
+  if (!is.null(initprobs))
+    initprobs <- check_initprobs(initprobs, em, dat, pm, call)
+  else {
+    nindiv <- length(unique(dat[["subject"]]))
+    initprobs <- matrix(0, nrow=nindiv, ncol=em$K)
+    if (pm$phasetype){
+      iprow <- which(initstate %in% pm$phased_states)
+      state_old <- initstate[initstate %in% pm$phased_states]
+      ## if first obs state is phased, start in first phase by default
+      for (i in seq_along(iprow)){
+        firstphase <- min(which(pm$pdat$oldinds==state_old[i]))
+        initprobs[iprow[i],firstphase] <- 1
+      }
+    } else initprobs[,1] <- 1 # misclassification models, start in state 1
+    ## no warning currently if state 1 is impossible given misc structure
+    ## perhaps this should be the first of the states for which em[,obs] > 0 ?
+  }
   if (pm$phasetype){
-    initstate <- dat[["state"]][!duplicated(dat[["subject"]])]
-
-    ## for indivs whose first state is non-phased, set prob to 1 for that
+    ## for indivs whose first observed state is non-phased, prob must be 1 for that
+    ## this silently overwrites any user-supplied initprobs for these
     iprow <- which(initstate %in% pm$unphased_states)
     state_old <- initstate[initstate %in% pm$unphased_states]
     state_new <- match(state_old, pm$pdat$oldinds)
     initprobs[cbind(iprow,state_new)] <- 1
-
-    ## for phased states, start in first phase
-    ## (previously set equal prob in each phase
-    ## could let user set if they really want this model)
-    iprow <- which(initstate %in% pm$phased_states)
-    state_old <- initstate[initstate %in% pm$phased_states]
-    for (i in seq_along(iprow)){
-      firstphase <- min(which(pm$pdat$oldinds==state_old[i]))
-      initprobs[iprow[i],firstphase] <- 1
-    }
-  } else {
-    initprobs[,1] <- 1
   }
   initprobs
-  ## TODO handle user-supplied initprobs
+}
+
+check_initprobs <- function(initprobs, em, dat, pm, call=caller_env()){
+  nindiv <- length(unique(dat[["subject"]]))
+  nst <- em$K
+  if (!is.numeric(initprobs)) cli_abort("{.var prob_initstate} should be numeric", call=call)
+  if (is.vector(initprobs) && !is.matrix(initprobs)){
+    if (length(initprobs) != nst)
+      cli_abort("if supplied as a vector, {.var prob_initstate} should be of length equal to {nst}, the number of latent states", call=call)
+    initprobs <- matrix(rep(initprobs, each=nindiv), nrow=nindiv)
+  }
+  else if (is.matrix(initprobs)){
+    if (nrow(initprobs) != nindiv)
+      cli_abort("if supplied as a matrix, {.var prob_initstate} should have number of rows equal to {nindiv}, the number of individual subjects in the data", call=call)
+    if (ncol(initprobs) != nst)
+      cli_abort("if supplied as a matrix, {.var prob_initstate} should have number of columns equal to {nst}, the number of latent states", call=call)
+  }
+  else cli_abort("{.var prob_initstate} should be a vector or a matrix", call=call)
+  badi <- which((initprobs < 0)|(initprobs > 1))
+  if (length(badi) > 0)
+    cli_abort("all {.var prob_initstate} should be in [0,1]", call=call)
+  initprobs
 }
 
 transient_states <- function(qm){
@@ -191,18 +218,21 @@ check_Q <- function(Q,call=caller_env()){
   if (all(Q==0)) cli_abort("All entries of Q are zero, so the model doesn't allow any transitions")
 }
 
-check_E <- function(E, qm, call=caller_env()){
-  check_square_matrix(E, "E", call)
-  bade <- which(((E < 0)|(E > 1)) & (row(E) != col(E)))
-  bade_str <- glue("({row(E)[bade]},{col(E)[bade]})")
+check_01_matrix <- function(mat, matname, call=caller_env()){
+  bade <- which(((mat < 0)|(mat > 1)) & (row(mat) != col(mat)))
+  bade_str <- glue("({row(mat)[bade]},{col(mat)[bade]})")
   if (length(bade) > 0){
-    cli_abort(c("off-diagonal entries of {.var E} should be in [0,1]",
+    cli_abort(c("off-diagonal entries of {.var {matname}} should be in [0,1]",
                 "Found invalid value{?s} at {bade_str} entr{?y/ies}"),
-              call=call
-              )
+              call=call)
   }
-  if (!all(dim(E)==dim(qm$Q)))
-    cli_abort("Dimensions of matrices E and Q should match")  
+}
+
+check_E <- function(E, Q, call=caller_env()){
+  check_square_matrix(E, "E", call)
+  check_01_matrix(E, "E", call)
+  if (!all(dim(E)==dim(Q)))
+    cli_abort("Dimensions of matrices E and Q should match",call=call)
 }
 
 check_Qfix <- function(Qfix, Q, call=caller_env()){
@@ -213,8 +243,9 @@ check_Qfix <- function(Qfix, Q, call=caller_env()){
 check_Efix <- function(Efix, E, call=caller_env()){
   if (is.null(Efix)) return()
   check_square_matrix(Efix, "Efix", call)
+  check_01_matrix(Efix, "Efix", call)
   if (!all(dim(Efix)==dim(E)))
-    cli_abort("Dimensions of matrices E and Efix should match")
+    cli_abort("Dimensions of matrices E and Efix should match", call=call)
   bade <- which(Efix>0 & E==0)
   bade_str <- glue("({row(Efix)[bade]},{col(Efix)[bade]})")
   if (length(bade) > 0){

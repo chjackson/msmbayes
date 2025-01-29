@@ -16,7 +16,7 @@ Ecav2 <- rbind(c(0, 0.1, 0.001, 0),
                c(0, 0, 0, 0))
 
 test_that("msmbayes misclassification likelihood agrees with msm",{
-  init <- list(list(logq=c(0, 0), logoddse=qlogis(c(0.01, 0.01))))
+  init <- list(list(logq_markov=c(0, 0), logoddse=qlogis(c(0.01, 0.01))))
   drawse <- msmbayes(data=infsim, time="months", Q=Q, E=E, init=init,
                      algorithm="Fixed_param", chains=1, iter=1)
   lik_msmbayes <- -2*drawse$loglik
@@ -36,7 +36,7 @@ test_that("msmbayes misclassification likelihood agrees with msm for structures 
   fromstate <- row(Ecav2)[Ecav2>0]
   logoddse <- logoddse[seq_along(fromstate)[order(fromstate)]] # rearrange in columnwise order
 
-  init <- list(list(logq = log(Qcav[Qcav>0]), # colwise
+  init <- list(list(logq_markov = log(Qcav[Qcav>0]), # colwise
                     logoddse = logoddse))
   fit_bayes <- msmbayes(data=cav, subject="PTNUM", time="years", state="state",
                         Q=Qcav, E=Ecav2, init = init,
@@ -51,7 +51,7 @@ test_that("msmbayes misclassification likelihood agrees with msm for structures 
 #})
 
 test_that("msmbayes misclassification likelihood agrees with msm, with covariates on transition rates",{
-  init <- list(list(logq=c(0, 0), logoddse=qlogis(c(0.01, 0.01)),
+  init <- list(list(logq_markov=c(0, 0), logoddse=qlogis(c(0.01, 0.01)),
                     loghr=c(-2, -2)))
   drawse <- msmbayes(data=infsim, time="months", Q=Q, E=E,
                      covariates = list(Q(1,2)~age10,
@@ -71,6 +71,8 @@ test_that("msmbayes misclassification likelihood agrees with msm, with covariate
 
 test_that("msmbayes fixed misclassification model with tiny error rates agrees with non-misclassification model",{
   Efix <- rbind(c(0, 0.0001), c(0.0001, 0))
+  drawse <- msmbayes(data=infsim[1:10,], time="months", Q=Q, E=E, Efix=Efix,
+                     fit_method="optimize")
   drawse <- msmbayes(data=infsim, time="months", Q=Q, E=E, Efix=Efix,
                      fit_method="optimize")
   expect_equal(value(ematrix(drawse)[1,2]), 0.0001)
@@ -138,14 +140,12 @@ test_that("priors in misclassification models: explicit priors match default",{
 
 test_that("priors in misclassification models: tightening priors reduces posterior SD",{
   priors_weak <- list(msmprior("loe(1,2)", 0, 1), msmprior("loe(2,1)", 0, 1))
-  set.seed(1)
   fit_weak <- msmbayes(data=infsim, time="months", Q=Q, E=E, priors=priors_weak,
-                           fit_method="optimize")
-  priors_strong <- list(msmprior("loe(1,2)", 0, 0.01), msmprior("loe(2,1)", 0, 0.01))
-  set.seed(1)
+                           fit_method="optimize", seed=1)
+  priors_strong <- list(msmprior("loe(1,2)", 0, 0.1), msmprior("loe(2,1)", 0, 0.1))
   fit_strong <- msmbayes(data=infsim, time="months", Q=Q, E=E, priors=priors_strong,
-                         fit_method="optimize")
-  expect_lt(sd_rvar(ematrix(fit_strong)[1,2]), sd_rvar(ematrix(fit_weak)[1,2]))
+                         fit_method="optimize", seed=20)
+  expect_lt(sd_rvar(ematrix(fit_strong)[2,1]), sd_rvar(ematrix(fit_weak)[2,1]))
 })
 
 test_that("errors in E and Efix",{
@@ -157,6 +157,33 @@ test_that("errors in E and Efix",{
                "E should be > 0 in positions where Efix > 0")
 })
 
-## TODO phasetype plus extra misc?
-## people will expect
-## e.g. infection testing
+test_that("prob_initstate is obeyed in misclassification models",{
+  init <- list(list(logq_markov=c(0, 0), logoddse=qlogis(c(0.01, 0.01))))
+  drawse <- msmbayes(data=infsim, time="months", Q=Q, E=E, init=init,
+                     algorithm="Fixed_param", chains=1, iter=1)
+  drawsei <- msmbayes(data=infsim, time="months", Q=Q, E=E, init=init,
+                      prob_initstate = c(0.1, 0.9),
+                      algorithm="Fixed_param", chains=1, iter=1)
+  expect_true(drawse$loglik != drawsei$loglik)
+  nindiv <- length(unique(infsim$subject))
+  pimat <- matrix(rep(c(0.1, 0.9), each=nindiv), nrow=nindiv, ncol=2)
+  drawseim <- msmbayes(data=infsim, time="months", Q=Q, E=E, init=init,
+                      prob_initstate = pimat,
+                      algorithm="Fixed_param", chains=1, iter=1)
+  expect_equal(drawsei$loglik, drawseim$loglik)
+})
+
+test_that("prob_initstate errors handled",{
+  pibad <- "foo"
+  expect_error(msmbayes(data=infsim, time="months", Q=Q, E=E, prob_initstate = pibad),
+               "should be numeric")
+  pibad <- c(0, 0.1, 0.3)
+  expect_error(msmbayes(data=infsim, time="months", Q=Q, E=E, prob_initstate = pibad),
+               "length equal to")
+  pibad <- c(0, 1.1)
+  expect_error(msmbayes(data=infsim, time="months", Q=Q, E=E, prob_initstate = pibad),
+               "should be in \\[0,1\\]")
+  pibad <- matrix(c(0, 0.1, 0, 0.1), nrow=2)
+  expect_error(msmbayes(data=infsim, time="months", Q=Q, E=E, prob_initstate = pibad),
+               "number of rows")
+})

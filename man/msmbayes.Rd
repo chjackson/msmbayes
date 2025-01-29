@@ -18,6 +18,7 @@ msmbayes(
   Efix = NULL,
   nphase = NULL,
   priors = NULL,
+  prob_initstate = NULL,
   soj_priordata = NULL,
   fit_method = "sample",
   keep_data = FALSE,
@@ -65,8 +66,9 @@ linear function of age and sex, and the log 2-1 transition intensity
 is a linear function of age.  You do not have to list all of the
 intensities here if some of them are not influenced by covariates.
 
-In standard Markov models and models with phase-type approximated
-states (specified with \code{pastates}), the numbers inside \code{Q()} refer
+In models with phase-type approximated
+states (specified with \code{pastates}), as in standard Markov models, the
+numbers inside \code{Q()} refer
 to the observed state space.  For such phase-type models, the
 covariate has an identical multiplicative effect on all rates of
 transition between phases for a given states.
@@ -106,9 +108,9 @@ intermittently observed.  Instead of estimating them, a Markov
 model with misclassification can be specified by supplying
 assumed misclassification probabilities in the \code{Efix}
 argument.  This is a matrix with same dimensions as E.  Any
-non-zero entries of \code{Efix} are assumed to indicate the fixed
+non-zero entries of \code{Efix} indicate the fixed
 known value for the corresponding misclassification probability.
-The r,s entry of \code{Efix} is 0 for any error probabilities
+The \eqn{(r,s)} entry of \code{Efix} is 0 for any error probabilities
 that are estimated from the data or not permitted.}
 
 \item{nphase}{Only required for models with phase-type sojourn
@@ -129,8 +131,25 @@ phase-type approximation and misclassification models).  See
 If only one parameter is given a non-default prior, a single \code{msmprior}
 call can be supplied here instead of a list.}
 
+\item{prob_initstate}{Probabilities of true states at a person's first
+observation time in a misclassification or model.  If supplied,
+this should be a matrix with a row for each individual subject,
+and a column for each true state, or a vector with one element
+for each state that is assumed to apply to all individuals.
+
+If not supplied, every person is assumed to be in state 1 with
+probability 1 in misclassification models, or phase 1 of the
+observed state with probability 1 in phase-type models.  Note
+no warning is currently given if the first observed state would
+be impossible if the person was really in state 1.
+
+This applies to both misclassification models, and phase-type
+models where a person's first observed state is phased.  If the
+first observed state is not phased or misclassified, then this is
+ignored.}
+
 \item{soj_priordata}{Synthetic data that represents prior information
-about the mean sojourn time.  Experimental, undocumented feature.}
+about the mean sojourn times.  Experimental, undocumented feature.}
 
 \item{fit_method}{Quoted string specifying the algorithm to fit the
 model.  The default \code{"sample"} uses NUTS/HMC MCMC, via
@@ -154,7 +173,10 @@ the place where \code{msmbayes} is installed.}
 object.  \code{FALSE} by default.}
 
 \item{...}{Other arguments to be passed to the function from
-\code{rstan} or \code{cmdstanr} that fits the model.}
+\code{rstan} or \code{cmdstanr} that fits the model.  Note that initial
+values are determined by sampling from the prior (after
+dividing the prior SD 5), not using
+Stan's default, but this can be overridden here.}
 }
 \value{
 A data frame in the \code{draws} format of the

@@ -5,7 +5,7 @@
 ##' Extrapolation using a constant function from the boundary value.
 ##' This keeps the gradient continuously 0 at and beyond the boundary
 ##'
-##' @details From stats:::splinefunH0 TODO full credits
+##' @details From stats:::splinefunH0 
 ##'
 ##' @param x Vector of points at which to evaluate the interpolated function
 ##' @param x0 Vector of x-positions of points to be interpolated
@@ -44,7 +44,6 @@ findInterval_soft <- function(x, vec){
 ##' Based on observed second order differences in the data (or first order at the ends)
 ##' @noRd
 hermite_point_derivs <- function(x, y, lower=0, upper=1, zero_threshold=1e-01){
-  ## TODO arg checks
   n <- length(y)
   m_lower <- (y[2] - y[1]) / (x[2] - x[1])
   m_upper <- (y[n] - y[n-1]) / (x[n] - x[n-1])

@@ -23,7 +23,7 @@ msmbayes_prior_sample <- function(data, state="state", time="time", subject="sub
                                   covariates = NULL,
                                   pastates = NULL,
                                   pafamily = "weibull",
-                                  paspline = "hermite",
+                                  paspline = "linear",
                                   nphase = NULL,
                                   E = NULL,
                                   priors = NULL,
@@ -122,9 +122,11 @@ prior_post_names <- function(prior_names, qm, pm, cm){
 
 ##' Generate a dataset from the prior predictive distribution in a msmbayes model
 ##'
-##' As in \code{\link{msmbayes_prior_sample}}, the \code{data}
-##' argument is required though it need only be a zero-rows version of
-##' the data that we would fit the model to.
+##' This generates a single sample of parameters from the prior, then
+##' generates observed states from a multi-state model with those
+##' parameters.  The \code{data} argument should contain the time and
+##' subject indicators at which states are to be simulated (by default),
+##' or the maximum observation time (if `complete_obs=FALSE`).
 ##'
 ##' @details For phase-type approximation models, this simulates from the
 ##' phase-type approximation, not the Weibull or Gamma (e.g) distribution
@@ -141,11 +143,13 @@ prior_post_names <- function(prior_names, qm, pm, cm){
 ##' should then consist of one row, with `time` giving the maximum
 ##' observation time, and any covariates supplied, assumed to be
 ##' time-constant.  The returned object is a list.
+##' 
+##' @param cov_format If \code{"orig"} the covariates are in their
+##'   original form that they were supplied as.  If \code{"design"}
+##'   (or any other value) the covariates are returned as a design
+##'   matrix, i.e. with factors converted to numeric contrasts.
 ##'
 ##' @inheritParams msmbayes
-##' @param complete_obs
-##'
-##' TODO should we accept fixed parameters rather than prior sampled?
 ##'
 ##' @return A data frame or a list, see \code{msm::simmulti.msm} or \code{msm::sim.msm} respectively.
 ##' @md
@@ -155,7 +159,7 @@ msmbayes_priorpred_sample <- function(data, state="state", time="time", subject=
                                       covariates = NULL,
                                       pastates = NULL,
                                       pafamily = "weibull",
-                                      paspline = "hermite",
+                                      paspline = "linear",
                                       nphase = NULL,
                                       E = NULL,
                                       priors = NULL,

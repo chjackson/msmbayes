@@ -1,16 +1,21 @@
 ## Functions relating to approximating shape/scale family
 ## distributions (Weibull, Gamma) with phase-type models
 
-## TODO doc.  One file documenting standard args.  This one
-
-
 ##' Determine parameters of a phase-type model that approximate a parametric shape-scale distribution
 ##'
-##' @details TODO reference file, paper or data that explains the pointwise KL optimisation.  Link to \code{\link{phase5approx}} for the training data
+##' @details The approximation is determined by finding the best-approximating phase transition rates
+##' for a given shape parameter, repeating for a grid of shape parameters, then interpolating the results
+##' with a cubic spline.  Full code is in \code{data-raw/kl_pointwise.R} in the source package.
+##' See \code{\link{phase5approx}} for the pointwise optimal parameters.  The approximation is done
+##' for a scale parameter of 1, and generalised to other scales via the accelerated failure time
+##' property.
 ##'
-##' @param shape shape parameter
+##' This function is not currently as efficient as it could be, since the spline interpolation is not
+##' vectorised. 
 ##'
-##' @param scale scale parameter
+##' @param shape shape parameter.  This can be vectorised. 
+##'
+##' @param scale scale parameter.  This can be vectorised. 
 ##'
 ##' @param family parametric family approximated by the phase-type distribution: `"weibull"` or `"gamma"`
 ##'
@@ -18,14 +23,16 @@
 ##'
 ##' @param canonical Return the phase-type parameters in canonical form (phase 1 sojourn rate, sojourn rate increments in subsequent states, absorption probabilities).  If `FALSE` then phase transition rates are returned.
 ##'
-##' @param type Type of returned object: `"vector"` or `"list"`.
-##' The list version has separate components for progression rates and absorption rates.
+##' @param list If \code{TRUE} then separate components are returned for progression and absorption rates.
+##' Otherwise, and by default, a vector (or matrix) is returned combining all rates.
+##' If a vector is supplied for shape or scale, the returned object (or the list components) is a matrix. 
+##' 
 ##' @param drop If shape or scale have both have one element, and \code{drop=FALSE}, a matrix with one row is returned.
 ##'
 ##' @export
 shapescale_to_rates <- function(shape, scale=1, family="weibull",
-                                canonical=FALSE, spline="linear",
-                                type = "vector", drop=TRUE){
+                                canonical=FALSE, spline="hermite",
+                                list=FALSE, drop=TRUE){
   check_positive_number(shape)
   check_positive_number(scale) # TESTME
   ml <- max(length(shape), length(scale))
@@ -46,11 +53,13 @@ shapescale_to_rates <- function(shape, scale=1, family="weibull",
     }
     rates[i,] <- scale_rates(rates[i,], scale[i], canonical)
   }
-  if (type=="list")
+  if (list==TRUE)
     rates <- rates_to_list(rates, canonical)
-  if (drop && (type=="vector") && (length(shape)==1))
+  if (drop && (!list) && (length(shape)==1))
     rates <- as.numeric(rates) |>
       setNames(if(canonical) phase_cannames(5) else phase_ratenames(5))
+  if ((!list) && (length(shape)>1))
+    rates <- as.data.frame(rates)
   rates
 }
 
@@ -63,10 +72,11 @@ check_positive_number <- function(x){
 ##' @inheritParams shapescale_to_rates
 ##' @param parname Canonical phase-type parameter name
 ##' @noRd
-shape_to_canpar <- function(shape, parname, family, spline="linear"){
-  td <- phase5approx(family)$traindat
-  x0 <- td$a
-  y0 <- td[[parname]]
+shape_to_canpar <- function(shape, parname, family, spline="hermite", traindat=NULL){
+  if (is.null(traindat))
+    traindat <- phase5approx(family)$traindat
+  x0 <- traindat$a
+  y0 <- traindat[[parname]]
   if (spline=="linear"){
     ret <- approx(x0, y0, xout=shape, rule=2)$y
   } else if (spline=="hermite"){
@@ -77,7 +87,7 @@ shape_to_canpar <- function(shape, parname, family, spline="linear"){
 }
 
 ##' @inheritParams shapescale_to_rates
-##' @param rates list or vector of rate parameters TODO standard doc
+##' @param rates list or vector of rate parameters 
 ##' @noRd
 scale_rates <- function(rates, scale, canonical=FALSE){
   if (canonical)
@@ -109,7 +119,7 @@ check_shape_in_bounds <- function(shape, family){
     cli_warn("shape {shape} is not strictly greater than the upper bound of {bounds[2]} for the phase-type approximation training set")
 }
 
-Drates_dshapescale <- function(shape, scale=1, family="weibull",spline="linear"){
+Drates_dshapescale <- function(shape, scale=1, family="weibull",spline="hermite"){
   rates1 <- shapescale_to_rates(shape, scale=1, family=family, spline=spline)
   canpars <- rates_to_canpars(rates1)
   dcanpars_dshape_scale1 <- Dcanpars_dshape(shape, family, spline=spline)
@@ -122,7 +132,7 @@ Drates_dshapescale <- function(shape, scale=1, family="weibull",spline="linear")
   res
 }
 
-Dcanpars_dshape  <- function(shape, family="weibull", spline="linear"){
+Dcanpars_dshape  <- function(shape, family="weibull", spline="hermite"){
   if (spline=="linear")
     Dcanpars_dshape_linear(shape, family)
   else if (spline=="hermite")
@@ -176,8 +186,6 @@ Dcanpars_dshape_hermite <- function(shape, family="weibull"){
 ##' rates from the phases to the destination state.
 ##'
 ##' @param att keep attributes indicating progression and absorption states
-##'
-##' TODO do we really need these, they are messy.
 ##' 
 ##' @inheritParams msmbayes
 ##' @inheritParams shapescale_to_rates
@@ -185,13 +193,13 @@ Dcanpars_dshape_hermite <- function(shape, family="weibull"){
 ##' @return Intensity matrix on the latent state space.
 ##'
 ##' @export
-qphaseapprox <- function(qmatrix, pastates, shape, scale, family="weibull", spline="linear", att=TRUE){
+qphaseapprox <- function(qmatrix, pastates, shape, scale=1, family="weibull", spline="hermite", att=FALSE){
   qm <- form_qmodel(qmatrix)
   pm <- form_phasetype(pastates = pastates, Q=qmatrix, pafamily=family)
   qm <- phase_expand_qmodel(qm, pm)
   qnew <- pm$Qphase
   for (i in 1:pm$npastates){
-    rates <- shapescale_to_rates(shape[i], scale[i], family=family, spline=spline, type="list")
+    rates <- shapescale_to_rates(shape[i], scale[i], family=family, spline=spline, list=TRUE)
     pd <- qm$phasedata
     pdprog <- as.matrix(pd[pd$ttype=="prog" & pd$oldfrom==pastates[i], c("qrow","qcol")])
     pdabs <- as.matrix(pd[pd$ttype=="abs" & pd$oldfrom==pastates[i], c("qrow","qcol")])
@@ -217,19 +225,19 @@ qphaseapprox <- function(qmatrix, pastates, shape, scale, family="weibull", spli
 ##'
 ##' @inheritParams shapescale_to_rates
 ##'
-##' @return `traindat`: data frame of training data giving the optimal
-##' phase-type parameters for each of a grid of shape parameters
-##' TODO rename a to shape
+##' @return A list with components:
 ##'
-##' Do we need anything else?  gradient? 
+##' `traindat`: data frame of training data, giving the optimal
+##' phase-type parameters for each of a grid of shape parameters.
 ##'
-##' smods is redundant surely
+##' `traindat_grad` assumed gradient values at the training points,
+##' for Hermite spline interpolation
 ##'
-##' TODO document further, work in progress.
-##' @source Code in kl_pointwise.R to provide...
+##' @source Code in `data-raw/kl_pointwise.R` in the source package.
 ##'
+##' @md
 ##' @export
-phase5approx <- function(family){
+phase5approx <- function(family="weibull"){
   phase5approx_data[[family]]
 }
 

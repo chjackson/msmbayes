@@ -9,15 +9,15 @@ shapescale_to_rates(
   scale = 1,
   family = "weibull",
   canonical = FALSE,
-  spline = "linear",
-  type = "vector",
+  spline = "hermite",
+  list = FALSE,
   drop = TRUE
 )
 }
 \arguments{
-\item{shape}{shape parameter}
+\item{shape}{shape parameter.  This can be vectorised.}
 
-\item{scale}{scale parameter}
+\item{scale}{scale parameter.  This can be vectorised.}
 
 \item{family}{parametric family approximated by the phase-type distribution: \code{"weibull"} or \code{"gamma"}}
 
@@ -25,8 +25,9 @@ shapescale_to_rates(
 
 \item{spline}{Type of spline used to interpolate between the training points (pointwise optima) when deriving the function that best maps the shape to each phase-type parameter}
 
-\item{type}{Type of returned object: \code{"vector"} or \code{"list"}.
-The list version has separate components for progression rates and absorption rates.}
+\item{list}{If \code{TRUE} then separate components are returned for progression and absorption rates.
+Otherwise, and by default, a vector (or matrix) is returned combining all rates.
+If a vector is supplied for shape or scale, the returned object (or the list components) is a matrix.}
 
 \item{drop}{If shape or scale have both have one element, and \code{drop=FALSE}, a matrix with one row is returned.}
 }
@@ -34,5 +35,13 @@ The list version has separate components for progression rates and absorption ra
 Determine parameters of a phase-type model that approximate a parametric shape-scale distribution
 }
 \details{
-TODO reference file, paper or data that explains the pointwise KL optimisation.  Link to \code{\link{phase5approx}} for the training data
+The approximation is determined by finding the best-approximating phase transition rates
+for a given shape parameter, repeating for a grid of shape parameters, then interpolating the results
+with a cubic spline.  Full code is in \code{data-raw/kl_pointwise.R} in the source package.
+See \code{\link{phase5approx}} for the pointwise optimal parameters.  The approximation is done
+for a scale parameter of 1, and generalised to other scales via the accelerated failure time
+property.
+
+This function is not currently as efficient as it could be, since the spline interpolation is not
+vectorised.
 }

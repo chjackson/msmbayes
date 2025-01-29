@@ -25,15 +25,19 @@ has the \code{rvar} data type defined by the \pkg{posterior
 calling \code{summary} again on the data frame (see the
 examples).
 
-A string summarising a sample from the prior distribution, as a
-median and 95\% equal-tailed credible interval, is given in the
-\code{prior} column.
-
 Transition intensities, or transformations of transition
 intensities, are those for covariate values of zero.
 
 Remaining parameters (in non-HMMs) are log hazard ratios for
 covariate effects.
+
+The columns \code{prior_string} and \code{prior_rvar} summarise the
+corresponding prior distribution in two different ways.
+\code{prior_rvar} is a quasi-random sample from the prior in the \code{rvar}
+data type, and is printed as mean and standard deviation.  This
+sample can then be used to produce any summary or plot of the
+prior.  The string \code{prior_string} is a summary of this sample,
+showing the median and 95\% equal tailed credible interval.
 }
 \description{
 Summarise basic parameter estimates from an msmbayes model

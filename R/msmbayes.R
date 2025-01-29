@@ -44,8 +44,9 @@
 #' is a linear function of age.  You do not have to list all of the
 #' intensities here if some of them are not influenced by covariates.
 #'
-#' In standard Markov models and models with phase-type approximated
-#' states (specified with `pastates`), the numbers inside `Q()` refer
+#' In models with phase-type approximated
+#' states (specified with `pastates`), as in standard Markov models, the
+#' numbers inside `Q()` refer
 #' to the observed state space.  For such phase-type models, the
 #' covariate has an identical multiplicative effect on all rates of
 #' transition between phases for a given states.
@@ -56,7 +57,7 @@
 #'
 #' @param pastates This indicates which states (if any) are given a
 #'   Weibull or Gamma sojourn distribution approximated by a 5-phase
-#'   model.  
+#'   model.
 #'   Ignored if `nphase` is supplied.
 #'
 #' @param pafamily `"weibull"` or `"gamma"`, indicating the
@@ -85,9 +86,9 @@
 #'   model with misclassification can be specified by supplying
 #'   assumed misclassification probabilities in the \code{Efix}
 #'   argument.  This is a matrix with same dimensions as E.  Any
-#'   non-zero entries of \code{Efix} are assumed to indicate the fixed
+#'   non-zero entries of \code{Efix} indicate the fixed
 #'   known value for the corresponding misclassification probability.
-#'   The r,s entry of \code{Efix} is 0 for any error probabilities
+#'   The \eqn{(r,s)} entry of \code{Efix} is 0 for any error probabilities
 #'   that are estimated from the data or not permitted.
 #'
 #' @param priors A list specifying priors.  Each component should be
@@ -108,8 +109,25 @@
 #'   number of phases per state.  This element is 1 for states that do
 #'   not have phase-type sojourn distributions.
 #'
+#' @param prob_initstate Probabilities of true states at a person's first
+#'   observation time in a misclassification or model.  If supplied,
+#'   this should be a matrix with a row for each individual subject,
+#'   and a column for each true state, or a vector with one element
+#'   for each state that is assumed to apply to all individuals.
+#'
+#'   If not supplied, every person is assumed to be in state 1 with
+#'   probability 1 in misclassification models, or phase 1 of the
+#'   observed state with probability 1 in phase-type models.  Note
+#'   no warning is currently given if the first observed state would
+#'   be impossible if the person was really in state 1.
+#'
+#'   This applies to both misclassification models, and phase-type
+#'   models where a person's first observed state is phased.  If the
+#'   first observed state is not phased or misclassified, then this is
+#'   ignored.
+#'
 #' @param soj_priordata Synthetic data that represents prior information
-#' about the mean sojourn time.  Experimental, undocumented feature.
+#' about the mean sojourn times.  Experimental, undocumented feature.
 #'
 #' @param fit_method Quoted string specifying the algorithm to fit the
 #'   model.  The default \code{"sample"} uses NUTS/HMC MCMC, via
@@ -133,7 +151,10 @@
 #'   object.  \code{FALSE} by default.
 #'
 #' @param ...  Other arguments to be passed to the function from
-#'   `rstan` or `cmdstanr` that fits the model.
+#'   `rstan` or `cmdstanr` that fits the model.  Note that initial
+#'    values are determined by sampling from the prior (after
+#'    dividing the prior SD 5), not using
+#'    Stan's default, but this can be overridden here.
 #'
 #' @return A data frame in the \code{draws} format of the
 #'   \pkg{posterior} package, containing draws from the posterior of
@@ -155,11 +176,12 @@ msmbayes <- function(data, state="state", time="time", subject="subject",
                      covariates = NULL,
                      pastates = NULL,
                      pafamily = "weibull",
-                     paspline = "hermite",
+                     paspline = "hermite", # TODO remove eventually
                      E = NULL,
                      Efix = NULL,
                      nphase = NULL,
                      priors = NULL,
+                     prob_initstate = NULL,
                      soj_priordata = NULL,
                      fit_method = "sample",
                      keep_data = FALSE,
@@ -179,8 +201,9 @@ msmbayes <- function(data, state="state", time="time", subject="subject",
     standat <- make_stan_obsdata(dat=m$data, qm=m$qm, cm=m$cm,
                                  em=m$em, pm=m$pm, qmobs=m$qmobs,
                                  priors = m$priors,
+                                 prob_initstate = prob_initstate,
                                  soj_priordata = m$soj_priordata)
-    stanfile <- if (m$pm$phaseapprox) "phaseapprox" else "hmm"
+    stanfile <- "hmm"  # if (m$pm$phaseapprox) "phaseapprox" else "hmm"
   }
 
   if (fit_method %in% .cmdstanr_fit_methods)
@@ -232,32 +255,42 @@ cmdstanr_fit <- function(stanfile, standat, fit_method, call=caller_env(), ...){
 
 rstan_fit <- function(stanfile, standat, fit_method, ...){
   mod <- stanmodels[[stanfile]]
+  args <- list(...)
+  args$object <- mod
+  args$data <- standat
+  if (is.null(args[["init"]]))
+    args$init <- function(){prior_random_inits(standat)}
   if (fit_method == "sample"){
-    fit <- rstan::sampling(mod, data=standat, ...)
+    fit <- do.call(rstan::sampling, args)
   }
   else if (fit_method == "optimize"){
-    args <- list(...)
-    if (is.null(args$init)) args$init <- prior_mean_inits(standat) # TODO doc
-    if (is.null(args$draws)) args$draws <- 4000
-    args$object <- mod
-    args$data <- standat
+    if (is.null(args[["draws"]])) args$draws <- 4000
     opt <- do.call(rstan::optimizing, args)
     fit <- opt$theta_tilde
     opt$theta_tilde <- NULL
     attr(fit, "opt") <- opt
   }
   else if (fit_method == "variational")
-    fit <- rstan::vb(mod, data=standat, ...) # TESTME
+    fit <- do.call(rstan::vb, args)
   else cli_abort("unknown {.str fit_method} {.str {fit_method}} for {.var rstan}")
   fit
 }
 
-prior_mean_inits <- function(standat){
- list(logq = standat$logqmean,
-      loghr = standat$loghrmean,
-      logshape = standat$logshapemean,
-      logscale = standat$logscalemean,
-      logoddse = standat$loemean)
+prior_random_inits <- function(standat, init_scale=5, chain_id=1){
+  set.seed(chain_id)
+  nq <- length(standat$logqmean)
+  logq <- logq_markov <- rnorm(nq, mean=standat$logqmean, sd=standat$logqsd / init_scale)
+  nhr <- length(standat$loghrmean)
+  loghr <- rnorm(nhr, mean=standat$loghrmean, sd=standat$loghrsd / init_scale)
+  npa <- length(standat$logshapemean)
+  logshape <- rnorm(npa, mean=standat$logshapemean, sd=standat$logshapesd / init_scale)
+  logscale <- rnorm(npa, mean=standat$logscalemean, sd=standat$logscalesd / init_scale)
+  logoddse <- rnorm(length(standat$loemean), mean=standat$loemean, sd=standat$loesd / init_scale)
+  logoddsabs <- rnorm(length(standat$loamean), mean=standat$loamean, sd=standat$loasd / init_scale)
+  list(logq = as.array(logq), logq_markov = as.array(logq_markov),
+       loghr = as.array(loghr),
+       logshape = as.array(logshape), logscale = as.array(logscale),
+       logoddse = as.array(logoddse), logoddsabs = as.array(logoddsabs))
 }
 
 has_covariates <- function(draws){

@@ -89,7 +89,8 @@ check_canpars_list <- function(pars, call=caller_env()){
 check_phasetype_parvector <- function(pars, call=caller_env()){
   check_oddlength(pars, call)
   if (!is.numeric(pars)) cli_abort("{.var pars} should be numeric")
-  if (any(pars<0)) cli_abort("{.var pars} should all be non-negative")
+  if (any(pars < -sqrt(.Machine$double.eps)))
+    cli_abort("{.var pars} should all be non-negative")  # TODO why can't we ignore and propagate NaN?  put NaN tests in 
 }
 
 canpars_to_list <- function(pars){

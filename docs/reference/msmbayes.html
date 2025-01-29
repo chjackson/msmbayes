@@ -19,7 +19,7 @@ is used, via the Stan software."><!-- mathjax --><script src="https://cdnjs.clou
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">msmbayes</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.2</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.3</span>
       </span>
     </div>
 
@@ -147,8 +147,9 @@ from state \(r\) to state \(s\).</p>
 linear function of age and sex, and the log 2-1 transition intensity
 is a linear function of age.  You do not have to list all of the
 intensities here if some of them are not influenced by covariates.</p>
-<p>In standard Markov models and models with phase-type approximated
-states (specified with <code>pastates</code>), the numbers inside <code>Q()</code> refer
+<p>In models with phase-type approximated
+states (specified with <code>pastates</code>), as in standard Markov models, the
+numbers inside <code>Q()</code> refer
 to the observed state space.  For such phase-type models, the
 covariate has an identical multiplicative effect on all rates of
 transition between phases for a given states.</p>
@@ -197,9 +198,9 @@ intermittently observed.  Instead of estimating them, a Markov
 model with misclassification can be specified by supplying
 assumed misclassification probabilities in the <code>Efix</code>
 argument.  This is a matrix with same dimensions as E.  Any
-non-zero entries of <code>Efix</code> are assumed to indicate the fixed
+non-zero entries of <code>Efix</code> indicate the fixed
 known value for the corresponding misclassification probability.
-The r,s entry of <code>Efix</code> is 0 for any error probabilities
+The \((r,s)\) entry of <code>Efix</code> is 0 for any error probabilities
 that are estimated from the data or not permitted.</p></dd>
 
 
@@ -226,7 +227,7 @@ call can be supplied here instead of a list.</p></dd>
 
 <dt id="arg-soj-priordata">soj_priordata<a class="anchor" aria-label="anchor" href="#arg-soj-priordata"></a></dt>
 <dd><p>Synthetic data that represents prior information
-about the mean sojourn time.  Experimental, undocumented feature.</p></dd>
+about the mean sojourn times.  Experimental, undocumented feature.</p></dd>
 
 
 <dt id="arg-fit-method">fit_method<a class="anchor" aria-label="anchor" href="#arg-fit-method"></a></dt>
@@ -235,8 +236,8 @@ model.  The default <code>"sample"</code> uses NUTS/HMC MCMC, via
 <code><a href="https://mc-stan.org/rstan/reference/stanmodel-method-sampling.html" class="external-link">rstan::sampling()</a></code>.  Alternatives are</p>
 <p><code>"optimize"</code> to use posterior mode optimization (with respect
 to parameters on the log scale) followed by Laplace approximation
-around the mode (via rstan::optimizing()).</p>
-<p><code>"variational"</code> to use variational Bayes (via rstan::vb()).</p>
+around the mode (via <code><a href="https://mc-stan.org/rstan/reference/stanmodel-method-optimizing.html" class="external-link">rstan::optimizing()</a></code>).</p>
+<p><code>"variational"</code> to use variational Bayes (via <code><a href="https://mc-stan.org/rstan/reference/stanmodel-method-vb.html" class="external-link">rstan::vb()</a></code>).</p>
 <p><code>"pathfinder"</code>, to use the Pathfinder variational algorithm
 via <code>cmdstanr</code>.  This requires <code>cmdstan</code> and <code>cmdstanr</code> to be
 installed.  The first time this is run for a particular <code>msmbayes</code>

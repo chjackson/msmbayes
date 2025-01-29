@@ -40,8 +40,18 @@ Tabulate observed transitions between states over successive observations, by
 from-state, to-state and (optionally) time interval length.
 }
 \details{
-This is like the function statetable.msm in msm, except that it
+This is like the function \code{statetable.msm} in \pkg{msm}, except that it
 uses msmbayes syntax for specifying the data, it also summarises
 the length of the time intervals between successive observations,
 and returns a tidy data frame.
+
+\strong{Warning}: it is not appropriate to choose the transition structure
+(the \code{Q} argument to \code{msmbayes()}) on the basis of this summary.
+\code{statetable} counts transitions over a \emph{time interval}, whereas
+\code{Q} indicates which \emph{instantaneous} transitions are possible.
+The structures will not be the same.  For example, in a model with
+instananeous transitions from mild to moderate illness, and moderate
+to severe, we might observe transitions from mild to severe over
+an interval of 1 year (say), but the instantaneous transition from
+mild to severe is impossible.
 }

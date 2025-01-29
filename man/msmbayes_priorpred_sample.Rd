@@ -13,11 +13,12 @@ msmbayes_priorpred_sample(
   covariates = NULL,
   pastates = NULL,
   pafamily = "weibull",
-  paspline = "hermite",
+  paspline = "linear",
   nphase = NULL,
   E = NULL,
   priors = NULL,
-  complete_obs = FALSE
+  complete_obs = FALSE,
+  cov_format = "orig"
 )
 }
 \arguments{
@@ -61,8 +62,9 @@ linear function of age and sex, and the log 2-1 transition intensity
 is a linear function of age.  You do not have to list all of the
 intensities here if some of them are not influenced by covariates.
 
-In standard Markov models and models with phase-type approximated
-states (specified with \code{pastates}), the numbers inside \code{Q()} refer
+In models with phase-type approximated
+states (specified with \code{pastates}), as in standard Markov models, the
+numbers inside \code{Q()} refer
 to the observed state space.  For such phase-type models, the
 covariate has an identical multiplicative effect on all rates of
 transition between phases for a given states.
@@ -114,15 +116,32 @@ phase-type approximation and misclassification models).  See
 If only one parameter is given a non-default prior, a single \code{msmprior}
 call can be supplied here instead of a list.}
 
-\item{complete_obs}{TODO should we accept fixed parameters rather than prior sampled?}
+\item{complete_obs}{If \code{complete_obs=FALSE} (the default)
+intermittently-observed states are generated for the subjects
+and times supplied in the \code{data} argument, using
+\code{msm::simmulti.msm}.  The returned object is a data frame
+made by appending these states to \code{data}.
+
+If \code{complete_obs=TRUE}, one complete state transition history
+is generated using \code{msm::sim.msm}.  The \code{data} argument
+should then consist of one row, with \code{time} giving the maximum
+observation time, and any covariates supplied, assumed to be
+time-constant.  The returned object is a list.}
+
+\item{cov_format}{If \code{"orig"} the covariates are in their
+original form that they were supplied as.  If \code{"design"}
+(or any other value) the covariates are returned as a design
+matrix, i.e. with factors converted to numeric contrasts.}
 }
 \value{
 A data frame or a list, see \code{msm::simmulti.msm} or \code{msm::sim.msm} respectively.
 }
 \description{
-As in \code{\link{msmbayes_prior_sample}}, the \code{data}
-argument is required though it need only be a zero-rows version of
-the data that we would fit the model to.
+This generates a single sample of parameters from the prior, then
+generates observed states from a multi-state model with those
+parameters.  The \code{data} argument should contain the time and
+subject indicators at which states are to be simulated (by default),
+or the maximum observation time (if \code{complete_obs=FALSE}).
 }
 \details{
 For phase-type approximation models, this simulates from the

@@ -13,7 +13,7 @@ msmbayes_prior_sample(
   covariates = NULL,
   pastates = NULL,
   pafamily = "weibull",
-  paspline = "hermite",
+  paspline = "linear",
   nphase = NULL,
   E = NULL,
   priors = NULL,
@@ -61,8 +61,9 @@ linear function of age and sex, and the log 2-1 transition intensity
 is a linear function of age.  You do not have to list all of the
 intensities here if some of them are not influenced by covariates.
 
-In standard Markov models and models with phase-type approximated
-states (specified with \code{pastates}), the numbers inside \code{Q()} refer
+In models with phase-type approximated
+states (specified with \code{pastates}), as in standard Markov models, the
+numbers inside \code{Q()} refer
 to the observed state space.  For such phase-type models, the
 covariate has an identical multiplicative effect on all rates of
 transition between phases for a given states.

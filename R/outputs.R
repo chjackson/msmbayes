@@ -200,13 +200,13 @@ pmatrixdf <- function(draws, t=1, new_data=NULL){
 #'
 #' @inheritParams qmatrix
 #'
-#' @param states If "obs" then this describes mean sojourn times in
+#' @param states If \code{states="obs"} then this describes mean sojourn times in
 #'   the observable states.  For phase-type models this is not
 #'   generally equal to the sum of the phase-specific mean sojourn
 #'   times, because an individual may transition out of the state
 #'   before progressing to the next phase.
 #'
-#'   If "phase" then for phase-type models, this describes mean sojourn times
+#'   If \code{states="phase"} then for phase-type models, this describes mean sojourn times
 #'   in the latent state space. 
 #' 
 #' @return A data frame containing samples from the posterior distribution.
@@ -420,6 +420,10 @@ standardize_to <- standardise_to
 ##'
 ##' @param state State of interest (A single integer)
 ##'
+##' @param method Only applicable to phase-type models. Method for computing
+##' the matrix exponential involved in the phase-type sojourn distribution.
+##' See \code{\link{pnphase}}.
+##'
 ##' @return A data frame with column `value` giving the probability of
 ##'   remaining in `state` by time `t` since state entry, as an `rvar`
 ##'   object. Other columns give the time and any covariate values.
@@ -443,7 +447,7 @@ soj_prob <- function(draws, t, state, new_data=NULL, method="analytic"){
 ##'
 ##' @inheritParams qmatrix
 ##' @export
-phaseapprox_pars <- function(draws){
+phaseapprox_pars <- function(draws, log=FALSE){
   if (!is_phaseapprox(draws)) {
     return(NULL)
   }
@@ -453,10 +457,15 @@ phaseapprox_pars <- function(draws){
   name <- rep(c("shape","scale"), each=attr(draws, "pm")$npastates)
   shape <- td |> gather_rvars(shape[]) |> pull(".value")
   scale <- td |> gather_rvars(scale[]) |> pull(".value")
+  value <- c(shape, scale)
+  if (log) {
+    name <- paste0("log",name)
+    value <- log(value)
+  }
   as_msmbres(data.frame(
     state = state,
     family = family,
     name = name,
-    value=c(shape, scale)
+    value = value
   ) |> arrange(state))
 }

@@ -20,7 +20,7 @@ shape/scale distribution."><!-- mathjax --><script src="https://cdnjs.cloudflare
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">msmbayes</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.2</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.3</span>
       </span>
     </div>
 
@@ -82,10 +82,10 @@ shape/scale distribution.</p>
 <span>  <span class="va">qmatrix</span>,</span>
 <span>  <span class="va">pastates</span>,</span>
 <span>  <span class="va">shape</span>,</span>
-<span>  <span class="va">scale</span>,</span>
+<span>  scale <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  family <span class="op">=</span> <span class="st">"weibull"</span>,</span>
-<span>  spline <span class="op">=</span> <span class="st">"linear"</span>,</span>
-<span>  att <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span>  spline <span class="op">=</span> <span class="st">"hermite"</span>,</span>
+<span>  att <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -113,11 +113,11 @@ Ignored if <code>nphase</code> is supplied.</p></dd>
 
 
 <dt id="arg-shape">shape<a class="anchor" aria-label="anchor" href="#arg-shape"></a></dt>
-<dd><p>shape parameter</p></dd>
+<dd><p>shape parameter.  This can be vectorised.</p></dd>
 
 
 <dt id="arg-scale">scale<a class="anchor" aria-label="anchor" href="#arg-scale"></a></dt>
-<dd><p>scale parameter</p></dd>
+<dd><p>scale parameter.  This can be vectorised.</p></dd>
 
 
 <dt id="arg-family">family<a class="anchor" aria-label="anchor" href="#arg-family"></a></dt>
@@ -129,8 +129,7 @@ Ignored if <code>nphase</code> is supplied.</p></dd>
 
 
 <dt id="arg-att">att<a class="anchor" aria-label="anchor" href="#arg-att"></a></dt>
-<dd><p>keep attributes indicating progression and absorption states</p>
-<p>TODO do we really need these, they are messy.</p></dd>
+<dd><p>keep attributes indicating progression and absorption states</p></dd>
 
 </dl></div>
     <div id="value">

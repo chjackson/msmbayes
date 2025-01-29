@@ -16,7 +16,7 @@ make_stan_aggdata <- function(dat, qm=NULL, cm=NULL, priors=NULL,
   dat_agg <- aggregate_transition_data(dat_trans, K=qm$K)
   dwide <- aggdata_towide(dat_agg, K=qm$K)
   covind <- as.array(dwide$covind)
-  pstruc <- form_P_struc(qm$Q) # TODO does this go in stan_data_hmm too 
+  pstruc <- form_P_struc(qm$Q) # structural zeros.  Unsure if this needed in stan_data_hmm too 
 
   res <- list(K = qm$K,
               N = nrow(dwide),

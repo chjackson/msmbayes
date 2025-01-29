@@ -10,18 +10,19 @@ form_phasetype <- function(nphase=NULL, Q,
                            pastates=NULL, pafamily="weibull",
                            paspline="linear",
                            E=NULL,
+                           Efix=NULL,
                            call=caller_env()){
   nphase <- check_nphase(nphase, Q, call)
   nphase <- nphase_from_approx(nphase, pastates, Q)
   if (is.null(nphase) || all(nphase==1))
     return(list(phasetype=FALSE, phaseapprox=FALSE, npastates = 0,
                 pdat=NULL, E=NULL, Efix=NULL, Qphase=Q))
-  if (!is.null(E))
-    cli_abort(c("Found non-null {.var E}, but a phase-type model was requested.",
-                "msmbayes does not currently support misclassification on top of phase-type models"),call=call)
+#  if (!is.null(E))
+#    cli_abort(c("Found non-null {.var E}, but a phase-type model was requested.",
+#                "msmbayes does not currently support misclassification on top of phase-type models"),call=call)
   pdat <- form_phasedata(nphase)
-  E <- form_Ephase(nphase)
-  Efix <- form_Efixphase(E)
+  E <- form_Ephase(nphase, E, Efix, Q, call)
+  Efix <- form_Efixphase(E, nphase, Efix)
   Qphase <- form_Qphase(Q, nphase, call=call)
   unphased_states <- pdat$oldinds[!pdat$phase]
   phased_states <- unique(pdat$oldinds[pdat$phase])
@@ -125,11 +126,16 @@ form_phasedata <- function(nphase){
 #' to \code{\link{msmbayes}}.
 #'
 #' @noRd
-form_Ephase <- function(nphase){
+form_Ephase <- function(nphase, E=NULL, Efix, Q, call=caller_env()){
   nst <- length(nphase)
   nst_expand <- sum(nphase)
   rowinds <- rep(1:nst, nphase)
-  E <- diag(nst)
+  if (is.null(E))
+    E <- diag(nst)
+  else {
+    check_E(E, Q, call)
+    check_Efix(Efix, E, call)
+  }
   E_expand <- matrix(0, nrow = nst_expand, ncol = nst_expand)
   E_expand[,1:nst] <- E[rowinds, ]
   E_expand
@@ -143,11 +149,21 @@ form_Ephase <- function(nphase){
 #' @return A matrix suitable to be passed as the \code{Efix} argument
 #'   to \code{\link{msmbayes}}.
 #'
+#' TODO with user supplied Efix 
+#'
 #' @noRd
-form_Efixphase <- function(Ephase){
-  Efix <- Ephase
-  diag(Efix) <- 0
-  Efix
+form_Efixphase <- function(Ephase, nphase, Efix=NULL){
+  if (is.null(Efix))
+    Efix_expand <- Ephase
+  else {
+    nst <- length(nphase)
+    rowinds <- rep(1:nst, nphase)
+    nst_expand <- sum(nphase)
+    Efix_expand <- matrix(0, nrow = nst_expand, ncol = nst_expand)
+    Efix_expand[,1:nst] <- Efix[rowinds,]
+  }
+  diag(Efix_expand) <- 0
+  Efix_expand
 }
 
 #' Form a plausible transition intensity matrix for a phase-type
@@ -253,7 +269,7 @@ phase_expand_qmodel <- function(qm, pm){
   }
   qmnew$paratedata <- form_phaseapprox_ratedata(qmnew, pm)
   qmnew$pacrdata <- form_phaseapprox_comprisk_data(qmnew)
-  qmnew$noddsabs <- attr(qmnew$pacrdata, "noddsabs") # TODO what if no crabs
+  qmnew$noddsabs <- attr(qmnew$pacrdata, "noddsabs")
   qm$tr$ttype <- ifelse(qm$tr$from %in% pm$phased_states, "phase", "markov")
   attr(qmnew, "qmobs") <- qm
   qmnew
@@ -261,7 +277,7 @@ phase_expand_qmodel <- function(qm, pm){
 
 ## One row per rate from a phase of any state given a phaseapprox distribution
 form_phaseapprox_ratedata <- function(qm, pm){
-  ## TODO remove unnecessary cols
+  ## TODO remove unnecessary cols.  internals doc more generally 
   pdat <- qm$phasedata
   pdat$pafrom <- pdat$oldfrom %in% pm$pastates
   npaqall <- sum(pdat$pafrom)
@@ -270,7 +286,8 @@ form_phaseapprox_ratedata <- function(qm, pm){
   rdat$pastate <- match(rdat$oldfrom, pm$pastates)
   rdat$praterow <- numeric(npaqall)
   for (i in 1:pm$npastates){
-    rdat$praterow[rdat$pastate==i & rdat$ttype=="prog"] <- 1:4 # TODO consts
+    # TODO some internal var/fn which says we are using 5 phases
+    rdat$praterow[rdat$pastate==i & rdat$ttype=="prog"] <- 1:4 
     rdat$praterow[rdat$pastate==i & rdat$ttype=="abs"] <- 5:9
   }
   rdat$prate_abs <- as.numeric(rdat$ndest > 1 & rdat$ttype=="abs")

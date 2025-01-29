@@ -27,13 +27,6 @@ reference:
   - phaseapprox_pars
   - summary.msmbayes
   - standardise_to
-- title: Datasets
-- contents:
-  - infsim
-  - infsim2
-  - bigdat
-  - infsim_model
-  - infsim_modelc
 - title: Simulation
 - contents:
   - msmbayes_prior_sample
@@ -46,6 +39,14 @@ reference:
   - qphaseapprox
   - phase5approx
   - nphase_Q
+- title: Datasets
+- contents:
+  - infsim
+  - infsim2
+  - bigdat
+  - infsim_model
+  - infsim_modelc
+  - illdeath_data
 - title: Package overview
 - contents:
   - msmbayes-package

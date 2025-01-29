@@ -11,7 +11,7 @@
 #' If each subject has at most one observation in a bin, then \eqn{p(s)}
 #' is estimated as the proportion of observations in the bin that are
 #' of that state.
-#' 
+#'
 #' More generally, if an individual has more than one observation in
 #' the bin, \eqn{p(s)} is estimated as follows. For each observed
 #' individual \eqn{i} and each state \eqn{s}, we define a variable
@@ -40,11 +40,12 @@
 #'
 #'   `msmhist` places no assumption on the individual data.  Instead
 #'   the assumption is placed on the distribution underlying the data.
-#'   The histogram-like visualisation assumes, essentially, that the
-#'   distribution of states is the same at all times within each bin.
+#'   In a similar fashion to a histogram, it assumes that the
+#'   distribution of states is the same at all times within each
+#'   time interval bin.
 #'
 #' @inheritParams msmbayes
-#' 
+#'
 #' @param nbins Number of time intervals to bin the state observations
 #'   into.  The underlying distribution of states illustrated by the
 #'   plot will be assumed constant within each interval.
@@ -78,13 +79,13 @@
 #'
 #' @md
 #' @export
-msmhist <- function(data, state, time, subject, nbins,
+msmhist <- function(data, state="state", time="time", subject="subject", nbins,
                     absorbing=NULL, censtimes=NULL,
                     stacked=TRUE){
   check_data(data, state, time, subject)
   data <- clean_data(data, state, time, subject)
-  bardata <- msmhist_bardata(data, "state", "time", "subject",
-                             nbins, absorbing, censtimes)
+  bardata <- msmhist_bardata(data, nbins=nbins,
+                             absorbing=absorbing, censtimes=censtimes)
   data$state <- factor(data$state)
   data$ypos <- msmhist_random_ypos(data, bardata, stacked)
 
@@ -97,11 +98,11 @@ msmhist <- function(data, state, time, subject, nbins,
   }
   else {
     p <- ggplot2::ggplot(data=bardata,
-                         ggplot2::aes(xmin = .data$binstart, 
-                                      xmax = .data$binend, 
+                         ggplot2::aes(xmin = .data$binstart,
+                                      xmax = .data$binend,
                                       ymin = 0,
                                       ymax = .data$props)) +
-      ggplot2::geom_rect(fill="gray80", col="gray30") + 
+      ggplot2::geom_rect(fill="gray80", col="gray30") +
       ggplot2::facet_wrap(~state) +
       ggplot2::ylim(0,1)
   }
@@ -114,26 +115,27 @@ msmhist <- function(data, state, time, subject, nbins,
 }
 
 ## TODO
+## option to plot "point" barplot in case of equally spaced data
 ## manual bins? and/or nicer binning heuristic?
 ## error checking
 ## worked example with comparison against observed prevalence
 ## from both msmbayes and msm
-## as needed.  Separate histograms per state 
+## as needed.  Separate histograms per state
 
 #' Estimate state occupation probabilities to be illustrated by a bar
 #' plot in \code{msmhist}
 #'
 #' @inheritParams msmbayes
 #' @inheritParams msmhist
-#' 
-#' @return Data frame with one row per bin and state, and columns: 
+#'
+#' @return Data frame with one row per bin and state, and columns:
 #'
 #' * `binid`: Integer ID for bin
 #'
 #' * `binlabel`: Character label for bin, with time interval
 #'
 #' * `state`: State
-#' 
+#'
 #' * `binstart`, `binend`: Start and end time of the bin (numeric)
 #'
 #' * `props`: estimates of state $s$ occupancy proportions $p(s)$ for each bin
@@ -147,7 +149,7 @@ msmhist <- function(data, state, time, subject, nbins,
 #'
 #' @md
 #' @export
-msmhist_bardata <- function(data, state, time, subject, nbins,
+msmhist_bardata <- function(data, state="state", time="time", subject="subject", nbins,
                             absorbing=NULL, censtimes=NULL){
   timebin <- pstate <- props <- cumpend <- binid <- binstart <- binend <- NULL # silence r cmd check
   check_data(data, state, time, subject)
@@ -160,7 +162,7 @@ msmhist_bardata <- function(data, state, time, subject, nbins,
   datp <- msmhist_expand_absorbing(data, qs, absorbing, censtimes)
 
   ## Calculate p(i,s): prop of each indivdual's observations in the bin
-  ## that are from each state 
+  ## that are from each state
   pstate_subj_df <- datp %>%
     group_by(timebin, subject) %>%
     summarise(pstate = 1 / n()) %>%
@@ -173,7 +175,7 @@ msmhist_bardata <- function(data, state, time, subject, nbins,
     group_by(timebin) %>%
     mutate(n = length(unique(subject))) %>%
     group_by(timebin, state) %>%
-    summarise(props = sum(pstate/n)) %>% 
+    summarise(props = sum(pstate/n)) %>%
     group_by(timebin) %>%
     mutate(cumpend = cumsum(props),
            cumpstart = c(0, head(cumpend, -1)),
@@ -187,7 +189,7 @@ msmhist_bardata <- function(data, state, time, subject, nbins,
 }
 
 #' Default procedure for obtaining bins given a vector of observation times
-#' 
+#'
 #' @noRd
 msmhist_bins <- function(time, nbins){
   qs <- quantile(time, seq(0, 1, length=nbins+1))
@@ -247,7 +249,7 @@ msmhist_random_ypos <- function(data, bardata, stacked=TRUE){
     start <- bardata$cumpstart[data$bardataid]
     end <- bardata$cumpend[data$bardataid]
   } else {
-    start <- 0 
+    start <- 0
     end <- bardata$props[data$bardataid]
   }
   set.seed(1)
