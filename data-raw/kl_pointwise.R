@@ -3,31 +3,25 @@ load_all() # msmbayes
 
 ##' Objective function for pointwise estimation of optimal phase-type
 ##' rates for a particular target distribution shape parameter
+##'
 ##' @param a shape parameter
 ##' @param family Target distribution: Weibull or Gamma
 ##' @param tmax Max for grid for discrete integration.  TODO this is a
 ##' nuisance. Grid of resolution 0.1 used between 0 and tmax, then extended
 ##' to 0 and Inf so we always integrate over whole real line.
-##' @param param Parameterisation of the rates.
-##' canonical : canonical parameterisation on natural scale
-##' logcanonical: canonical parameterisation on log scale
-##' lognatural : unconstrained parameterisation [ strip this ]
-##' Strip and archive whatever doesn't work
+##'
 ##' @noRd
 obj_pointwise <- function(par, a, tmax=10, family="weibull",
-                          param = "canonical", deriv=FALSE){
-  nphase <- (length(par) + 1) / 2
-  if (param=="logcanonical") {
-    rates <- logcanpars_to_rates(par, type="list")
-    prate <- rates$p; arate <- rates$a
-  } else if (param=="canonical"){
-    rates <- canpars_to_rates(par, type="list")
-    prate <- rates$p; arate <- rates$a
-  } else if (param=="lognatural"){
-    pid <- 1 : (nphase-1)
-    aid <- (nphase-1) + 1:nphase
-    prate <- exp(par[pid]); arate <- exp(par[aid])
-  }
+                          deriv=FALSE, fixedpars=NULL, fixedvals=NULL){
+  nphase <- (length(par) + length(fixedpars) + 1) / 2
+  parnames <- phase_cannames(nphase)
+  optpars <- setdiff(parnames, fixedpars)
+  par_use <- setNames(numeric(length(parnames)), parnames)
+  par_use[optpars] <- par
+  par_use[fixedpars] <- fixedvals
+
+  rates <- canpars_to_rates(par_use, type="list")
+  prate <- rates$p; arate <- rates$a
   if (any(is.na(prate)) || any(is.na(arate))) return(Inf)
   tgrid <- c(seq(0, tmax, by=0.10), Inf)
   n <- length(tgrid)
@@ -62,65 +56,55 @@ obj_pointwise <- function(par, a, tmax=10, family="weibull",
 }
 obj_pointwise_deriv <- function(...) obj_pointwise(...,deriv=TRUE)
 
-init_prog <- c(1, 1.1, 1.2, 1.3)
-init_abs <- c(0.9, 0.92, 0.94, 0.95, 2.5) # chosen so that soj rates increasing, half prob of abs. ok
-init <- log(c(init_prog, init_abs))
-init_soj <- c(init_prog, 0) + init_abs
-init_can <- c(init_soj[1], diff(init_soj),
-              init_abs[1:4] / init_soj[1:4])
-init_can
+## Initial values of phase-type transition parameters for optimisation
+## in the canonical parameterisation
 
-obj_pointwise_fn <- function(x,...)obj_pointwise(par=x,...)
-obj_pointwise_fn(init_can, a=1.01, family="gamma")
-numDeriv::grad(obj_pointwise_fn, init_can, a=1.01, family="gamma")
-obj_pointwise_deriv(init_can, a=1.01, family="gamma")
+init_can <- c(1, rep(0.01, 4), rep(0.5, 4)) # close to exponential
+names(init_can) <- phase_cannames(5)
 
+## Test one instance of optimisation
 nphase <- 5
-lb <- rep(0, 2*nphase-1)
-ub <- c(rep(Inf, nphase), rep(1, nphase-1))
-shape <- 10
-popt <- optim(par=init_can, fn=obj_pointwise, a=shape,
+shape <- 0.5
+fixedpars <- c("inc1","inc2","inc3","inc4")
+optpars <- setdiff(phase_cannames(5),fixedpars)
+optinds <- match(optpars, phase_cannames(5))
+lb <- rep(0, 2*nphase-1)[optinds]
+ub <- c(rep(Inf, nphase), rep(1, nphase-1))[optinds]
+popt <- optim(par=init_can[optpars],
+              fn=obj_pointwise, a=shape,
+              fixedpars = fixedpars, fixedvals=rep(0,4),
               method="L-BFGS-B", lower=lb, upper=ub,
-              # hessian=TRUE, # breaks at the boundary
-              family="weibull", param="canonical",
+              family="weibull",
+              tmax = 5,
               control=list(trace=1,REPORT=1,fnscale=0.0001,maxit=10000))
-
-## TODO here explore how far we can push the boundaries
-## weibull was 0.3 to 2
-## Don't need to fit the weibull/gamma but should be reasonable things to fit
-## ?? just falls over for 0.29 it seems.  huh just constant extap
-## 2.1 fits well.  3 isn't bad. >x5 converges but is off
-
-incopt <- popt$par
-paopt <- canpars_to_rates(incopt, type="list")
-tgrid <- seq(0,10,by=0.1)
-ptruefn <- pweibull
-ptrue <- ptruefn(tgrid, shape=shape, scale=1, lower.tail = FALSE)
-pfit <- pnphase(tgrid, prate=paopt$p, arate=paopt$a, lower.tail = FALSE)
-ggplot(data=NULL, aes(x=tgrid)) +
-  geom_line(aes(y=ptrue)) + geom_line(aes(y=pfit),col="blue") + ylim(0,1) +
-  xlim(0,10)
+popt$par
+popt$value
 
 ## Optimising phasetype pars for a range of shapes, and saving the optima in a matrix
 
-fullopt <- function(agrid, family_true){
-  nphase <- 5
+fullopt <- function(agrid, family_true, fixedpars = NULL, fixedvals=NULL){
   gres <- matrix(nrow=length(agrid), ncol=2*nphase-1)
+  colnames(gres) <- phase_cannames(5)
   klopt <- conv <- pd <- numeric(length(agrid))
-  lb <- rep(0, 2*nphase-1)
-  ub <- c(rep(Inf, nphase), rep(1, nphase-1))
+  nphase <- 5
+  optpars <- setdiff(phase_cannames(5),fixedpars)
+  optinds <- match(optpars, phase_cannames(5))
+  lb <- rep(0, 2*nphase-1)[optinds]
+  ub <- c(rep(Inf, nphase), rep(1, nphase-1))[optinds]
   for (i in seq_along(agrid)){
-#    init_can <- init_can * rgamma(9, 10, 10)
-    popt <- optim(par=init_can, fn=obj_pointwise, gr=obj_pointwise_deriv, a=agrid[i],
+    popt <- optim(par=init_can[optpars], fn=obj_pointwise, a=agrid[i],
+                  fixedpars=fixedpars, fixedvals=fixedvals,
+                  #gr=obj_pointwise_deriv,
                   method="L-BFGS-B", lower=lb, upper=ub,
-                  param = "canonical",
                   family=family_true,
                   #hessian=TRUE, # fails on boundary
-                  control=list(fnscale=0.0001, maxit=10000))
+                  control=list(fnscale=0.0001, maxit=10000,
+                               trace=1, REPORT=1))
     popt$par
     popt$value
     print(agrid[i])
-    gres[i,] <- popt$par
+    gres[i,optpars] <- popt$par
+    gres[i,fixedpars] <- fixedvals
     klopt[i] <- popt$value
     conv[i] <- popt$convergence
 #    pd[i] <- all(eigen(solve(popt$hessian))$values > -1e-06)
@@ -139,7 +123,11 @@ fullopt <- function(agrid, family_true){
   traindat
 }
 
-agrid <- 0.92
+init_can <- c(1, rep(0.01, 4), rep(0.5, 4)) # close to exponential
+names(init_can) <- phase_cannames(5)
+agrid <- seq(1.15, 1.35, by=0.05)
+res <- fullopt(agrid, "weibull",
+               fixedpars=paste0("inc",1:4), fixedvals=rep(0,4))
 
 ## Points to create pointwise fit
 ## As fine as necessary within range where distribution is reasonably approximated
@@ -152,11 +140,12 @@ agrid_weib <- c(seq(0.3, 0.7, by=0.05),
                 seq(1.55, 1.80, by=0.05),
                 seq(1.82, 2, by=0.02))
 
-traindat <- fullopt(agrid_weib, "weibull")
-saveRDS(traindat, file="traindat_weibull_deriv.rds")
-traindat <- traindat |> filter(conv==0)
-
-saveRDS(traindat, file="traindat_weibull.rds")
+traindat_weibull <- fullopt(agrid_weib, "weibull",
+                            fixedpars=paste0("inc",1:4), fixedvals=rep(0,4))
+traindat_weibull <- traindat_weibull |>
+  filter(conv==0,
+         abs(a-0.78)>0.0001,
+         abs(a-0.8)>0.0001)
 
 agrid_gamma <- c(seq(0.35, 0.9, by=0.05),
                  seq(0.91, 0.99, by=0.01),
@@ -164,107 +153,21 @@ agrid_gamma <- c(seq(0.35, 0.9, by=0.05),
                  seq(1.15, 1.80, by=0.05),
                  seq(1.80, 2.20, by=0.02),
                  seq(2.25, 5, by=0.05))
-traindat <- fullopt(agrid_gamma, "gamma")
-traindat$inc2[traindat$inc2<0] <- 0 # fuzz
-saveRDS(traindat, file="traindat_gamma.rds")
-
-
-## Illustrate each parameter as a function of shape
-## Weibull.  pabs4 still noisy between 1.0 and 1.5.
-## Gamma. seems fine.
-
-plot_pointwise_fit <- function(pars, traindat){
-  parsfitted <- traindat |> filter(conv==0) |>
-    select(a, all_of(pars)) |>
-    pivot_longer(cols=all_of(pars),
-                 names_to="parname", values_to="parval")
-  ggplot(data=parsfitted,
-         aes(x=a, y=parval, group=parname, col=parname)) +
-#    coord_cartesian(xlim=c(1, 5)) +
-    geom_point() + geom_line() +
-    scale_x_continuous(breaks=seq(0.3, 5, by=0.1))
-}
-
-plot_pointwise_fit(c("qsoj"), traindat)
-plot_pointwise_fit(c("inc1","inc2","inc3","inc4"), traindat)
-plot_pointwise_fit(c("pabs1","pabs2","pabs3","pabs4"), traindat)
-plot_pointwise_fit(c("pabs4"), traindat)
-plot_pointwise_fit(c("pabs4"), traindat)
-
-
-## Now check fit to distribution over a range of a.
-
-check_fit <- function(family, agrid){
-  traindat <- readRDS(file=sprintf("traindat_%s.rds",family))
-  parnames <- colnames(traindat)[2:10]
-  pfit <- ptrue <- numeric()
-  tgrid <- seq(0.01, 5, by=0.01)
-  ptruefn <- if (family=="weibull") pweibull else pgamma
-  for (i in match(round(agrid,2), round(traindat$a,2))){
-    rates <- canpars_to_rates(as.numeric(traindat[i,parnames]), type="list")
-    ptrue <- c(ptrue, ptruefn(tgrid, shape=traindat$a[i], scale=1, lower.tail=FALSE))
-    if(is.na(traindat$a[i])) browser()
-    print(rates)
-    pfit <- c(pfit, pnphase(tgrid, rates$p, rates$a, lower.tail = FALSE))
-  }
-  dat <- data.frame(a = rep(agrid, each=length(tgrid)),
-                    tgrid = rep(tgrid, length(agrid)), pfit=pfit, ptrue=ptrue)
-  ggplot(dat, aes(x=tgrid, group=a, col=a)) +
-    geom_line(aes(y=ptrue)) +
-    geom_line(aes(y=pfit), lty=2)
-}
-check_fit("weibull", c(0.5, 0.7, 0.91, 1.3, 1.6, 1.9))
-check_fit("gamma", c(0.35, 0.6, 0.9, 1.3, 1.6, 2))
-
-## Fit an linear interpolating function for each parameter over full range of a (< and > 1)
-## Avoids problems constraining positivity with spline interpolations
-## tried interpolating on log or sqrt scale, still get noise close to 0 or 1
-## tried least squares estimating coefficients of M-spline basis, doesn't always interpolate
-## through the points.
-## (no need to check fit because geom_point()+geom_line() as above already linearly interpolates)
-
-##' @param parname
-##' @return interpolating function
-sfit <- function(traindat, parname){
-  g1 <- traindat |>
-    filter(conv==0) |>
-    mutate(par = .data[[parname]],
-           par = pmax(par, 0))
-  if (grepl("pabs",parname)) g1$par <- pmin(g1$par, 1)
-  smod <- approxfun(g1$a, g1$par)
-  attr(smod,"data") <- g1
-  smod
-}
-
-## keep linear in for now, if cubic works eventually replace
-
-parname <- "inc2"
-traindat <- readRDS(file="traindat_gamma.rds")
-#smod <- sfit(tmp, parname) # check linear
-agrid <- seq(min(traindat$a), max(traindat$a), by=0.01)
-fdat <- data.frame(a=agrid, y = shape_to_canpar(agrid, traindat, parname))
-ggplot(data=traindat, aes(x=a, y=.data[[parname]])) +
-  geom_point() +
-  geom_line(data=fdat, aes(x=a,y=y)) +
-  scale_x_continuous(breaks=traindat$a)
-sum(fdat$y<0)
-min(fdat$y) # just numeric fuzz
-
-
-parnames <- phase_cannames(5)
-fit_smods <- function(family){
-  smods <- vector(mode="list", length=length(parnames))
-  traindat <- readRDS(sprintf("traindat_%s.rds",family))
-  for (i in seq_along(parnames)){
-    smods[[i]] <- sfit(traindat |> filter(conv==0), parnames[i])
-  }
-  names(smods) <- parnames
-  smods
-}
-smods_weibull <- fit_smods("weibull")
-smods_gamma <- fit_smods("gamma")
+traindat_gamma <- fullopt(agrid_gamma, "gamma")
+traindat_gamma$inc2[traindat_gamma$inc2<0] <- 0 # fuzz
+traindat_gamma <- traindat_gamma |>
+  filter(conv==0) |>
+  filter(abs(a-3) > 0.0001,
+         abs(a-0.98) > 0.0001,
+         abs(a-0.99) > 0.0001,
+         abs(a-4.05) > 0.0001,
+         abs(a-3.20) > 0.0001,
+         abs(a-3.50) > 0.0001,
+         abs(a-3.70) > 0.0001
+  )
 
 form_hermite_gradient <- function(traindat){
+  # gradients needed to use hermite spline interpolation
   traindat_grad <- traindat[,c("a",phase_cannames(5))]
   for (i in phase_cannames(5)){
     traindat_grad[[i]] <- hermite_point_derivs(traindat$a, traindat[[i]])
@@ -272,20 +175,162 @@ form_hermite_gradient <- function(traindat){
   traindat_grad
 }
 
-traindat_weibull <- readRDS("traindat_weibull.rds") |> filter(conv==0)
-traindat_gamma <- readRDS("traindat_gamma.rds") |> filter(conv==0)
+#traindat_gamma <- readRDS("data-raw/traindat_gamma.rds")
+#traindat_weibull <- readRDS("data-raw/traindat_weibull.rds")
+## traindat_weibull <- phase5approx_data$weibull$traindat
+## traindat_gamma <- phase5approx_data$weibull$traindat
 
-# gradients needed to use hermite spline interpolation
+## Check that the fitted functions do not go outside the bounds
+shape_pred <- seq(min(traindat$a), max(traindat$a), by=0.001)
+for (i in phase_cannames(5)){
+  pars <- shape_to_canpar(shape_pred, i, family="gamma", spline="hermite",
+                          traindat=traindat_gamma)
+  print(i)
+  print(shape_pred[pars < 0])
+  if (grepl("pabs",i))
+    print(shape_pred[pars > 1])
+}
+
+
+## Work around to force cubic spline interpolator to not go outside the bounds
+## Add a new training point at the area where the overflow happens
+## (happens for pabs4 just above shape=1)
+## Linearly interpolate all parameters at this point, then set gradient to zero,
+## which gives a smooth Hermite spline that doesn't overflow
+traindat_extra <- traindat_weibull |> filter(a==1.0) |> mutate(a=1.005)
+for (i in phase_cannames(5))
+  traindat_extra[,i] <- shape_to_canpar(1.005, i, family="weibull", spline="linear",
+                                        traindat=traindat_weibull)
+traindat_weibull <- traindat_weibull |> rbind(traindat_extra) |> arrange(a)
+
 traindat_weibull_grad <- form_hermite_gradient(traindat_weibull)
+traindat_weibull_grad$pabs4[traindat_weibull_grad$a==1.005] <- 0
+
 traindat_gamma_grad <- form_hermite_gradient(traindat_gamma)
 
+
 # save training data and extrapolation models in a single object in the msmbayes package
-phase5approx_data <- list(gamma = list(traindat=traindat_gamma, grad = traindat_gamma_grad,
-                                       smods=smods_gamma),
-                          weibull = list(traindat=traindat_weibull, grad = traindat_weibull_grad,
-                                         smods=smods_weibull))
+phase5approx_data <- list(gamma = list(traindat=traindat_gamma,
+                                       grad = traindat_gamma_grad),
+                          weibull = list(traindat=traindat_weibull,
+                                         grad = traindat_weibull_grad))
 usethis::use_data(phase5approx_data, internal=TRUE, overwrite=TRUE)
 
+
+
+
+## Illustrate each parameter as a function of shape
+## Weibull.  OK now.  Just need pabs1-4 on the graph.
+## Could still remove those two points for pabs4.
+## Also illustrate the minimising KL
+## Gamma. filtered a few points for smoothness.
+## Still a bit iffy between 4 and 5, could limit at 4 or acknowledge
+## Is the result for integers known?
+## sum of exponentials with same rate 1.
+## a=2 should be pabs1=0, pabs2=1, inc1=0, remaining inc anything
+## a=3, pabs1,2 = 0, pabs3=1, inc1,2=0 .  3,4  anything
+## a=4, pabs1,2,3=0, pabs4=1, inc1,2,3=0  4  anything
+## a=5, pabs 1,2,3,4 = 0.  all OK.  inc 1,2,3,4 all 0
+## should increments all bs zero for these with qsoj 1?
+
+phase5approx_data$weibull$traindat |>
+  filter(inc1 > 1)
+
+phase5approx_data$weibull$traindat
+
+#traindat |>
+summary(traindat$kl[traindat$conv==0])
+phase5approx_data$weibull$traindat[phase5approx_data$weibull$traindat$kl > 0.1,]
+traindat[traindat$kl > 0.1,]
+
+saveRDS(traindat, file="traindat_weibull_noconstr.rds")
+
+mathnames <- c("lambda[1]", "inc[1]", "inc[2]", "inc[3]", "inc[4]",
+               "p[1]", "p[2]", "p[3]", "p[4]")
+names(mathnames) <- phase_cannames(5)
+
+pdf("../paper/figures/phaseopt_weibull.pdf", width=6, height=2)
+phase5approx_data$weibull$traindat |>
+  pivot_longer(c(qsoj, pabs1:pabs4),
+               names_to="parname", values_to="parval") |>
+  mutate(parname = factor(parname, levels=phase_cannames(5))) |>
+  ggplot(aes(x=a, y=parval, col=parname)) +
+  geom_vline(xintercept = 1.0, col="gray", lwd=1.2) +
+  geom_point() + geom_line() +
+  facet_wrap(~parname, nrow=3, ncol=3, scales="free_y",
+             labeller=as_labeller(mathnames, default=label_parsed)) +
+  theme(legend.position = "none") +
+  xlab("Shape parameter a") + ylab("")
+dev.off()
+
+pdf("../paper/figures/phaseopt_gamma.pdf", width=6, height=3)
+phase5approx_data$gamma$traindat |>
+  pivot_longer(c(qsoj, inc1:inc4, pabs1:pabs4),
+               names_to="parname", values_to="parval") |>
+  mutate(parname = factor(parname, levels=phase_cannames(5))) |>
+  ggplot(aes(x=a, y=parval, col=parname)) +
+  geom_vline(xintercept = 1.0, col="gray", lwd=1.2) +
+  geom_point() + geom_line() +
+  facet_wrap(~parname, nrow=3, ncol=3, scales="free_y",
+             labeller=as_labeller(mathnames, default=label_parsed)) +
+  theme(legend.position = "none") +
+  xlab("Shape parameter a") + ylab("")
+dev.off()
+
+
+
+
+## Now check fit to distribution over a range of a
+
+check_fit <- function(family, agrid){
+  traindat <- phase5approx_data[[family]]$traindat
+  parnames <- colnames(traindat)[2:10]
+  pfit <- ptrue <- numeric()
+  tgrid <- seq(0.01, 5, by=0.01)
+  ptruefn <- if (family=="weibull") pweibull else pgamma
+  for (i in match(round(agrid,2), round(traindat$a,2))){
+    rates <- canpars_to_rates(as.numeric(traindat[i,parnames]), type="list")
+    ptrue <- c(ptrue, ptruefn(tgrid, shape=traindat$a[i],
+                              scale=1, lower.tail=FALSE))
+    if(is.na(traindat$a[i])) browser()
+    print(rates)
+    pfit <- c(pfit, pnphase(tgrid, rates$p, rates$a, lower.tail = FALSE))
+  }
+  levs <- c("ptrue", "pfit")
+  names(levs) <- c(str_to_title(family), "Phase-type")
+  dat <- data.frame(a = rep(agrid, each=length(tgrid)),
+                    tgrid = rep(tgrid, length(agrid)), pfit=pfit, ptrue=ptrue) |>
+    mutate(a = ordered(a)) |>
+    pivot_longer(cols=ptrue:pfit, names_to="dist", values_to="prob") |>
+    mutate(a_dist = interaction(a, dist),
+           dist = fct_recode(dist, !!!levs))
+  ggplot(dat, aes(x=tgrid, group=a_dist, col=a)) +
+    geom_line(aes(y=prob, lty=dist), lwd=1.1) +
+    xlab("Time to event") + ylab("Probability the event has not occurred") +
+    theme(legend.position.inside = c(0.8, 0.6)) +
+  guides(colour = guide_legend(position="inside", title="Shape"),
+         lty = guide_legend(position="inside", title=NULL))
+}
+
+pdf("../paper/figures/phasefit_weibull.pdf", width=6, height=4)
+check_fit("weibull", c(0.7, 0.9, 1.3, 1.6, 2.0))
+dev.off()
+
+pdf("../paper/figures/phasefit_weibull_bad.pdf", width=6, height=4)
+check_fit("weibull", c(0.3, 0.5, 0.6))
+dev.off()
+
+pdf("../paper/figures/phasefit_gamma.pdf", width=6, height=4)
+check_fit("gamma", c(0.35, 0.6, 0.9, 1.3, 1.6, 2, 5))
+dev.off()
+
+## KL vs shape
+## Whys this worse than andrew's, is the scale different?
+phase5approx_data$weibull$traindat |>
+  ggplot(aes(x=a, y=kl)) + geom_point() + geom_line()
+
+phase5approx_data$gamma$traindat |>
+  ggplot(aes(x=a, y=kl)) + geom_point() + geom_line()
 
 
 # Example of a functional prediction from the interpolation
@@ -303,93 +348,4 @@ ggplot(tdat, aes(x=tgrid)) +
 
 ggplot(phase5approx("weibull")$traindat, aes(x=a, y=qsoj)) +
   geom_point() + geom_line()
-
-
-
-
-## Weibull 1.30, affects qsoj, inc1, pabs4
-##         1.38, 1.39, 1.40 affects inc2,3
-#          around 1.0 in general.
-## Why not just zap small inc1,2,3, zero should be fine
-#    0.78,0.80, could set pabs4 zero for these.
-
-# Gamma
-# qsoj is spiky around 1,2,3,4.  Could consider removing the training points too close to these?
-# is it just that deriv is theoretically not continuous here or blows up to inf?
-# Similarly we get spikes in inc around integers
-# pabs1, 2, fine.  pabs3 spike at 1.86 could set to zero, then around integers again
-# pabs4 could set to zero at 0.60,0.65,0.7
-
-library(tidyverse)
-load_all()
-
-# Training points to be removed to assess Stan
-# or set
-weibull_filter_points <- c(1.3, 0.98, 0.99, 1, 1.01, 1.02, 1.03, 1.04)
-td <- phase5approx$weibull$traindat |>
-  filter(!(round(a,2) %in% round(weibull_filter_points,2))) |>
-  mutate(inc1 = ifelse( (a > 1.25)&(a<1.6), 0, inc1),
-         inc2 = ifelse( (a > 1.25)&(a<1.6), 0, inc2),
-         inc3 = ifelse( (a > 1.25)&(a<1.6), 0, inc3),
-         inc4 = ifelse( (a > 1.25)&(a<1.6), 0, inc4),
-         pabs4 = ifelse( round(a,2) %in% c(0.78, 0.80), 0, pabs4))
-
-td <- data.frame(a = phase5approx$weibull$traindat$a) #seq(0.4, 2, by=0.2))
-set.seed(1)
-for (i in phase_cannames(5)){
-  td[[i]] <- mean(phase5approx$weibull$traindat[[i]]) + rnorm(length(td$a), 0, 0.1)
-  td[[i]] <- pmax(td[[i]], 0)
-}
-for (i in c("qsoj","inc1","inc2","inc3","inc4","pabs1","pabs2","pabs3","pabs4"))
-  td[[i]] <- phase5approx$weibull$traindat[[i]]
-
-## pabs2 or pabs3 breaks it.  rest fine.
-## So what do we think the true pattern is for these?  could just ramp it down to 1.2
-## make the training points ragged ?  Or craft them to linearly interpolate
-td$pabs2[td$a %in% c(0.98, 0.99)] <-
-  approx(x=c(0.97, 1), y=c(td$pabs2[td$a==0.97], 1), xout=c(0.98, 0.99))$y
-td$pabs2[td$a %in% c(1.01)] <-
-  approx(x=c(1, 1.02), y=c(1, td$pabs2[td$a==1.02]), xout=c(1.01))$y
-
-td$pabs3[td$a %in% seq(1.01, 1.09, by=0.01)] <-
-  approx(x=c(1, 1.1), y=c(1, td$pabs3[td$a==1.1]), xout=seq(1.01, 1.09, by=0.01))$y
-td$pabs3[td$a %in% seq(1.36, 1.40, by=0.01)] <-
-  approx(x=c(1.35, 1.41), y=c(td$pabs3[round(td$a,2)==round(1.35,2)],
-                              td$pabs3[round(td$a,2)==round(1.41,2)]),
-         xout=seq(1.36, 1.40, by=0.01))$y
-td$pabs3 <- td$pabs2
-
-ggplot(phase5approx$weibull$traindat, aes(x=a, y=pabs3)) + geom_point() + geom_line()+
-  coord_cartesian(xlim=c(0.8, 1.1))
-ggplot(td, aes(x=a, y=pabs3)) + geom_point() + geom_line()
-phase5approx_test$weibull$grad$pabs3
-## pabs3 still breaks it.
-
-phase5approx_test$weibull$traindat <- td
-phase5approx_test$weibull$grad <- tdgrad <- form_hermite_gradient(td)
-save(phase5approx_test, file="data/phase5approx_test.rda")
-
-par <- "pabs3"
-
-tdsmall <- tdsmallg <- data.frame(a = c(0.35, 0.6, 0.8, 1, 1.2, 1.3, 1.5, 2.0))
-for (i in phase_cannames(5)){
-  tdsmall[[i]] <- hermite(tdsmall$a, td$a, td[[i]], tdgrad[[i]])
-  tdsmallg[[i]] <- hermite_point_derivs(tdsmall$a, tdsmall[[i]])
-}
-phase5approx_test$weibull$traindat <- tdsmall
-phase5approx_test$weibull$grad <- tdsmallg
-
-pts <- td |>
-  mutate(y = ,
-         m = hermite_point_derivs(x, y))
-xgrid <- seq(0.35, 2, by=0.001)
-dat <- data.frame(x=xgrid, y=hermite(xgrid, td$a, td[[par]], tdgrad[[par]]))
-dat2 <- data.frame(x=xgrid, y=hermite(xgrid, pts$x, pts$y, pts$m))
-ggplot(dat, aes(x=x, y=y)) +
-  geom_line() +
-  geom_point(data=pts) +
-  geom_line(data=dat2, col="blue")
-
-## Or pick like a tiny number of points like < 10 per par
-## qsoj
 
