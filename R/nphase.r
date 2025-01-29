@@ -181,10 +181,10 @@ check_prate_arate <- function(prate, arate){
     if ((nrow(prate) != nrep) || (ncol(prate) != nphase-1))
         cli_abort("Inferred nphase = {nphase}, nrep = {nrep} from the size of {.var arate}, so expected {.var prate} to be either a vector of length {nrep} or a matrix with {nrep} row{?s} (replicates) and {nphase-1} column{?s} ({.var nphase+1}). Found {.var prate} to be a {nrow(prate)} by {ncol(prate)} matrix")
   }
-  if (any(prate < 0)){ # TODO position
+  if (any(prate < -sqrt(.Machine$double.eps))){ # TODO why can't we return NaN for these? 
     cli_abort("{.var prate} must be non-negative")
   }
-  if (any(arate < 0))
+  if (any(arate < -sqrt(.Machine$double.eps)))
     cli_abort("{.var arate} must be non-negative")
   pars <- list(prate=prate, arate=arate, nphase=nphase, nrep=nrep)
 }
