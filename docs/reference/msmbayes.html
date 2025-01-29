@@ -90,6 +90,7 @@ is used, via the Stan software.</p>
 <span>  Efix <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  nphase <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  priors <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  prob_initstate <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  soj_priordata <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  fit_method <span class="op">=</span> <span class="st">"sample"</span>,</span>
 <span>  keep_data <span class="op">=</span> <span class="cn">FALSE</span>,</span>
@@ -225,6 +226,23 @@ phase-type approximation and misclassification models).  See
 call can be supplied here instead of a list.</p></dd>
 
 
+<dt id="arg-prob-initstate">prob_initstate<a class="anchor" aria-label="anchor" href="#arg-prob-initstate"></a></dt>
+<dd><p>Probabilities of true states at a person's first
+observation time in a misclassification or model.  If supplied,
+this should be a matrix with a row for each individual subject,
+and a column for each true state, or a vector with one element
+for each state that is assumed to apply to all individuals.</p>
+<p>If not supplied, every person is assumed to be in state 1 with
+probability 1 in misclassification models, or phase 1 of the
+observed state with probability 1 in phase-type models.  Note
+no warning is currently given if the first observed state would
+be impossible if the person was really in state 1.</p>
+<p>This applies to both misclassification models, and phase-type
+models where a person's first observed state is phased.  If the
+first observed state is not phased or misclassified, then this is
+ignored.</p></dd>
+
+
 <dt id="arg-soj-priordata">soj_priordata<a class="anchor" aria-label="anchor" href="#arg-soj-priordata"></a></dt>
 <dd><p>Synthetic data that represents prior information
 about the mean sojourn times.  Experimental, undocumented feature.</p></dd>
@@ -254,7 +272,10 @@ object.  <code>FALSE</code> by default.</p></dd>
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
 <dd><p>Other arguments to be passed to the function from
-<code>rstan</code> or <code>cmdstanr</code> that fits the model.</p></dd>
+<code>rstan</code> or <code>cmdstanr</code> that fits the model.  Note that initial
+values are determined by sampling from the prior (after
+dividing the prior SD 5), not using
+Stan's default, but this can be overridden here.</p></dd>
 
 </dl></div>
     <div id="value">
