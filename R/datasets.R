@@ -51,11 +51,19 @@
 ##' A simulated multistate dataset with lots of observations and
 ##' covariates
 ##' 
-##' @format See `infsim/bigdata.R` in the source for simulation settings. 
+##' @format See `data-raw/bigdata.R` in the source for simulation settings. 
 ##'
 ##' @md
 ##' @keywords datasets
 "bigdat"
+
+##' A simulated dataset from an illness-death model
+##' 
+##' @format See `data-raw/illdeath.R` in the source for simulation settings. 
+##'
+##' @md
+##' @keywords datasets
+"illdeath_data"
 
 ##' Example fitted model objects used for testing msmbayes
 ##'
