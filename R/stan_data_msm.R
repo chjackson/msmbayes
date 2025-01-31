@@ -61,7 +61,8 @@ form_transition_data <- function(dat, time=TRUE){
   if (time)
     datnew$timelag <- c(NA, diff(dat[["time"]]))
   datnew <- datnew[!firstobs,,drop=FALSE]
-  datnew$X <- dat$X[!lastobs,,drop=FALSE] ## covariate value at start of interval
+  if (!is.null(dat[["X"]]))
+    datnew$X <- dat$X[!lastobs,,drop=FALSE] ## covariate value at start of interval
   datnew
 }
 

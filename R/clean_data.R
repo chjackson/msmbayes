@@ -194,7 +194,7 @@ drop_missing_data <- function(dat){
   ## NAs in covariates are OK at last observation per subject
   ## since last covariate observation is not used.
   ## So replace last covariate obs with a dummy value, to keep Stan happy
-  if (!is.null(dat$X)){
+  if (!is.null(dat[["X"]])){
     last_obs <- dat |> mutate(rownum=row_number()) |> group_by(subject) |>
       summarise(lastobs=max(rownum), groups="drop") |> pull(lastobs)
     dat$X[last_obs,] <- 0

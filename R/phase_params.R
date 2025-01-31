@@ -111,15 +111,19 @@ canpars_to_list <- function(pars){
 ##' @export
 rates_to_canpars <- function(rates, type="vector"){
   check_phasetype_parvector(rates)
-  if (!is.list(rates)) rates <- rates_to_list(rates)
+  if (!is.list(rates)) rates <- rates_to_list(rates, canonical=FALSE)
   nphase <- length(rates$a)
   qsoj_notlast <- rates$p + rates$a[1:(nphase-1)]
   qsoj_last <- rates$a[nphase]
   qsoj <- c(qsoj_notlast, qsoj_last)
   incs <- diff(qsoj)
   names(incs) <- paste0("i", 2:nphase)
+  if (any(incs<0))
+    cli_warn("Supplied rates are not in canonical form: one or more sojourn rate increments are negative")
   pabs <- rates$a[1:(nphase-1)] / qsoj_notlast
   names(pabs) <- paste0("b", 1:(nphase-1))
+  if (any((pabs<0) | (pabs>1)))
+    cli_warn("Supplied rates are not in canonical form: one or more absorption probabilities are not in [0,1]")
   if (type=="list")
     list(qsoj=qsoj[1], inc=incs, pabs=pabs)
   else if (type=="vector")
@@ -144,8 +148,13 @@ logcanpars_to_rates <- function(par, type){
   canpars_to_rates(cpars, type)
 }
 
-phase_ratenames <- function(nphase){
-  c(paste0("p", 1:(nphase-1)), paste0("a",1:nphase))
+phase_ratenames <- function(nphase, rowwise=FALSE){
+  if (rowwise) {
+    setdiff(as.vector(rbind(paste0("p",1:nphase),paste0("a",1:nphase))),
+            paste0("p",nphase))
+  }
+  else 
+    c(paste0("p", 1:(nphase-1)), paste0("a",1:nphase))
 }
 
 phase_cannames <- function(nphase){

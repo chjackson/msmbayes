@@ -18,6 +18,9 @@
 ##' an interval of 1 year (say), but the instantaneous transition from
 ##' mild to severe is impossible.
 ##'
+##' Note this is not fully tidy-friendly, as it will not work
+##' if `data` is grouped using dplyr.
+##'
 ##' @inheritParams msmbayes
 ##'
 ##' @param time_groups Number of groups to summarise the time
@@ -37,7 +40,7 @@ statetable <- function(data, state="state", subject="subject", time="time",
   clean_data(data, state, time, subject) |>
     form_transition_data() |>
     mutate(timelag = cut_allow_1(timelag, time_groups)) |>
-    dplyr::group_by("fromstate", "tostate", "timelag") |>
+    dplyr::group_by(across(all_of(c("fromstate", "tostate", "timelag")))) |>
     dplyr::summarise(n=n())
 }
 

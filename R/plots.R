@@ -35,7 +35,8 @@ msmbres_to_draws <- function(res, name=NULL, col="value"){
 #' @noRd 
 dens_compare <- function(res, compare="prior_rvar",
                          names = c("Prior", "Posterior"),
-                         varnames = NULL, plot=TRUE){
+                         varnames = NULL, plot=TRUE,
+                         xlab=""){
   if (is.null(varnames)) varnames <- res[["name"]]
   dims <- c(length(draws_of(res$value[1])), nrow(res))
   draws_ref <-     msmbres_to_draws(res, name=varnames)
@@ -50,6 +51,6 @@ dens_compare <- function(res, compare="prior_rvar",
       guides(fill  = guide_legend(position = "inside", title=NULL)) +
       theme(legend.margin = margin(0, 0, 0, 0),
             legend.justification.inside = c(1, 1)) +
-      xlab("") + ylab("Density")
+      xlab(xlab) + ylab("Density")
   else dat
 }
