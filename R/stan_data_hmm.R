@@ -82,16 +82,19 @@ make_stan_obsdata <- function(dat, qm=NULL, cm=NULL,
 
 pa_nulldata <- function(qm){
   dummy <- 1
-  list(npaq = 0, npastates = 0, priorq_inds = as.array(qm$priorq_inds),
+  list(npaqkl = 0, npastates = 0, priorq_inds = as.array(qm$priorq_inds),
        ntrain = 1, traindat_x = array(dummy, dim=c(1)),
        traindat_y = array(dummy, dim=c(1,0)), traindat_m = array(dummy, dim=c(1,0)),
-       traindat_inds = array(dim=c(0,2)), 
+       traindat_inds = array(dim=c(0,2)),
        spline = 1, npadest =  0, dest_base = array(dim=0), dest_state = array(dim=0),
-       loind = array(dim=0), npaqall=0, paq_inds = array(dim=0), praterow = array(dim=0),
+       loind = array(dim=0), npaqall=0, paq_inds = array(dim=0),
+##       praterow = array(dim=0), # todo remove when working
+       prates_inds = array(dim=0),
+       npaq = array(dim=0), prates_start = array(dim=0), prates_end = array(dim=0),
        pastate = array(dim=0), prate_abs = array(dim=0), dest_inds = array(dim=0),
        noddsabs = 0)
 }
-                    
+
 form_phaseapprox_standata <- function(qm,pm,qmobs){
   if (!pm$phaseapprox) return(pa_nulldata(qm))
 
@@ -116,7 +119,7 @@ form_phaseapprox_standata <- function(qm,pm,qmobs){
   crdat <- qm$pacrdata
 
   c(
-    list(npaq = qm$npaq,
+    list(npaqkl = qm$npaqkl,
          priorq_inds = as.array(qm$priorq_inds),
          npastates = pm$npastates,
          ntrain = nrow(traindat),
@@ -136,7 +139,12 @@ form_phaseapprox_standata <- function(qm,pm,qmobs){
          npaqall = nrow(rdat),
          paq_inds = as.array(rdat$paq_inds),
          pastate = as.array(rdat$pastate),
-         praterow = as.array(rdat$praterow),
+
+         prates_start = as.array(tapply(rdat$prates_inds, rdat$pastate, min)),
+         prates_end = as.array(tapply(rdat$prates_inds, rdat$pastate, max)),
+         npaq = as.array(rep(qm$npaqkl, pm$npastates)), # TODO generalise
+
+         prates_inds = as.array(rdat$prates_inds),
          prate_abs = as.array(rdat$prate_abs),
          dest_inds = as.array(rdat$dest_inds),
 

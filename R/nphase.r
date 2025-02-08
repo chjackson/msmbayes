@@ -143,7 +143,27 @@ nphase_Q <- function(prate, arate){
   Q
 }
 
+mean_nphase <- function(prate, arate, initp=NULL){
+  pars <- check_prate_arate(prate, arate)
+  S <- nphase_generator(pars$prate, pars$arate)
+  initp <- make_initp(initp, pars$nphase)
+  - sum(initp %*% solve(S))
+  #I <- diag(pars$nphase)
+  #sum(initp %*% solve(I - S)) # CHECKME
+}
 
+#FIXME S insoluble and rnphase crashes for 
+#$prate
+#[1] 0.2695774 3.8055824
+#$arate
+#[1] 0.6818182 0.0000000 0.0000000
+
+var_nphase <- function(prate, arate, initp=NULL){
+  pars <- check_prate_arate(prate, arate)
+  S <- nphase_generator(pars$prate, pars$arate)
+  initp <- make_initp(initp, pars$nphase)
+  2*sum(initp %*% solve(S %*% S)) - sum(initp %*% solve(S))^2
+}
 
 vectorise_nphase <- function(x, prate, arate){
   pars <- check_prate_arate(prate, arate)

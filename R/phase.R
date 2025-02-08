@@ -40,7 +40,7 @@ form_phasetype <- function(nphase=NULL, Q,
 check_pafamily <- function(pafamily, pastates){
   if (is.null(pastates)) return(NULL)
   pafamily <- rep(pafamily, length.out = length(pastates))
-  if (length(pafamily) != length(pastates)) # not used 
+  if (length(pafamily) != length(pastates)) # not used
     cli_abort("supplied {.var pastates} of length {length(pastates)}, but {.var pafamily} of length {length(pafamily)}")
   badpaf <- which(!(pafamily %in% .pafamilies))
   if (length(badpaf) > 0)
@@ -149,7 +149,7 @@ form_Ephase <- function(nphase, E=NULL, Efix, Q, call=caller_env()){
 #' @return A matrix suitable to be passed as the \code{Efix} argument
 #'   to \code{\link{msmbayes}}.
 #'
-#' TODO with user supplied Efix 
+#' TODO with user supplied Efix
 #'
 #' @noRd
 form_Efixphase <- function(Ephase, nphase, Efix=NULL){
@@ -257,7 +257,7 @@ phase_expand_qmodel <- function(qm, pm){
   ## TODO rename tr for consistency? Clearer obs/latent distinction. Remove the vectors
 
   if (pm$phaseapprox){
-    qmnew$npaq <- 9 # for 5-phase approximation
+    qmnew$npaqkl <- 9 # for KL-based 5-phase approximation
     pprog <- pd$phasefrom & pd$ttype=="prog"
     pabs <- pd$phasefrom & pd$ttype=="abs"
     qmnew$priorq_inds <- which(pd$ttype=="markov")
@@ -275,22 +275,34 @@ phase_expand_qmodel <- function(qm, pm){
   qmnew
 }
 
-## One row per rate from a phase of any state given a phaseapprox distribution
+##' @return Data frame with one row per rate from a phase of any state given a phaseapprox distribution.  Order inherited from qm$phasedata, not necessarily ordered by state. Currently by column of overall Q matrix, e.g. to-state
+##'
+##' `npaqall` number of rows, total number of such rates
+##'
+##' `prates_inds` index of each row into "prates" Stan variable, which is ordered by pastate, prog rate, abs rate.
+##' indices repeated for competing absorbing states
+##'
+##' todoc other
+##'
+##' @noRd
 form_phaseapprox_ratedata <- function(qm, pm){
-  ## TODO remove unnecessary cols.  internals doc more generally 
+  if (pm$npastates==0) return(NULL) # TODO null object for stan data
   pdat <- qm$phasedata
   pdat$pafrom <- pdat$oldfrom %in% pm$pastates
   npaqall <- sum(pdat$pafrom)
   rdat <- pdat[pdat$pafrom,,drop=FALSE]
   rdat$paq_inds <- which(pdat$pafrom)
   rdat$pastate <- match(rdat$oldfrom, pm$pastates)
-  rdat$praterow <- numeric(npaqall)
+  praterow <- numeric(npaqall)
+
   for (i in 1:pm$npastates){
-    # TODO some internal var/fn which says we are using 5 phases
-    rdat$praterow[rdat$pastate==i & rdat$ttype=="prog"] <- 1:4 
-    rdat$praterow[rdat$pastate==i & rdat$ttype=="abs"] <- 5:9
+    np <- pm$nphase[pm$pastates[i]]
+    praterow[rdat$pastate==i & rdat$ttype=="prog"] <- 1:(np-1)
+    praterow[rdat$pastate==i & rdat$ttype=="abs"] <- np:(2*np - 1)
   }
   rdat$prate_abs <- as.numeric(rdat$ndest > 1 & rdat$ttype=="abs")
+  rdat$prates_inds <-
+    praterow + c(0, tapply(praterow, rdat$pastate, max)[-pm$npastates])[rdat$pastate]
   pdatcr <- unique(pdat[pdat$pabs, c("oldfrom","oldto","oldlab")])
   rdat$dest_inds <- match(rdat$oldlab, pdatcr$oldlab, nomatch=0)
   rdat

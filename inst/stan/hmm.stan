@@ -130,7 +130,8 @@ data {
   array[ntlc] real<lower=0> timelag; // time lags (keeping only those corresponding to distinct (timelag, covariates)
 
 
-  int npaq; // number of phase-type intensities per phased state (will this always be 9, if nphases=5??)
+  int npastates; // number of states on observable space that have phase-type approximations
+  int npaqkl; // TODO only applicable to spline phaseapprox method 
   int npriorq; // number of Markov intensities
   array[npriorq] real logqmean;        // mean of normal prior on markov log(q)
   array[npriorq] real<lower=0> logqsd; // sd of normal prior on log(q)
@@ -153,18 +154,20 @@ data {
   array[nsoj] int<lower=1,upper=ntlc> sojtlcid; // index of covariate value (etc) for these people
 
   // Data for phase-type approximation to shape/scale distributions
-  int npastates; // number of states on observable space that have phase-type approximations
   array[npriorq] int<lower=1> priorq_inds; // indices of Markov intensities in logq_full, given direct priors
   int<lower=1> ntrain;
   vector[ntrain] traindat_x;
-  matrix[ntrain,npaq] traindat_y;
-  matrix[ntrain,npaq] traindat_m;
+  matrix[ntrain,npaqkl] traindat_y;
+  matrix[ntrain,npaqkl] traindat_m;
   array[npastates,2] int<lower=1> traindat_inds;
   vector[npastates] logshapemean;
   vector<lower=0>[npastates] logshapesd;
   vector[npastates] logscalemean;
   vector<lower=0>[npastates] logscalesd;
   int<lower=1,upper=2> spline;
+  array[npastates] int<lower=1> prates_start;
+  array[npastates] int<lower=1> prates_end;
+  array[npastates] int<lower=1> npaq;
 
   // For phase-type approximations with competing exit states. 
   // NOTE TODO competing exit states not otherwise supported with phase-type models
@@ -175,7 +178,7 @@ data {
 
   int npaqall; // total number of rates (out of nqpars) relating to phaseapprox state
   array[npaqall] int<lower=1,upper=nqpars>    paq_inds; // index into q_full for each of these
-  array[npaqall] int<lower=1,upper=npaq>      praterow; // which of the npaq=9 sojourn dist phase trans rate pars they relate to
+  array[npaqall] int<lower=1>                 prates_inds; // index into prates for each of these TODO 
   array[npaqall] int<lower=1,upper=npastates> pastate;   // which of 1:npastates these relate to
   array[npaqall] int<lower=0,upper=1>         prate_abs; // is this a competing absorption rate (no if only one destination)
   array[npaqall] int dest_inds;                          // index from 1:npadest for each of these (or 0 if a prog rate)
@@ -249,7 +252,7 @@ transformed parameters {
   // JUST PHASEAPPROX MODELS 
   if (npastates > 0)
     {
-      matrix[npaq,npastates] prates; // parameters of phase-type model which approximates the sojourn distribution 
+      vector[npaqall] prates; 
       vector[npadest] odds;    // transition odds from phaseapprox states
       vector[npastates] sumoddsa;  // sum of competing odds within a state (including 1 for the first destination)
       vector[nqpars] q_full;    
@@ -257,11 +260,12 @@ transformed parameters {
       for (j in 1:npastates){
 	int tstart = traindat_inds[j,1];
 	int tend = traindat_inds[j,2];
-	prates[1:npaq,j] = shapescale_to_rates(shape[j], scale[j], npaq,
-					       traindat_x[tstart:tend],
-					       traindat_y[tstart:tend,],
-					       traindat_m[tstart:tend,],
-					       spline);
+	prates[prates_start[j]:prates_end[j]] =
+	  shapescale_to_rates(shape[j], scale[j], npaq[j],
+			      traindat_x[tstart:tend],
+			      traindat_y[tstart:tend,],
+			      traindat_m[tstart:tend,],
+			      spline);
       }
 
       // define absorption probs in terms of log odds 
@@ -282,10 +286,10 @@ transformed parameters {
 
       for (i in 1:npaqall){
 	if (npadest > 0 && prate_abs[i]){
-	  q_full[paq_inds[i]] = prates[praterow[i], pastate[i]] * 
+	  q_full[paq_inds[i]] = prates[prates_inds[i]] * 
 	    padest[dest_inds[i]];
 	} else {
-	  q_full[paq_inds[i]] = prates[praterow[i], pastate[i]];
+	  q_full[paq_inds[i]] = prates[prates_inds[i]];
 	}
       }
       for (i in 1:npriorq){
