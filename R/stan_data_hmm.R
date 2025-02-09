@@ -86,7 +86,8 @@ pa_nulldata <- function(qm){
        ntrain = 1, traindat_x = array(dummy, dim=c(1)),
        traindat_y = array(dummy, dim=c(1,0)), traindat_m = array(dummy, dim=c(1,0)),
        traindat_inds = array(dim=c(0,2)),
-       spline = 1, npadest =  0, dest_base = array(dim=0), dest_state = array(dim=0),
+       pamethod = 1, pafamily = array(dim=0), npadest =  0,
+       dest_base = array(dim=0), dest_state = array(dim=0),
        loind = array(dim=0), npaqall=0, paq_inds = array(dim=0),
 ##       praterow = array(dim=0), # todo remove when working
        prates_inds = array(dim=0),
@@ -110,10 +111,16 @@ form_phaseapprox_standata <- function(qm,pm,qmobs){
   ## matrix npastates x 2
   ## start and end row index into traindat for each approximated state
   traindat_inds <- rbind(winds, ginds)[pafamily,,drop=FALSE]
-  wmin <- log(min(traindatw$a)); wmax <- log(max(traindatw$a))
-  gmin <- log(min(traindatg$a)); gmax <- log(max(traindatg$a))
-  logshapemin <- c(wmin, gmin)[pafamily]
-  logshapemax <- c(wmax, gmax)[pafamily]
+
+  if (pm$pamethod=="moment"){
+    logshapemin <- rep(0, length(pafamily))
+    logshapemax <- log(shape_ubound(pm$nphase[pm$pastates], pm$pafamily))
+  } else { 
+    wmin <- log(min(traindatw$a)); wmax <- log(max(traindatw$a))
+    gmin <- log(min(traindatg$a)); gmax <- log(max(traindatg$a))
+    logshapemin <- c(wmin, gmin)[pafamily]
+    logshapemax <- c(wmax, gmax)[pafamily]
+  }
 
   rdat <- qm$paratedata
   crdat <- qm$pacrdata
@@ -129,7 +136,8 @@ form_phaseapprox_standata <- function(qm,pm,qmobs){
          traindat_inds = traindat_inds,
          logshapemin = as.array(logshapemin),
          logshapemax = as.array(logshapemax),
-         spline = match(pm$pamethod, c("kl_linear","kl_hermite")),
+         pamethod = match(pm$pamethod, c("moment", "kl_linear","kl_hermite")),
+         pafamily = as.array(match(pm$pafamily, c("gamma","weibull"))),
 
          npadest = nrow(crdat),
          dest_base = as.array(as.numeric(crdat$dest_base)),
@@ -142,7 +150,7 @@ form_phaseapprox_standata <- function(qm,pm,qmobs){
 
          prates_start = as.array(tapply(rdat$prates_inds, rdat$pastate, min)),
          prates_end = as.array(tapply(rdat$prates_inds, rdat$pastate, max)),
-         npaq = as.array(rep(qm$npaqkl, pm$npastates)), # TODO generalise
+         npaq = as.array(2*pm$nphase[pm$pastates] - 1), 
 
          prates_inds = as.array(rdat$prates_inds),
          prate_abs = as.array(rdat$prate_abs),

@@ -1,14 +1,15 @@
 
 msmbayes_form_internals <- function(data, state="state", time="time", subject="subject",
                                     Q, covariates=NULL,
-                                    pastates=NULL, pafamily="weibull", pamethod="hermite",
+                                    pastates=NULL, pafamily="weibull",
+                                    panphase=NULL, pamethod="hermite",
                                     E=NULL, Efix=NULL, nphase=NULL,
                                     priors=NULL, soj_priordata=NULL,
                                     prior_sample = FALSE,
                                     call = caller_env()){
   qm <- qmobs <- form_qmodel(Q)
 
-  pm <- form_phasetype(nphase, Q, pastates, pafamily, pamethod, E, Efix, call)
+  pm <- form_phasetype(nphase, Q, pastates, pafamily, panphase, pamethod, E, Efix, call)
   if (pm$phasetype){
     qm <- phase_expand_qmodel(qmobs, pm)
     qmobs <- attr(qm, "qmobs")

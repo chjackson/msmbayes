@@ -88,7 +88,7 @@ erlang_exp_case1 <- function(m1, n2, n3, n, check=FALSE){
     (n2*(4 + n - n*n3) + sqrt(n*n2)*(
       sqrt(12*n2^2*(n + 1) + 16*n3*(n + 1) + n2*(n*(n3 - 15)*(n3 + 1) - 8*(n3 + 3)))
     ))
-  ## note b=1 etc not checked for
+  ## note b=1 and any other NaN not handled. 
   ## reduction to exponential distribution handled outside
 
   a <- ((b*n2 - 2)*(n - 1)*b) / ((b - 1)*n)
@@ -176,4 +176,42 @@ shape_to_rates_moment <- function(shape, scale, family, nphase){
 
   colnames(rates) <- phase_ratenames(nphase)
   rates
+}
+
+gamma_shape_ubound <- function(nphase){
+  nphase
+}
+
+#fn <- function(shape, n=5){
+#  nmo <- weibull_nmo(shape, scale=1)
+#  mb <- n3_moment_bounds(nmo$n2, nmo$n3, n=n)
+#  nmo$n3 - mb["lower",]
+#}
+## weibull_ubounds <- c(NA,
+##                      uniroot(fn, interval=c(1.001, 1.2), n=2)$root,
+##                      uniroot(fn, interval=c(1, 1.7), n=3)$root,
+##                      uniroot(fn, interval=c(1, 2), n=4)$root,
+##                      uniroot(fn, interval=c(1, 2.3), n=5)$root,
+##                      uniroot(fn, interval=c(1, 2.4), n=6)$root,
+##                      uniroot(fn, interval=c(1, 2.6), n=7)$root,
+##                      uniroot(fn, interval=c(1, 2.8), n=8)$root,
+##                      uniroot(fn, interval=c(1, 3), n=9)$root,
+##                      uniroot(fn, interval=c(1, 3.5), n=10)$root
+## )
+## dput(round(weibull_ubounds, digits=8))
+weibull_shape_ubound <- function(nphase){
+  weibull_ubounds <- c(NA, 1.1855015, 1.49013532, 1.76304244,
+                       2.01311007, 2.24550818, 
+                       2.46362245, 2.66986917,
+                       2.86603218, 3.05349209)
+  if (nphase > 10) nphase <- 10
+  weibull_ubounds[nphase]
+}
+
+shape_ubound <- function(nphase, family){
+  res <- numeric(length(nphase))
+  family_fns <- c(weibull=weibull_shape_ubound, gamma=gamma_shape_ubound)
+  for (i in seq_along(res))
+    res[i] <- family_fns[family[i]](nphase[i])
+  res
 }

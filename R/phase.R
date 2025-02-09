@@ -8,18 +8,17 @@
 #' @noRd
 form_phasetype <- function(nphase=NULL, Q,
                            pastates=NULL, pafamily="weibull",
+                           panphase=NULL,
                            pamethod="kl_hermite",
                            E=NULL,
                            Efix=NULL,
                            call=caller_env()){
-  nphase <- check_nphase(nphase, Q, call)
-  nphase <- nphase_from_approx(nphase, pastates, Q)
+  if (!is.null(pastates))
+    nphase <- nphase_from_approx(panphase, pastates, Q)
+  else nphase <- check_nphase(nphase, Q, call)
   if (is.null(nphase) || all(nphase==1))
     return(list(phasetype=FALSE, phaseapprox=FALSE, npastates = 0,
                 pdat=NULL, E=NULL, Efix=NULL, Qphase=Q))
-#  if (!is.null(E))
-#    cli_abort(c("Found non-null {.var E}, but a phase-type model was requested.",
-#                "msmbayes does not currently support misclassification on top of phase-type models"),call=call)
   pdat <- form_phasedata(nphase)
   E <- form_Ephase(nphase, E, Efix, Q, call)
   Efix <- form_Efixphase(E, nphase, Efix)
@@ -49,37 +48,72 @@ check_pafamily <- function(pafamily, pastates){
   pafamily
 }
 
-nphase_from_approx <- function(nphase, pastates=NULL, Q, call=caller_env()){
-  if (is.null(nphase) & !is.null(pastates)) {
-    nstates <- nrow(Q)
-    badp <- which(!(pastates %in% 1:nstates))
-    if (length(badp) > 0)
-      cli_abort(c("{.var pastates} should be a vector containing only integers from 1 up to the number of states ({nstates}). Found {pastates[badp]}"),
-                  call=call)
-    nphase <- rep(1, nstates)
+nphase_from_approx <- function(panphase, pastates=NULL, Q, call=caller_env()){
+  nstates <- nrow(Q)
+  badp <- which(!(pastates %in% 1:nstates))
+  if (length(badp) > 0)
+    cli_abort(c("{.var pastates} should be a vector containing only integers from 1 up to the number of states ({nstates}). Found {pastates[badp]}"),
+              call=call)    
+  nphase <- rep(1, nstates)
+  if (is.null(panphase)){
     nphase[pastates] <- 5
+  } else {
+    check_panphase(panphase, pastates, call)
+    nphase[pastates] <- panphase
   }
   nphase
 }
 
+check_panphase <- function(panphase, pastates, call=caller_env()){
+  check_numeric(panphase, "panphase", call)
+  check_length(panphase, "panphase", length(pastates),
+               "This should be the same as the length of {.var pastates}, which is",
+               call)
+  check_wholenumber(panphase, "panphase", call)
+  badn <- which(panphase <= 1)
+  if (length(badn) > 0)
+    cli_abort(c("{.var {panphase}} should be all integers >= 2 ",
+                "{cli::qty(length(badn))}Found invalid value{?s} at element{?s} {badn}"),
+              call=call)
+}
+
 check_nphase <- function(nphase, Q, call=caller_env()){
   if (is.null(nphase)) return(NULL)
-  if (!is.numeric(nphase))
-    cli_abort(c("{.var nphase} should be numeric",
-              "Supplied {.var nphase} of mode {mode(nphase)}"),
+  check_numeric(nphase, "nphase", call)
+  check_length(nphase, "nphase", nrow(Q),
+               "This should be the same as the number of states in Q, which is")
+  check_wholenumber(nphase, "nphase", call)
+  check_posint(nphase, "nphase", call)
+  if (all(nphase==1)) return(NULL) else return(nphase)
+}
+
+check_length <- function(var, varname, target, msg, call=caller_env()){
+  if (length(var) != target)
+    cli_abort(c("length of {.var {varname}} is {length(var)}",
+                msg, "{target}"),
               call=call)
-  if (length(nphase) != nrow(Q))
-    cli_abort(c("length of {.var nphase} is {length(nphase)}",
-                "This should be the same as the number of states in Q, which is {nrow(Q)}"),
+}
+
+check_numeric <- function(var, varname, call=caller_env()){
+  if (!is.numeric(var))
+    cli_abort(c("{.var {varname}} should be numeric",
+              "Supplied {.var {varname}} of mode {mode(var)}"),
               call=call)
+}
+
+check_wholenumber <- function(var, varname, call=caller_env()){
   is_wholenumber <- function(x) { isTRUE(all.equal(c(x), as.integer(x))) }
-  if (!is_wholenumber(nphase)) cli_abort("{.var nphase} should be a vector of whole numbers")
-  badn <- which(nphase <= 0)
+  if (!is_wholenumber(var))
+    cli_abort("{.var {varname}} should be a vector of whole numbers",
+              call=call)
+}
+
+check_posint <- function(var, varname, call=caller_env()){
+  badn <- which(var <= 0)
   if (length(badn) > 0)
-    cli_abort(c("{.var nphase} should be all positive integers",
+    cli_abort(c("{.var {varname}} should be all positive integers",
                 "{cli::qty(length(badn))}Found negative value{?s} at element{?s} {badn}"),
               call=call)
-  if (all(nphase==1)) return(NULL) else return(nphase)
 }
 
 #' Form data frame describing a phase-type model structure

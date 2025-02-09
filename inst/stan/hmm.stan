@@ -6,17 +6,56 @@ functions {
 			     vector train_data_x, // ntrain
 			     matrix train_data_y, // ntrain x nprates 
 			     matrix train_data_m, // ntrain x nprates
-			     int spline
+			     int method,
+			     int family
 			     ){
-    vector[nprates] canpars;
-    for (i in 1:nprates){
-      if (spline==1)
-	canpars[i] = spline_interp_linear(shape, train_data_x, train_data_y[,i], train_data_m[,i]);
-      else 
-	canpars[i] = spline_interp_hermite(shape, train_data_x, train_data_y[,i], train_data_m[,i]);
-    }
-    vector[nprates] rates = canpars_to_rates(canpars, nprates) / scale;
+    vector[nprates] rates; 
 
+    if (method==1){
+      rates = phasetype_moment_match(shape, scale, nprates, family);
+    }
+    else { 
+      vector[nprates] canpars;
+      for (i in 1:nprates){
+	if (method==2)
+	  canpars[i] = spline_interp_linear(shape, train_data_x, train_data_y[,i], train_data_m[,i]);
+	else if (method==3)
+	  canpars[i] = spline_interp_hermite(shape, train_data_x, train_data_y[,i], train_data_m[,i]);
+      }
+      rates = canpars_to_rates(canpars, nprates) / scale;
+    }
+
+    return rates;
+  }
+
+  vector phasetype_moment_match(real shape, real scale,
+				int nprates, int family){
+    real m1, n2, n3;
+    real b, a, p, lam, mu;
+    int n = (nprates+1) %/% 2; // nphase
+    vector[nprates] rates;
+    vector[n-1] prate;
+    vector[n] arate;
+    if (family == 1){ // gamma
+      m1 = shape*scale;
+      n2 = (shape + 1)/shape;
+      n3 = (shape + 2)/shape;
+    } else if (family == 2){ // weibull
+      m1 = scale*tgamma(1 + 1/shape);
+      n2 = tgamma(1+2/shape) / tgamma(1+1/shape)^2;
+      n3 = tgamma(1+3/shape) / (tgamma(1+1/shape)*tgamma(1+2/shape));
+    }
+    b = (2*(4 - n*(3*n2 - 4))) /
+      (n2*(4 + n - n*n3) + sqrt(n*n2)*(
+				       sqrt(12*n2^2*(n + 1) + 16*n3*(n + 1) + n2*(n*(n3 - 15)*(n3 + 1) - 8*(n3 + 3)))
+				       ));
+    a = ((b*n2 - 2)*(n - 1)*b) / ((b - 1)*n);
+    p = (b - 1)/a;
+    lam = (p*a + 1)/m1;
+    mu = lam*(n - 1)/a;
+    prate = append_row(p*lam, rep_vector(mu, n-2));
+    arate = append_row(append_row((1-p)*lam, rep_vector(0, n-2)), mu);
+    rates = append_row(prate, arate);
     return rates;
   }
 
@@ -164,7 +203,8 @@ data {
   vector<lower=0>[npastates] logshapesd;
   vector[npastates] logscalemean;
   vector<lower=0>[npastates] logscalesd;
-  int<lower=1,upper=2> spline;
+  int<lower=1,upper=3> pamethod;
+  array[npastates] int<lower=1,upper=2> pafamily;
   array[npastates] int<lower=1> prates_start;
   array[npastates] int<lower=1> prates_end;
   array[npastates] int<lower=1> npaq;
@@ -265,7 +305,7 @@ transformed parameters {
 			      traindat_x[tstart:tend],
 			      traindat_y[tstart:tend,],
 			      traindat_m[tstart:tend,],
-			      spline);
+			      pamethod, pafamily[j]);
       }
 
       // define absorption probs in terms of log odds 

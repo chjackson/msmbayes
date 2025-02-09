@@ -56,18 +56,24 @@
 #' rates on the latent state space.
 #'
 #' @param pastates This indicates which states (if any) are given a
-#'   Weibull or Gamma sojourn distribution approximated by a 5-phase
-#'   model.
-#'   Ignored if `nphase` is supplied.
+#'   Weibull or Gamma sojourn distribution approximated by a phase-type model
+#'   Ignored if `nphase` is supplied. 
 #'
 #' @param pafamily `"weibull"` or `"gamma"`, indicating the
 #'   approximated sojourn distribution in the phased state.  Either a
 #'   vector of the same length as `pastates`, or just one to apply to
 #'   all states.
 #'
-#' @param pamethod `"kl_linear"` or `"kl_hermite"`. Advanced: spline
-#'   used in constructing the approximations. May remove this argument
-#'   if one of these turns out to be good enough.
+#' @param panphase Number of phases to use for each state given a
+#'   phase-type Gamma or Weibull approximation.  More phases allow a
+#'   wider range of shape parameters.  Only applicable for
+#'   `pamethod="moment"`.  For the spline-based methods, 5 phases are
+#'   always used. 
+#'
+#' @param pamethod `"moment", "kl_linear"` or
+#'   `"kl_hermite"`. Advanced.  Method of constructing the
+#'   approximations. May remove this argument if one of these turns
+#'   out to be good enough.
 #'
 #' @param E By default, `msmbayes` fits a (non-hidden) Markov model.
 #'   If `E` is supplied, then a Markov model with misclassification is
@@ -104,7 +110,7 @@
 #' call can be supplied here instead of a list.
 #'
 #' @param nphase Only required for models with phase-type sojourn
-#'   distributions specified manually (not through `pastates`).
+#'   distributions specified directly (not through `pastates`).
 #'   `nphase` is a vector with one element per state, giving the
 #'   number of phases per state.  This element is 1 for states that do
 #'   not have phase-type sojourn distributions.
@@ -177,6 +183,7 @@ msmbayes <- function(data, state="state", time="time", subject="subject",
                      pastates = NULL,
                      pafamily = "weibull",
                      pamethod = "kl_hermite", # TODO remove eventually
+                     panphase = NULL, 
                      E = NULL,
                      Efix = NULL,
                      nphase = NULL,
@@ -189,7 +196,7 @@ msmbayes <- function(data, state="state", time="time", subject="subject",
 
   m <- msmbayes_form_internals(data=data, state=state, time=time, subject=subject,
                                Q=Q, covariates=covariates, pastates=pastates,
-                               pafamily=pafamily, pamethod=pamethod, E=E, Efix=Efix,
+                               pafamily=pafamily, panphase=panphase, pamethod=pamethod, E=E, Efix=Efix,
                                nphase=nphase, priors=priors, soj_priordata=soj_priordata)
 
   if (!m$em$hmm){
