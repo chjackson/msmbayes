@@ -9,7 +9,7 @@ shapescale_to_rates(
   scale = 1,
   family = "weibull",
   canonical = FALSE,
-  spline = "hermite",
+  method = "kl_hermite",
   list = FALSE,
   drop = TRUE
 )
@@ -23,7 +23,7 @@ shapescale_to_rates(
 
 \item{canonical}{Return the phase-type parameters in canonical form (phase 1 sojourn rate, sojourn rate increments in subsequent states, absorption probabilities).  If \code{FALSE} then phase transition rates are returned.}
 
-\item{spline}{Type of spline used to interpolate between the training points (pointwise optima) when deriving the function that best maps the shape to each phase-type parameter}
+\item{method}{Type of spline used to interpolate between the training points (pointwise optima) when deriving the function that best maps the shape to each phase-type parameter}
 
 \item{list}{If \code{TRUE} then separate components are returned for progression and absorption rates.
 Otherwise, and by default, a vector (or matrix) is returned combining all rates.

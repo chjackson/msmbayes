@@ -8,7 +8,7 @@
 #' @noRd
 form_phasetype <- function(nphase=NULL, Q,
                            pastates=NULL, pafamily="weibull",
-                           paspline="linear",
+                           pamethod="kl_hermite",
                            E=NULL,
                            Efix=NULL,
                            call=caller_env()){
@@ -33,7 +33,7 @@ form_phasetype <- function(nphase=NULL, Q,
        pastates = pastates,
        npastates = length(pastates),
        pafamily = pafamily,
-       paspline = paspline,
+       pamethod = pamethod,
        nstates_orig = max(pdat$oldinds))
 }
 

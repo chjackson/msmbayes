@@ -17,20 +17,20 @@ test_that("shapescale_to_rates approximates weibull and gamma distributions", {
   shape <- 1.21
   scale <- 0.89
   prates <- shapescale_to_rates(shape=shape, scale=scale,
-                                family="weibull", list=TRUE, spline="hermite")
+                                family="weibull", list=TRUE, method="kl_hermite")
   expect_equal(pnphase(1.34, prate=prates$p, arate=prates$a),
                pweibull(1.34, shape, scale), tolerance=0.01)
   prates <- shapescale_to_rates(shape=shape, scale=scale,
-                                family="weibull", list=TRUE, spline="linear")
+                                family="weibull", list=TRUE, method="kl_linear")
   expect_equal(pnphase(1.34, prate=prates$p, arate=prates$a),
                pweibull(1.34, shape, scale), tolerance=0.01)
   scale <- 1
   prates <- shapescale_to_rates(shape=shape, scale=scale,
-                                family="gamma", list=TRUE, spline="hermite")
+                                family="gamma", list=TRUE, method="kl_hermite")
   expect_equal(pnphase(1.34, prate=prates$p, arate=prates$a),
                pgamma(1.34, shape, scale=scale), tolerance=0.01)
   prates <- shapescale_to_rates(shape=shape, scale=scale,
-                                family="gamma", list=TRUE, spline="linear")
+                                family="gamma", list=TRUE, method="kl_linear")
   expect_equal(pnphase(1.34, prate=prates$p, arate=prates$a),
                pgamma(1.34, shape, scale=scale), tolerance=0.01)
 

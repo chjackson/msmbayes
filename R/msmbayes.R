@@ -65,7 +65,7 @@
 #'   vector of the same length as `pastates`, or just one to apply to
 #'   all states.
 #'
-#' @param paspline `"linear"` or `"hermite"`. Advanced: spline
+#' @param pamethod `"kl_linear"` or `"kl_hermite"`. Advanced: spline
 #'   used in constructing the approximations. May remove this argument
 #'   if one of these turns out to be good enough.
 #'
@@ -176,7 +176,7 @@ msmbayes <- function(data, state="state", time="time", subject="subject",
                      covariates = NULL,
                      pastates = NULL,
                      pafamily = "weibull",
-                     paspline = "hermite", # TODO remove eventually
+                     pamethod = "kl_hermite", # TODO remove eventually
                      E = NULL,
                      Efix = NULL,
                      nphase = NULL,
@@ -189,7 +189,7 @@ msmbayes <- function(data, state="state", time="time", subject="subject",
 
   m <- msmbayes_form_internals(data=data, state=state, time=time, subject=subject,
                                Q=Q, covariates=covariates, pastates=pastates,
-                               pafamily=pafamily, paspline=paspline, E=E, Efix=Efix,
+                               pafamily=pafamily, pamethod=pamethod, E=E, Efix=Efix,
                                nphase=nphase, priors=priors, soj_priordata=soj_priordata)
 
   if (!m$em$hmm){

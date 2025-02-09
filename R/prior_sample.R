@@ -23,14 +23,14 @@ msmbayes_prior_sample <- function(data, state="state", time="time", subject="sub
                                   covariates = NULL,
                                   pastates = NULL,
                                   pafamily = "weibull",
-                                  paspline = "linear",
+                                  pamethod = "kl_linear",
                                   nphase = NULL,
                                   E = NULL,
                                   priors = NULL,
                                   nsim = 1){
   m <- msmbayes_form_internals(data=data, state=state, time=time, subject=subject,
                                Q=Q, covariates=covariates, pastates=pastates,
-                               pafamily=pafamily, paspline=paspline, E=E,
+                               pafamily=pafamily, pamethod=pamethod, E=E,
                                nphase=nphase, priors=priors,
                                prior_sample = TRUE)
   qm <- m$qm; pm <- m$pm; priors <- m$priors; cm <- m$cm; em <- m$em; data <- m$data; qmobs <- m$qmobs
@@ -159,7 +159,7 @@ msmbayes_priorpred_sample <- function(data, state="state", time="time", subject=
                                       covariates = NULL,
                                       pastates = NULL,
                                       pafamily = "weibull",
-                                      paspline = "linear",
+                                      pamethod = "kl_linear",
                                       nphase = NULL,
                                       E = NULL,
                                       priors = NULL,
@@ -168,12 +168,12 @@ msmbayes_priorpred_sample <- function(data, state="state", time="time", subject=
                                       ){
   prior_sample <- msmbayes_prior_sample(data=data, state=state, time=time, subject=subject,
                                         Q=Q, covariates=covariates,
-                                        pastates=pastates, pafamily=pafamily, paspline=paspline,
+                                        pastates=pastates, pafamily=pafamily, pamethod=pamethod,
                                         nphase=nphase, E=E, priors=priors,
                                         nsim = 1)
   m <- msmbayes_form_internals(data=data, state=state, time=time, subject=subject,
                                Q=Q, covariates=covariates, pastates=pastates,
-                               pafamily=pafamily, paspline=paspline, E=E,
+                               pafamily=pafamily, pamethod=pamethod, E=E,
                                nphase=nphase, priors=priors,
                                prior_sample = TRUE)
   data_orig <- data
@@ -195,7 +195,7 @@ msmbayes_priorpred_sample <- function(data, state="state", time="time", subject=
     scales <- exp(unlist(prior_sample[grep("logscale",names(prior_sample),value=TRUE)]))
     q_pred <- qphaseapprox(qmatrix=q_prior,
                            shape = shapes, scale=scales,
-                           pastates=pastates, family=pafamily, spline=paspline)
+                           pastates=pastates, family=pafamily, method=pamethod)
     ematrix <- m$em$E
   } else ematrix <- NULL   # TESTME
 

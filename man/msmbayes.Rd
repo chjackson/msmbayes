@@ -13,7 +13,7 @@ msmbayes(
   covariates = NULL,
   pastates = NULL,
   pafamily = "weibull",
-  paspline = "hermite",
+  pamethod = "kl_hermite",
   E = NULL,
   Efix = NULL,
   nphase = NULL,
@@ -87,7 +87,7 @@ approximated sojourn distribution in the phased state.  Either a
 vector of the same length as \code{pastates}, or just one to apply to
 all states.}
 
-\item{paspline}{\code{"linear"} or \code{"hermite"}. Advanced: spline
+\item{pamethod}{\code{"kl_linear"} or \code{"kl_hermite"}. Advanced: spline
 used in constructing the approximations. May remove this argument
 if one of these turns out to be good enough.}
 

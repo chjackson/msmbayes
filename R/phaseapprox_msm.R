@@ -15,14 +15,14 @@
 msm_phaseapprox_lik <- function(formula, subject, data, qmatrix,
                                 pastates,
                                 shape, scale, family="weibull",
-                                deriv=FALSE, spline="linear"){
+                                deriv=FALSE, method="kl_linear"){
   nstates <- nrow(qmatrix)
   nphases <- rep(1, nstates)
   nphases[pastates] <- 5
   pdat <- form_phasedata(nphases)
   ephase <- form_Ephase(nphases)
 
-  qphase <- qphaseapprox(qmatrix, pastates, shape, scale, family, spline)
+  qphase <- qphaseapprox(qmatrix, pastates, shape, scale, family, method)
 
   if (!isTRUE(requireNamespace("msm", quietly = TRUE)))
     cli_abort("This requires the {.var msm} package to be installed")
@@ -45,14 +45,14 @@ msm_phaseapprox_lik <- function(formula, subject, data, qmatrix,
     ## TODO DONE UP TO HERE
     ## vectorise shapescale_to_rates etc.  faff.
 
-    phase_rates <- shapescale_to_rates(shape, scale, family=family, spline=spline, drop=FALSE)
+    phase_rates <- shapescale_to_rates(shape, scale, family=family, method=method, drop=FALSE)
     phase_rates[phase_rates==0] <- 0.000001
 
     rmatch <- match(colnames(phase_rates), names(dlik_dlrates_msm))
     dlrates_drates <- 1/phase_rates
     dlik_drates <- dlik_dlrates_msm[rmatch] * dlrates_drates
     dlik_drates[is.na(dlik_drates)] <- 0 # boundary estimates
-    drates_dshapescale <- Drates_dshapescale(shape, scale, family, spline=spline)
+    drates_dshapescale <- Drates_dshapescale(shape, scale, family, method=method)
     dlik_dshapescale <- dlik_drates %*% t(drates_dshapescale)
     qpars <- exp(mres$estimates[names(mres$estimates)=="qbase"])
     fromstate <- col(imat)[imat==1]
@@ -84,7 +84,7 @@ msm_phaseapprox_lik <- function(formula, subject, data, qmatrix,
 ##'
 ##' @noRd
 msm_optim_fn <- function(par, index=NULL, formula, subject, data, qmatrix,
-                         pastates, family="weibull", deriv=FALSE, spline="linear", minus=TRUE){
+                         pastates, family="weibull", deriv=FALSE, method="kl_linear", minus=TRUE){
 #  if (!is.null(index)){
 #    ind <- match(subject, unique(subject)) %in% index
 #    data <- data[ind,,drop=FALSE]; subject <- subject[ind]
@@ -99,19 +99,19 @@ msm_optim_fn <- function(par, index=NULL, formula, subject, data, qmatrix,
                              qmatrix=qmatrix, pastates=pastates,
                              shape = par[pd$name=="shape"],
                              scale = par[pd$name=="scale"],
-                             family=family, deriv=deriv, spline=spline)
+                             family=family, deriv=deriv, method=method)
   if (minus) ret else -ret
 }
 
 msm_optim_gr <- function(par, index=NULL, formula, subject, data, qmatrix,
-                         pastates, family="weibull", spline="linear",minus=TRUE){
+                         pastates, family="weibull", method="kl_linear",minus=TRUE){
   if (!is.null(index)){
     ind <- match(subject, unique(subject)) %in% index
     data <- data[ind,,drop=FALSE]; subject <- subject[ind]
   }
   msm_optim_fn(par=par, formula=formula, subject=subject,
                data=data, qmatrix=qmatrix,
-               pastates=pastates, family=family, deriv=TRUE, spline=spline, minus=minus)
+               pastates=pastates, family=family, deriv=TRUE, method=method, minus=minus)
 }
 
 
@@ -124,13 +124,13 @@ msm_optim_gr <- function(par, index=NULL, formula, subject, data, qmatrix,
 ##' @param pastates integer state given phase type distribution. Only one phased state permitted
 ##' @param family parametric family approximated by the phase-type distribution: `"weibull"` or `"gamma"`
 ##' @param par initial value vector. shape on natural scale, rest on log scale
-##' @param spline (advanced) `"linear"` or `"hermite"`
+##' @param method (advanced) `"kl_linear"` or `"kl_hermite"`
 ##' @param fit_method  `"optim"` or `"SGA"`
 ##' @param control passed to fit method
 ##' @return list of optimisation results TODO refine
 ##' @noRd
 msm_phaseapprox <- function(formula, subject, data, qmatrix,
-                            pastates, family="weibull", par, spline="linear",
+                            pastates, family="weibull", par, method="kl_linear",
                             fit_method = "optim", control=NULL){
   subject <- eval(substitute(subject), data, parent.frame())
   lu <- range(phase5approx(family)$traindat$a)
@@ -139,7 +139,7 @@ msm_phaseapprox <- function(formula, subject, data, qmatrix,
   par[pd$name=="shape"] <- unconstrain_shape(par[pd$name=="shape"], family)
 
   fn_args <- list(family=family, formula = formula, subject=subject, data=data,
-                   qmatrix = qmatrix, pastates = pastates, spline = spline)
+                   qmatrix = qmatrix, pastates = pastates, method = method)
   if (fit_method=="optim"){
     optim_args <- list(par = par, fn=msm_optim_fn, #gr=msm_optim_gr,
                        hessian=TRUE, minus=TRUE, method="Nelder-Mead",

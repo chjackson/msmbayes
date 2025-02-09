@@ -129,7 +129,7 @@ form_phaseapprox_standata <- function(qm,pm,qmobs){
          traindat_inds = traindat_inds,
          logshapemin = as.array(logshapemin),
          logshapemax = as.array(logshapemax),
-         spline = match(pm$paspline, c("linear","hermite")),
+         spline = match(pm$pamethod, c("kl_linear","kl_hermite")),
 
          npadest = nrow(crdat),
          dest_base = as.array(as.numeric(crdat$dest_base)),

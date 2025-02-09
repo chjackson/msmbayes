@@ -11,7 +11,7 @@ qphaseapprox(
   shape,
   scale = 1,
   family = "weibull",
-  spline = "hermite",
+  method = "kl_hermite",
   att = FALSE
 )
 }
@@ -37,7 +37,7 @@ Ignored if \code{nphase} is supplied.}
 
 \item{family}{parametric family approximated by the phase-type distribution: \code{"weibull"} or \code{"gamma"}}
 
-\item{spline}{Type of spline used to interpolate between the training points (pointwise optima) when deriving the function that best maps the shape to each phase-type parameter}
+\item{method}{Type of spline used to interpolate between the training points (pointwise optima) when deriving the function that best maps the shape to each phase-type parameter}
 
 \item{att}{keep attributes indicating progression and absorption states}
 }

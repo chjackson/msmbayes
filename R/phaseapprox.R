@@ -19,7 +19,7 @@
 ##'
 ##' @param family parametric family approximated by the phase-type distribution: `"weibull"` or `"gamma"`
 ##'
-##' @param spline Type of spline used to interpolate between the training points (pointwise optima) when deriving the function that best maps the shape to each phase-type parameter
+##' @param method Type of spline used to interpolate between the training points (pointwise optima) when deriving the function that best maps the shape to each phase-type parameter
 ##'
 ##' @param canonical Return the phase-type parameters in canonical form (phase 1 sojourn rate, sojourn rate increments in subsequent states, absorption probabilities).  If `FALSE` then phase transition rates are returned.
 ##'
@@ -31,7 +31,7 @@
 ##'
 ##' @export
 shapescale_to_rates <- function(shape, scale=1, family="weibull",
-                                canonical=FALSE, spline="hermite",
+                                canonical=FALSE, method="kl_hermite",
                                 list=FALSE, drop=TRUE){
   check_positive_number(shape)
   check_positive_number(scale) # TESTME
@@ -45,7 +45,7 @@ shapescale_to_rates <- function(shape, scale=1, family="weibull",
   for (i in seq_along(shape)){
     for (j in seq_along(pars)){
       tmp <- shape_to_canpar(shape[i], parname=pars[j],
-                             family=family, spline=spline)
+                             family=family, method=method)
       rates[i,j] <- tmp
     }
     if (!canonical){
@@ -72,14 +72,14 @@ check_positive_number <- function(x){
 ##' @inheritParams shapescale_to_rates
 ##' @param parname Canonical phase-type parameter name
 ##' @noRd
-shape_to_canpar <- function(shape, parname, family, spline="hermite", traindat=NULL){
+shape_to_canpar <- function(shape, parname, family, method="kl_hermite", traindat=NULL){
   if (is.null(traindat))
     traindat <- phase5approx(family)$traindat
   x0 <- traindat$a
   y0 <- traindat[[parname]]
-  if (spline=="linear"){
+  if (method=="kl_linear"){
     ret <- approx(x0, y0, xout=shape, rule=2)$y
-  } else if (spline=="hermite"){
+  } else if (method=="kl_hermite"){
     m <- hermite_point_derivs(x0, y0)
     ret <- hermite(shape, x0, y0, m)
   }
@@ -119,10 +119,10 @@ check_shape_in_bounds <- function(shape, family){
     cli_warn("shape {shape} is not strictly greater than the upper bound of {bounds[2]} for the phase-type approximation training set")
 }
 
-Drates_dshapescale <- function(shape, scale=1, family="weibull",spline="hermite"){
-  rates1 <- shapescale_to_rates(shape, scale=1, family=family, spline=spline)
+Drates_dshapescale <- function(shape, scale=1, family="weibull",method="kl_hermite"){
+  rates1 <- shapescale_to_rates(shape, scale=1, family=family, method=method)
   canpars <- rates_to_canpars(rates1)
-  dcanpars_dshape_scale1 <- Dcanpars_dshape(shape, family, spline=spline)
+  dcanpars_dshape_scale1 <- Dcanpars_dshape(shape, family, method=method)
   drates_dshape_scale1 <- as.numeric(Drates_dcanpars(canpars) %*%
                                      dcanpars_dshape_scale1)
   drates_dshape <- drates_dshape_scale1 / scale
@@ -132,12 +132,12 @@ Drates_dshapescale <- function(shape, scale=1, family="weibull",spline="hermite"
   res
 }
 
-Dcanpars_dshape  <- function(shape, family="weibull", spline="hermite"){
-  if (spline=="linear")
+Dcanpars_dshape  <- function(shape, family="weibull", method="kl_hermite"){
+  if (method=="kl_linear")
     Dcanpars_dshape_linear(shape, family)
-  else if (spline=="hermite")
+  else if (method=="kl_hermite")
     Dcanpars_dshape_hermite(shape, family)
-  else cli_abort("spline unknown")
+  else cli_abort("method unknown")
 }
 
 ## not vectorised in shape
@@ -193,13 +193,13 @@ Dcanpars_dshape_hermite <- function(shape, family="weibull"){
 ##' @return Intensity matrix on the latent state space.
 ##'
 ##' @export
-qphaseapprox <- function(qmatrix, pastates, shape, scale=1, family="weibull", spline="hermite", att=FALSE){
+qphaseapprox <- function(qmatrix, pastates, shape, scale=1, family="weibull", method="kl_hermite", att=FALSE){
   qm <- form_qmodel(qmatrix)
   pm <- form_phasetype(pastates = pastates, Q=qmatrix, pafamily=family)
   qm <- phase_expand_qmodel(qm, pm)
   qnew <- pm$Qphase
   for (i in 1:pm$npastates){
-    rates <- shapescale_to_rates(shape[i], scale[i], family=family, spline=spline, list=TRUE)
+    rates <- shapescale_to_rates(shape[i], scale[i], family=family, method=method, list=TRUE)
     pd <- qm$phasedata
     pdprog <- as.matrix(pd[pd$ttype=="prog" & pd$oldfrom==pastates[i], c("qrow","qcol")])
     pdabs <- as.matrix(pd[pd$ttype=="abs" & pd$oldfrom==pastates[i], c("qrow","qcol")])
