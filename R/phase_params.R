@@ -55,16 +55,19 @@ canpars_to_rates <- function(pars, type="vector"){
 }
 
 rates_to_list <- function(rates, canonical=TRUE){
-  check_oddlength(rates)
   if (canonical)
     return(canpars_to_list(rates))
-  nphase <- (length(rates) + 1) / 2
-  if (is.matrix(rates))
+  if (is.matrix(rates)){
+    nphase <- (ncol(rates) + 1) / 2
     list(p=unname(rates[,1:(nphase-1)]),
          a=unname(rates[,nphase:(2*nphase-1)]))
-  else
+  }
+  else {
+    check_oddlength(rates)
+    nphase <- (length(rates) + 1) / 2
     list(p=unname(rates[1:(nphase-1)]),
          a=unname(rates[nphase:(2*nphase-1)]))
+  }
 }
 
 check_oddlength <- function(par, call=caller_env()){

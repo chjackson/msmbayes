@@ -32,6 +32,7 @@
 ##' @export
 shapescale_to_rates <- function(shape, scale=1, family="weibull",
                                 canonical=FALSE, method="kl_hermite",
+                                nphase=5,
                                 list=FALSE, drop=TRUE){
   check_positive_number(shape)
   check_positive_number(scale) # TESTME
@@ -39,20 +40,23 @@ shapescale_to_rates <- function(shape, scale=1, family="weibull",
   shape <- rep(shape, length.out=ml)
   scale <- rep(scale, length.out=ml)
 
-  pars <- phase_cannames(5)
-  rates <- matrix(nrow=length(shape), ncol=length(pars))
-  colnames(rates) <- pars
-  for (i in seq_along(shape)){
-    for (j in seq_along(pars)){
-      tmp <- shape_to_canpar(shape[i], parname=pars[j],
-                             family=family, method=method)
-      rates[i,j] <- tmp
+  if (method == "moment"){
+    ## todo vectorised 
+    rates <- shape_to_rates_moment(shape, scale, family, nphase)
+    ## todo convert to canonical if really want
+    
+  } else if (method %in% c("kl_hermite","kl_linear")){
+    canparnames <- phase_cannames(nphase=5) # TODO better logic  
+    rates <- matrix(nrow=length(shape), ncol=length(canparnames))
+    colnames(rates) <- canparnames
+    for (i in seq_along(shape)){
+      rates[i,] <- shape_to_canpars_spline(shape[i], family, method, canparnames)
+      if (!canonical)
+        rates[i,] <- canpars_to_rates(rates[i,])
+      rates[i,] <- scale_rates(rates[i,], scale[i], canonical)
     }
-    if (!canonical){
-      rates[i,] <- canpars_to_rates(rates[i,])
-    }
-    rates[i,] <- scale_rates(rates[i,], scale[i], canonical)
   }
+
   if (list==TRUE)
     rates <- rates_to_list(rates, canonical)
   if (drop && (!list) && (length(shape)==1))
@@ -63,16 +67,19 @@ shapescale_to_rates <- function(shape, scale=1, family="weibull",
   rates
 }
 
-check_positive_number <- function(x){
-  namex <- deparse(substitute(x))
-  if (!is.numeric(x)) cli_abort("{.var {namex}} should be numeric")
-  if (any(x < 0)) cli_abort("negative value for {.var {namex}} supplied")
+shape_to_canpars_spline <- function(shape, family, method, canparnames){
+  ret <- numeric(length(canparnames))
+  for (j in seq_along(canparnames)){
+    ret[j] <- shape_to_canpar_spline(shape, parname=canparnames[j],
+                                     family=family, method=method)
+  }
+  ret
 }
 
 ##' @inheritParams shapescale_to_rates
 ##' @param parname Canonical phase-type parameter name
 ##' @noRd
-shape_to_canpar <- function(shape, parname, family, method="kl_hermite", traindat=NULL){
+shape_to_canpar_spline <- function(shape, parname, family, method="kl_hermite", traindat=NULL){
   if (is.null(traindat))
     traindat <- phase5approx(family)$traindat
   x0 <- traindat$a
@@ -84,6 +91,12 @@ shape_to_canpar <- function(shape, parname, family, method="kl_hermite", trainda
     ret <- hermite(shape, x0, y0, m)
   }
   ret
+}
+
+check_positive_number <- function(x){
+  namex <- deparse(substitute(x))
+  if (!is.numeric(x)) cli_abort("{.var {namex}} should be numeric")
+  if (any(x < 0)) cli_abort("negative value for {.var {namex}} supplied")
 }
 
 ##' @inheritParams shapescale_to_rates

@@ -12,7 +12,7 @@ test_that("shapescale_to_rates errors and formats", {
   expect_equal(canpars_to_rates(crates), rrates)
 })
 
-test_that("shapescale_to_rates approximates weibull and gamma distributions", {
+test_that("shapescale_to_rates approximates weibull and gamma distributions: KL methods", {
 
   shape <- 1.21
   scale <- 0.89
@@ -33,7 +33,26 @@ test_that("shapescale_to_rates approximates weibull and gamma distributions", {
                                 family="gamma", list=TRUE, method="kl_linear")
   expect_equal(pnphase(1.34, prate=prates$p, arate=prates$a),
                pgamma(1.34, shape, scale=scale), tolerance=0.01)
+})
 
+test_that("shapescale_to_rates approximates weibull and gamma distributions: moment method", {
+
+  prates <- shapescale_to_rates(shape=1, scale=0.89,
+                                family="weibull", method="moment")
+  prates <- shapescale_to_rates(shape=c(1.2, 1.3), scale=0.89,
+                                family="gamma", list=TRUE, method="moment")
+  expect_equal(
+    pnphase(2, prate=prates$p, arate=prates$a),
+    pgamma(2, shape=c(1.2, 1.3), scale=0.89), tolerance = 0.01)
+
+  prates <- shapescale_to_rates(shape=c(1, 1.3), scale=0.89,
+                                family="gamma", list=TRUE, method="moment")
+
+  nmo <- gamma_nmo(shape=c(1.2, 1.3), scale=0.8)
+  n3_moment_bounds(nmo$n2[1], nmo$n3[1], n=5)
+  n3_moment_bounds(nmo$n2, nmo$n3, n=5)
+  in_moment_bounds(nmo$n2[1], nmo$n3[1], n=5)
+  in_moment_bounds(nmo$n2, nmo$n3, n=5)
 })
 
 
