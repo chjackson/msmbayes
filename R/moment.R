@@ -210,8 +210,9 @@ weibull_shape_ubound <- function(nphase){
 
 shape_ubound <- function(nphase, family){
   res <- numeric(length(nphase))
-  family_fns <- c(weibull=weibull_shape_ubound, gamma=gamma_shape_ubound)
+  family_fns <- list(weibull=weibull_shape_ubound,
+                     gamma=gamma_shape_ubound)
   for (i in seq_along(res))
-    res[i] <- family_fns[family[i]](nphase[i])
+    res[i] <- family_fns[[family[i]]](nphase[i])
   res
 }

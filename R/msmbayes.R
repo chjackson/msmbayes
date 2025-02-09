@@ -65,10 +65,10 @@
 #'   all states.
 #'
 #' @param panphase Number of phases to use for each state given a
-#'   phase-type Gamma or Weibull approximation.  More phases allow a
-#'   wider range of shape parameters.  Only applicable for
-#'   `pamethod="moment"`.  For the spline-based methods, 5 phases are
-#'   always used. 
+#'   phase-type Gamma or Weibull approximation.  Vector of same length
+#'   as `pastates`. More phases allow a wider range of shape parameters.
+#'   Only applicable for `pamethod="moment"`.  For the spline-based
+#'   methods, 5 phases are always used.
 #'
 #' @param pamethod `"moment", "kl_linear"` or
 #'   `"kl_hermite"`. Advanced.  Method of constructing the
@@ -182,7 +182,7 @@ msmbayes <- function(data, state="state", time="time", subject="subject",
                      covariates = NULL,
                      pastates = NULL,
                      pafamily = "weibull",
-                     pamethod = "kl_hermite", # TODO remove eventually
+                     pamethod = "moment", # TODO remove eventually
                      panphase = NULL, 
                      E = NULL,
                      Efix = NULL,
