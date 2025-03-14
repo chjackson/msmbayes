@@ -300,12 +300,32 @@ process_priors <- function(priors, qm, cm, pm, em, qmobs){
       loamean[prior$ind] <- prior$mean; loasd[prior$ind] <- prior$sd
     }
   }
+  lb <- logshape_bounds(pm)
   list(logqmean = as.array(logqmean), logqsd = as.array(logqsd),
        loghrmean = as.array(loghrmean), loghrsd = as.array(loghrsd),
        logshapemean = as.array(logshapemean), logshapesd = as.array(logshapesd),
        logscalemean = as.array(logscalemean), logscalesd = as.array(logscalesd),
+       logshapemin = as.array(lb$min), logshapemax = as.array(lb$max),
        loamean = as.array(loamean), loasd = as.array(loasd),
        loemean = as.array(loemean), loesd = as.array(loesd))
+}
+
+logshape_bounds <- function(pm){
+  if (pm$npastates==0)
+    return(list(min=array(dim=0), max=array(dim=0)))
+  if (pm$pamethod=="moment"){
+    logshapemin <- rep(-Inf, length(pm$pafamily))
+    logshapemax <- log(shape_ubound(pm$nphase[pm$pastates], pm$pafamily))
+  } else { 
+    traindatw <- phase5approx("weibull")$traindat
+    traindatg <- phase5approx("gamma")$traindat
+    wmin <- log(min(traindatw$a)); wmax <- log(max(traindatw$a))
+    gmin <- log(min(traindatg$a)); gmax <- log(max(traindatg$a))
+    pafamily <- match(pm$pafamily, .pafamilies)
+    logshapemin <- c(wmin, gmin)[pafamily]
+    logshapemax <- c(wmax, gmax)[pafamily]
+  }
+  list(min=logshapemin, max=logshapemax)
 }
 
 check_priors <- function(priors){

@@ -23,7 +23,7 @@ msmbayes_prior_sample <- function(data, state="state", time="time", subject="sub
                                   covariates = NULL,
                                   pastates = NULL,
                                   pafamily = "weibull",
-                                  pamethod = "kl_linear",
+                                  pamethod = "moment",
                                   nphase = NULL,
                                   E = NULL,
                                   priors = NULL,
@@ -63,7 +63,7 @@ msmbayes_prior_sample <- function(data, state="state", time="time", subject="sub
   if (pm$phaseapprox){
     logshape <- logscale <- matrix(nrow=nsim, ncol=pm$npastates)
     for (i in 1:pm$npastates){
-      logshape[,i] <- rnorm(nsim, priors$logshapemean[i], priors$logshapesd[i])
+      logshape[,i] <- msm::rtnorm(nsim, mean=priors$logshapemean[i], sd=priors$logshapesd[i], upper=priors$logshapemax[i])
       logscale[,i] <- rnorm(nsim, priors$logscalemean[i], priors$logscalesd[i])
     }
     logshape <- as.data.frame(logshape)
@@ -159,7 +159,7 @@ msmbayes_priorpred_sample <- function(data, state="state", time="time", subject=
                                       covariates = NULL,
                                       pastates = NULL,
                                       pafamily = "weibull",
-                                      pamethod = "kl_linear",
+                                      pamethod = "moment",
                                       nphase = NULL,
                                       E = NULL,
                                       priors = NULL,

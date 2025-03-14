@@ -290,7 +290,7 @@ prior_random_inits <- function(standat, init_scale=5, chain_id=1){
   nhr <- length(standat$loghrmean)
   loghr <- rnorm(nhr, mean=standat$loghrmean, sd=standat$loghrsd / init_scale)
   npa <- length(standat$logshapemean)
-  logshape <- rnorm(npa, mean=standat$logshapemean, sd=standat$logshapesd / init_scale)
+  logshape <- msm::rtnorm(npa, mean=standat$logshapemean, sd=standat$logshapesd / init_scale, upper=standat$logshapemax)
   logscale <- rnorm(npa, mean=standat$logscalemean, sd=standat$logscalesd / init_scale)
   logoddse <- rnorm(length(standat$loemean), mean=standat$loemean, sd=standat$loesd / init_scale)
   logoddsabs <- rnorm(length(standat$loamean), mean=standat$loamean, sd=standat$loasd / init_scale)

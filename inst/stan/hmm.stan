@@ -201,6 +201,8 @@ data {
   array[npastates,2] int<lower=1> traindat_inds;
   vector[npastates] logshapemean;
   vector<lower=0>[npastates] logshapesd;
+  vector[npastates] logshapemin;
+  vector[npastates] logshapemax;
   vector[npastates] logscalemean;
   vector<lower=0>[npastates] logscalesd;
   int<lower=1,upper=3> pamethod;
@@ -414,7 +416,10 @@ model {
     logq_markov[i] ~ normal(logqmean[i], logqsd[i]); // or could be gamma
   }
   for (i in 1:npastates){
-    logshape[i] ~ normal(logshapemean[i], logshapesd[i]); // T[logshapemin[i],logshapemax[i]];
+    //    if (method==1)
+      logshape[i] ~ normal(logshapemean[i], logshapesd[i])T[logshapemin[i],logshapemax[i]];
+      //else 
+      //  logshape[i] ~ normal(logshapemean[i], logshapesd[i]); // T[logshapemin[i],logshapemax[i]]; // Test doing this for both
     logscale[i] ~ normal(logscalemean[i], logscalesd[i]);
   }  
   if (nx > 0){

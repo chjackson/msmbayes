@@ -89,7 +89,6 @@ pa_nulldata <- function(qm){
        pamethod = 1, pafamily = array(dim=0), npadest =  0,
        dest_base = array(dim=0), dest_state = array(dim=0),
        loind = array(dim=0), npaqall=0, paq_inds = array(dim=0),
-##       praterow = array(dim=0), # todo remove when working
        prates_inds = array(dim=0),
        npaq = array(dim=0), prates_start = array(dim=0), prates_end = array(dim=0),
        pastate = array(dim=0), prate_abs = array(dim=0), dest_inds = array(dim=0),
@@ -112,16 +111,6 @@ form_phaseapprox_standata <- function(qm,pm,qmobs){
   ## start and end row index into traindat for each approximated state
   traindat_inds <- rbind(winds, ginds)[pafamily,,drop=FALSE]
 
-  if (pm$pamethod=="moment"){
-    logshapemin <- rep(0, length(pafamily))
-    logshapemax <- log(shape_ubound(pm$nphase[pm$pastates], pm$pafamily))
-  } else { 
-    wmin <- log(min(traindatw$a)); wmax <- log(max(traindatw$a))
-    gmin <- log(min(traindatg$a)); gmax <- log(max(traindatg$a))
-    logshapemin <- c(wmin, gmin)[pafamily]
-    logshapemax <- c(wmax, gmax)[pafamily]
-  }
-
   rdat <- qm$paratedata
   crdat <- qm$pacrdata
 
@@ -134,8 +123,6 @@ form_phaseapprox_standata <- function(qm,pm,qmobs){
          traindat_y = traindat[,phase_cannames(5)],
          traindat_m = traindat_grad[,phase_cannames(5)],
          traindat_inds = traindat_inds,
-         logshapemin = as.array(logshapemin),
-         logshapemax = as.array(logshapemax),
          pamethod = match(pm$pamethod, c("moment", "kl_linear","kl_hermite")),
          pafamily = as.array(match(pm$pafamily, c("gamma","weibull"))),
 
