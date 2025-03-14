@@ -1,3 +1,5 @@
+##' Normalised moments of the Gamma distribution
+##'
 ##' mi : ith noncentral moment E(X^i)
 ##' ni : ith normalised moment as defined in Bobbio
 ##' https://en.wikipedia.org/wiki/Gamma_distribution
@@ -16,6 +18,8 @@ gamma_nmo <- function(shape, scale){
   list(m1=mean, n2=n2, n3=n3, mean=mean, var=var, skew=2/sqrt(shape))
 }
 
+##' Normalised moments of the Weibull distribution
+##'
 ##' @noRd
 weibull_nmo <- function(shape, scale){
   mean <- m1 <- scale*gamma(1 + 1/shape)
@@ -31,6 +35,33 @@ weibull_nmo <- function(shape, scale){
   list(m1=mean, n2=n2, n3=n3, mean=mean, var=var, skew=skew)
 }
 
+## TODO investigate also Gompertz
+## or do we need AFT property?
+
+##' Normalised moments of the log-normal distribution
+##'
+##' Note these depend on sdlog, not meanlog.  This is the "scale" parameter
+##' in the framework of the Titman phase-type paper, because modifying it
+##' scales the failure time.  This contrasts with the Gamma and Weibull
+##' where the normalised moments depend on the "shape" parameter. 
+##'
+##' @noRd
+lnorm_nmo <- function(meanlog, sdlog){
+  mean <- m1 <- exp(meanlog + sdlog^2/2)
+  m2 <- exp(2*meanlog + 2*sdlog^2)
+  var <- m2^2 - m1^2
+  m3 <- exp(3*meanlog + 9*sdlog^2/2)
+  skew <- (exp(sdlog^2) + 2) / sqrt(exp(sdlog^2) - 1)
+##  n2 <- m2 / m1^2
+##  n3 <- m3 / (m1*m2)
+  n2 <- exp(sdlog^2)
+  n3 <- exp(2*sdlog^2)
+  list(m1=mean, n2=n2, n3=n3, mean=mean, var=var, skew=skew)
+}
+## todo does this satisfy the moment bounds?
+## n2 <= n/(n-1)
+## n3 <= 2n2 - 1  = 2exp(sdlog^2) - 1
+
 ## Stacy GG has all closed form moments.  gamma fns again
 ## https://en.wikipedia.org/wiki/Generalized_gamma_distribution
 
@@ -44,7 +75,7 @@ weibull_nmo <- function(shape, scale){
 ## m1*m2 = scale*shape*scale^2*shape*(shape+1) = scale^3*shape^2*(shape+1)
 ## n3 = m3 / (m1*m2) = (shape+2) / shape
 
-##' Return the rates of an Erlang(n-1) + Exp() phase-type model with
+##' Return the rates of an Erlang(n-1, mu) + Exp(lambda) phase-type model with
 ##' given mean and normalised moments
 ##'
 ##' @param m1 mean
@@ -74,21 +105,18 @@ weibull_nmo <- function(shape, scale){
 ##'
 ##' @noRd
 erlang_exp_case1 <- function(m1, n2, n3, n, check=FALSE){
+  if (n<2) stop("need n >= 2")
 
-  case1 <- ((n2 <= (n / (n-1)) + .Machine$double.eps) |
-            (n3 <= 2*n2 - 1 + .Machine$double.eps) )
-  ## These are equal for the Gamma whatever the shape and scale
-  if (check && !all(case1))
-    warning("some not case 1")
-
-  if (!all(in_moment_bounds(n2, n3, n)))
+  if (check && !all(in_case1_bounds(n2,n3,n)))
+    warning("some outside case 1 bounds")
+  if (check && !all(in_moment_bounds(n2, n3, n)))
     warning("some outside moment bounds")
 
   b <- (2*(4 - n*(3*n2 - 4))) /
     (n2*(4 + n - n*n3) + sqrt(n*n2)*(
       sqrt(12*n2^2*(n + 1) + 16*n3*(n + 1) + n2*(n*(n3 - 15)*(n3 + 1) - 8*(n3 + 3)))
     ))
-  ## note b=1 and any other NaN not handled. 
+  ## note b=1 and any other NaN not handled.
   ## reduction to exponential distribution handled outside
 
   a <- ((b*n2 - 2)*(n - 1)*b) / ((b - 1)*n)
@@ -99,28 +127,28 @@ erlang_exp_case1 <- function(m1, n2, n3, n, check=FALSE){
   ## m1 = p*a/lam + 1/lam = (p*a + 1)/lam hence...
   lam <- (p*a + 1)/m1
 
-  ## derived parameters
   mu <- lam*(n - 1)/a
-
-  ## parameters in coxian form. derive from mixture representation:
-  ## path 1: chain of n-1 Exp(mu)s and an Exp(lam)   with prob p
-  ## path 2: Exp(lam) with prob 1-p
-  ## -> reorder path1 with the Exp(lam) at the start
-
-  ## TESTME if n=2 should degrade
-  mu <- matrix(mu, nrow=length(n2))
-  prate <- cbind(p*lam, mu[,rep(1, n-2),drop=FALSE])
-  zeros <- matrix(0, nrow=length(n2), ncol=n-2)
-  arate <- cbind((1-p)*lam, zeros, mu)
+  rates <- exp_erlang_to_coxian(mu, lam, p, n)
 
   #prate <- c(p*lam, rep(mu, n-2))
   #arate <- c((1-p)*lam, rep(0, n-2), mu)
   list(a=a, p=p, lam=lam, n=n,
-       mu = mu, b=b, prate=prate, arate=arate,
+       mu = mu, b=b,
+       prate = rates$prate, arate = rates$arate,
        mean = p*(n-1)/mu + 1/lam)
 }
 
-## TODO other conditions may be needed for dists other than the Gamma
+## parameters in coxian form. derive from mixture representation:
+## path 1: chain of n-1 Exp(mu)s and an Exp(lam)   with prob p
+## path 2: Exp(lam) with prob 1-p
+## -> reorder path1 with the Exp(lam) at the start
+exp_erlang_to_coxian <- function(mu, lam, p, n){
+  mu <- matrix(mu, nrow=length(mu))
+  prate <- cbind(p*lam, mu[,rep(1, n-2),drop=FALSE])
+  zeros <- matrix(0, nrow=length(mu), ncol=n-2)
+  arate <- cbind((1-p)*lam, zeros, mu)
+  list(prate=prate, arate=arate)
+}
 
 rerlang <- function(n, nphase, rate){
   rowSums(matrix(rexp(n*nphase, rate), nrow=n, ncol=nphase))
@@ -133,7 +161,9 @@ rerlangexp <- function(n, nphase, rate1, rate2, p){
   res
 }
 
-n3_moment_bounds <- function(n2, n3, n){
+n3_moment_bounds_scalar <- function(n2, n3, n){
+  un <- suppressWarnings(1/(n^2*n2) * (2*(n - 2)*(n*n2 - n - 1)*sqrt(1 + (n*(n2 - 2)/(n - 1))) +
+                                         (n + 2)*(3*n*n2 - 2*n - 2)))
   if ((n2 >= (n+1)/n)){     # shape <= n for Gamma
     if (n2 <= (n+4)/(n+1)){ # shape >= (n+1) / 3 for Gamma
       pn <- (n + 1)*(n2 - 2)/(3*n2*(n - 1)) * ( (-2*sqrt(n + 1)) / sqrt(4*(n+1) - 3*n*n2) - 1 )
@@ -144,21 +174,32 @@ n3_moment_bounds <- function(n2, n3, n){
     else
       lower <- (n+1)/n*n2
     if (n2 <= n/(n-1)){  # ie shape >= n-1 for Gamma
-      un <- 1/(n^2*n2) * (2*(n - 2)*(n*n2 - n - 1)*sqrt(1 + (n*(n2 - 2)/(n - 1))) + (n + 2)*(3*n*n2 - 2*n - 2))
       upper <- un
     }
     else
       upper <- Inf
   }
   else lower <- upper <- NA  # no matching phase-type dist
-
-  c(lower=lower, upper=upper)
+  c(lower=lower, upper=upper, un=un)
 }
-n3_moment_bounds <- Vectorize(n3_moment_bounds, c("n2", "n3"))
+n3_moment_bounds <- function(n2, n3, n){
+  res <- Vectorize(n3_moment_bounds_scalar, c("n2", "n3"))(n2, n3, n)
+  as.data.frame(t(res))
+}
 
 in_moment_bounds <- function(n2, n3, n){
   mb <- n3_moment_bounds(n2, n3, n)
-  (n2 >= (n+1)/n) & (mb["lower",] <= n3) & (n3 <= mb["upper",])
+  (n2 >= (n+1)/n) & (mb[["lower"]] <= n3) & (n3 <= mb[["upper"]])
+}
+
+in_case1_bounds <- function(n2, n3, n){
+  ((n2 <= (n / (n-1)) + .Machine$double.eps) |
+   (n3 <= 2*n2 - 1 + .Machine$double.eps) )
+}
+
+in_case2_bounds <- function(n2, n3, n){
+  uprev <- n3_moment_bounds(n2, n3, n-1)[["un"]]
+  (n2 > (n / (n-1))) & (n3 > uprev)
 }
 
 shape_to_rates_moment <- function(shape, scale, family, nphase){
@@ -171,8 +212,9 @@ shape_to_rates_moment <- function(shape, scale, family, nphase){
   arate <- matrix(ee$arate, nrow=length(shape))
   rates <- cbind(prate, arate)
 
-  # Exponential dist with rate 1/scale
-  rates[shape==1,] <- c(rep(0, nphase-1), 1/scale[shape==1], rep(0, nphase-1))
+  # Exponential dist with rate 1/scale, for gamma and weibull
+  if (family %in% c("gamma","weibull"))
+    rates[shape==1,] <- c(rep(0, nphase-1), 1/scale[shape==1], rep(0, nphase-1))
 
   colnames(rates) <- phase_ratenames(nphase)
   rates
@@ -201,11 +243,15 @@ gamma_shape_ubound <- function(nphase){
 ## dput(round(weibull_ubounds, digits=8))
 weibull_shape_ubound <- function(nphase){
   weibull_ubounds <- c(NA, 1.1855015, 1.49013532, 1.76304244,
-                       2.01311007, 2.24550818, 
+                       2.01311007, 2.24550818,
                        2.46362245, 2.66986917,
                        2.86603218, 3.05349209)
   if (nphase > 10) nphase <- 10
   weibull_ubounds[nphase]
+}
+
+lnorm_sdlog_lbound <- function(nphase){
+  sqrt(log((nphase) / (nphase-1)))
 }
 
 shape_ubound <- function(nphase, family){
@@ -215,4 +261,58 @@ shape_ubound <- function(nphase, family){
   for (i in seq_along(res))
     res[i] <- family_fns[[family[i]]](nphase[i])
   res
+}
+
+erlang_exp_case2 <- function(m1, n2, n3, n, check=FALSE){
+  if (n<2) stop("need n >= 2")
+  if (check && !all(in_case2_bounds(n2,n3,n)))
+    warning("some outside case 2 bounds")
+  if (check && !all(in_moment_bounds(n2, n3, n)))
+    warning("some outside moment bounds")
+  K1 <- n - 1
+  K2 <- n - 2
+  K3 <- 3*n2 - 2*n3
+  K4 <- n3 - 3
+  K5 <- n - n2
+  K6 <- 1 + n2 - n3
+  K7 <- n + n2 - n*n2
+  K8 <- 3 + 3*n2^2 + n3 - 3*n2*n3
+  K9 <- 108*K1^2 * (4*K2^2*K3*n^2*n2 + K1^2*K2*K4^2*n*n2^2 +
+                    4*K1*K5*(K5^2 - 3*K2*K6*n*n2) +
+                    sqrt(-16*K1^2*K7^6 + (4*K1*K5^3 + K1^2*K2*K4^2*n*n2^2 +
+                                          4*K2*n*n2*(K4*n^2 - 3*K6*n2 + K8*n))^2))
+  K10 <- K4^2 / (4*K3^2)  -  K5 / (K1*K3*n2)
+  K11 <- 2^(1/3) * (3*K5^2 + K2*(K3 + 2*K4)*n*n2) / (K3*K9^(1/3)*n2)
+  K12 <- K9^(1/3) / (3 * 2^7^(7/3) * K1^2 * K3 * n2)
+  K13 <- sqrt(K10 + K11 + K12)
+  K14 <- (6*K1*K3*K4*K5 + 4*K2*K3^2*n - K1^2*K4^3*n2) / (4*K1^2*K3^2*K13*n2)
+  K15 <- - K4 / (2*K3)
+  K16 <- sqrt(2*K10 - K11 - K12 - K14)
+  K17 <- sqrt(2*K10 - K11 - K12 + K14)
+  K18 <- 36*K5^3 + 36*K2*K4*K5*n*n2 + 9*K1*K2*K4^2*n*n2^2 -
+    sqrt(81*(4*K5^3 + 4*K2*K4*K5*n*n2 + K1*K2*K4^2*n*n2^2)^2 -
+         48*(3*K5^2 + 2*K2*K4*n*n2)^3)
+  K19 <- - K5 / (K1*K4*n2) -
+    2^(2/3)*(3*K5^2+2*K2*K4*n*n2) / (3^(1/3)*K1*K4*n2*K18^(1/3)) -
+    K18^(1/3) / (6^(2/3)*K1*K4*n2)
+  K20 <- 6*K1*K3*K4*K5 + 4*K2*K3^2*n - K1^2*K4^3*n2
+  K21 <- K11 + K12 + K5/(2*n*K1*K3)
+  K22 <- sqrt(3*K4^2/(4*K3^2) - 3*K5/(K1*K3*n2) + sqrt(4*K21^2 - n*K2/(n2*K1^2*K3)))
+
+  uprev <- n3_moment_bounds(n2, n3, n-1)[["un"]]
+  res1 <- K13 + K15 - K17;  cond1 <- uprev < n3 & n3 < 3*n2/2
+  res2 <- K19;              cond2 <- n3 == 3*n2/2
+  res3 <- -K13 + K15 + K16; cond3 <- (n3 > 3*n2/2) & (K20 > 0)
+  res4 <- K15 + K22;        cond4 <- K20==0
+  res5 <- K13 + K15 + K17;  cond5 <- K20<0
+  f <- ifelse(cond1, res1, ifelse(cond2, res2, ifelse(cond3, res3, ifelse(cond4, res4, ifelse(cond5, res5, NA)))))
+  a <- 2*(f-1)*(n-1) / ((n-1)*(n2*f^2 - 2*f + 2) - n)
+  p <- (f - 1) * a
+  lam <- (p*a + 1)/m1 # as case 1
+  mu <- lam*(n - 1) / a
+  rates <- exp_erlang_to_coxian(mu, lam, p, n)
+  list(a=a, p=p, lam=lam, n=n,
+       mu = mu,
+       prate = rates$prate, arate = rates$arate,
+       mean = p*(n-1)/mu + 1/lam)
 }
