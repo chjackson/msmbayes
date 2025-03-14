@@ -55,6 +55,8 @@ canpars_to_rates <- function(pars, type="vector"){
 }
 
 rates_to_list <- function(rates, canonical=TRUE){
+  if ("a1" %in% names(rates)) canonical <- FALSE
+  if ("qsoj" %in% names(rates)) canonical <- TRUE
   if (canonical)
     return(canpars_to_list(rates))
   if (is.matrix(rates)){

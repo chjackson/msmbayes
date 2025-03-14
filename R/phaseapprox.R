@@ -43,8 +43,8 @@ shapescale_to_rates <- function(shape, scale=1, family="weibull",
   if (method == "moment"){
     ## todo vectorised 
     rates <- shape_to_rates_moment(shape, scale, family, nphase)
-    ## todo convert to canonical if really want
-    
+    if (canonical)
+      rates <- rates_to_canpars(rates)
   } else if (method %in% c("kl_hermite","kl_linear")){
     canparnames <- phase_cannames(nphase=5) # TODO better logic  
     rates <- matrix(nrow=length(shape), ncol=length(canparnames))
