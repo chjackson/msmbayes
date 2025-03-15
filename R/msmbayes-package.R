@@ -18,7 +18,7 @@
 #' @importFrom utils head
 #' @importFrom stringr str_match
 #' @importFrom abind abind
-#'
+#' @importFrom ggplot2 ggplot aes geom_density facet_wrap guides guide_legend theme xlab ylab margin
 #'
 #' @import Rcpp
 #' @import methods

@@ -125,7 +125,7 @@ prior_loghr_db <- function(priors, cm){
 }
 
 prior_papars_db <- function(priors, pm, qm){
-  rvar <- NULL
+  rvar <- rvar_log <- namebase <- name <- NULL
   if (!pm$phaseapprox) return(NULL)
   prior <- loind <- oldfrom <- oldto <- from <- NULL
   logshape <- data.frame(name = "shape",

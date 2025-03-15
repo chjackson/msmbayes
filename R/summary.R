@@ -50,7 +50,7 @@ print.msmbayes <- function(x,...){
 #'
 #' @export
 summary.msmbayes <- function(object,log=FALSE,time=FALSE,...){
-  name <- from <- to <- value <- prior_string <- NULL
+  name <- from <- to <- state <- value <- prior_string <- NULL
   names <- if (log) c(q="logq",hr="loghr") else c(q="q",hr="hr")
   qres <- qdf(object, ...)
   if (time) {

@@ -21,7 +21,7 @@ Models are fitted with Bayesian estimation, via any of the algorithms available 
 
 * Automatic, efficient uncertainty quantification for any model output
 
-* Phase-type models with any number of phases are supported, though these have not been investigated much
+* More robust semi-Markov models, via phase-type approximations to Weibull and Gamma distributions
 
 
 ## Limitations of msmbayes compared to msm 

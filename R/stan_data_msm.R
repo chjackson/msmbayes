@@ -12,7 +12,7 @@ make_stan_aggdata <- function(dat, qm=NULL, cm=NULL, priors=NULL,
                               soj_priordata = NULL){
   if (length(dat[["time"]])==0)
     cli_inform("No observations in the data, carrying on and hoping for the best...")
-  dat_trans <- form_transition_data(dat, qm, deathexact=deathexact)
+  dat_trans <- form_transition_data(dat, qm)
   dat_agg <- aggregate_transition_data(dat_trans, K=qm$K)
   dwide <- aggdata_towide(dat_agg, K=qm$K)
   covind <- as.array(dwide$covind)
@@ -54,7 +54,7 @@ make_stan_aggdata <- function(dat, qm=NULL, cm=NULL, priors=NULL,
 #' The covariate design matrix is stored in a "matrix column" \code{X}.
 #'
 #' @noRd
-form_transition_data <- function(dat, qm, time=TRUE, deathexact=FALSE){
+form_transition_data <- function(dat, qm, time=TRUE){
   state <- dat[["state"]]
   nobs <- length(state)
   firstobs <- !duplicated(dat[["subject"]])

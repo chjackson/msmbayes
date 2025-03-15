@@ -445,6 +445,8 @@ soj_prob <- function(draws, t, state, new_data=NULL, method="analytic"){
 
 ##' Summarise posteriors for shape and scale parameters for the sojourn distribution in a semi-Markov msmbayes model
 ##'
+##' @param log Return parameters on log scale
+##'
 ##' @inheritParams qmatrix
 ##' @export
 phaseapprox_pars <- function(draws, log=FALSE){

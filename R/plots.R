@@ -45,8 +45,8 @@ dens_compare <- function(res, compare="prior_rvar",
                cbind(draws_ref, pp=names[2])) |>
     pivot_longer(cols=1:nrow(res), names_to="name", values_to="x")
   if (plot)
-    ggplot(dat, aes(x=x)) +
-      geom_density(aes(group=pp, fill=pp), alpha=0.5) +
+    ggplot(dat, aes(x="x")) +
+      geom_density(aes(group="pp", fill="pp"), alpha=0.5) +
       facet_wrap(~name, nrow=1, scales="free_x") +
       guides(fill  = guide_legend(position = "inside", title=NULL)) +
       theme(legend.margin = margin(0, 0, 0, 0),

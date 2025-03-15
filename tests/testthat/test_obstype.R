@@ -36,19 +36,46 @@ test_that("obstype likelihood agrees with msm",{
 
 infsim$obstype_test <- 1
 infsim$obstype_test[2:5] <- 2
-infsim$obstype_test[6] <- 3
 
-# TODO # does obstype 3 make sense here in theory? dsw not
+Q <- rbind(c(0,1),c(1,0))
+E <- rbind(c(0, 0.01), c(0.01, 0))
 
-if (0){
-test_that("obstype likelihood agrees with msm with misclassification models",{
+test_that("obstype 2 likelihood agrees with in with misclassification models",{
   init <- list(list(logq_markov=c(0, 0), logoddse=qlogis(c(0.01, 0.01))))
   drawse <- msmbayes(data=infsim, time="months", Q=Q, E=E, init=init,
+                     obstype = "obstype_test",
                      algorithm="Fixed_param", chains=1, iter=1)
   lik_msmbayes <- -2*drawse$loglik
-  E <- rbind(c(0, 0.01), c(0.01, 0))
   lik_msm <- msm(state~months, subject=subject, data=infsim,
+                 obstype = obstype_test,
                  qmatrix=Q, ematrix=E, fixedpars=TRUE)$minus2loglik
   expect_equal(lik_msmbayes, lik_msm)
 })
-}
+
+Ecav2 <- rbind(c(0, 0.1, 0.001, 0),c(0.1, 0, 0.1, 0),
+               c(0.001, 0.1, 0, 0),c(0, 0, 0, 0))
+
+test_that("obstype 3 agrees with msm in misclassification models",{
+  ## Note here that msm assumes the state is known if obstype 3
+  ## msmbayes doesn't assume this
+  diag(Ecav2) <- 1 - rowSums(Ecav2)
+  logoddse <- c(
+    log(c(0.1, 0.001) / diag(Ecav2)[1]),
+    log(c(0.1, 0.1) / diag(Ecav2)[2]),
+    log(c(0.001, 0.1) / diag(Ecav2)[3]))
+  diag(Ecav2) <- 0
+  fromstate <- row(Ecav2)[Ecav2>0]
+  logoddse <- logoddse[seq_along(fromstate)[order(fromstate)]] # rearrange in columnwise order
+
+  init <- list(list(logq_markov = log(Qcav[Qcav>0]), # colwise
+                    logoddse = logoddse))
+  fit_bayes <- msmbayes(data=cav, subject="PTNUM", time="years", state="state",
+                        Q=Qcav, E=Ecav2, init = init,
+                        obstype = "obstype_test",
+                        algorithm="Fixed_param", chains=1, iter=1)
+  lik_msmbayes <- -2*fit_bayes$loglik
+  lik_msm <- msm(state ~ years, subject = PTNUM, data = cav,
+                 obstype = obstype_test,
+                 qmatrix = Qcav, ematrix = Ecav2, fixedpars = TRUE)$minus2loglik
+  expect_equal(lik_msmbayes, lik_msm)
+})

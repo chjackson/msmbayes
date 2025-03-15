@@ -21,6 +21,8 @@
 ##'
 ##' @param method Type of spline used to interpolate between the training points (pointwise optima) when deriving the function that best maps the shape to each phase-type parameter
 ##'
+##' @param nphase Number of phases.
+##'
 ##' @param canonical Return the phase-type parameters in canonical form (phase 1 sojourn rate, sojourn rate increments in subsequent states, absorption probabilities).  If `FALSE` then phase transition rates are returned.
 ##'
 ##' @param list If \code{TRUE} then separate components are returned for progression and absorption rates.

@@ -8,6 +8,8 @@ phaseapprox_pars(draws, log = FALSE)
 }
 \arguments{
 \item{draws}{Object returned by \code{\link{msmbayes}}.}
+
+\item{log}{Return parameters on log scale}
 }
 \description{
 Summarise posteriors for shape and scale parameters for the sojourn distribution in a semi-Markov msmbayes model

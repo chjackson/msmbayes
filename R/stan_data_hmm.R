@@ -49,7 +49,7 @@ make_stan_obsdata <- function(dat, qm=NULL, cm=NULL,
     npriorq = qm$npriorq,
     nindiv = nindiv,
     nefix = length(em$efix),
-##    misc = (pm$npastates == 0), ## DELETEME
+    noddsabs = qm$noddsabs,
 
     starti = as.array(which(!duplicated(dat[["subject"]]))),
     TI = as.array(TI),
@@ -68,6 +68,7 @@ make_stan_obsdata <- function(dat, qm=NULL, cm=NULL,
     ntlc = ntlc,
     tlcid = as.array(tlcid),
     timelag = as.array(timelag),
+    obstype = as.array(dat[["obstype"]]),
 
     nx = cm$nx,
     nxq = as.array(cm$nxq),
@@ -91,8 +92,7 @@ pa_nulldata <- function(qm){
        loind = array(dim=0), npaqall=0, paq_inds = array(dim=0),
        prates_inds = array(dim=0),
        npaq = array(dim=0), prates_start = array(dim=0), prates_end = array(dim=0),
-       pastate = array(dim=0), prate_abs = array(dim=0), dest_inds = array(dim=0),
-       noddsabs = 0)
+       pastate = array(dim=0), prate_abs = array(dim=0), dest_inds = array(dim=0))
 }
 
 form_phaseapprox_standata <- function(qm,pm,qmobs){
@@ -137,7 +137,7 @@ form_phaseapprox_standata <- function(qm,pm,qmobs){
 
          prates_start = as.array(tapply(rdat$prates_inds, rdat$pastate, min)),
          prates_end = as.array(tapply(rdat$prates_inds, rdat$pastate, max)),
-         npaq = as.array(2*pm$nphase[pm$pastates] - 1), 
+         npaq = as.array(2*pm$nphase[pm$pastates] - 1),
 
          prates_inds = as.array(rdat$prates_inds),
          prate_abs = as.array(rdat$prate_abs),

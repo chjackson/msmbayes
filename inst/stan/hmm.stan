@@ -144,7 +144,6 @@ data {
   int<lower=0> nepars;
   int<lower=1> nindiv;
   int<lower=0> nefix;
-  //  int misc; // is it a misclassification model
 
   array[nindiv] int<lower=1> starti; // starting index in the data for each individual
   array[nindiv] int<lower=1> TI; // number of observations per individual
@@ -167,7 +166,7 @@ data {
   int<lower=1> ntlc;                 // number of distinct (timelag, covariates)
   array[T] int<lower=0,upper=ntlc> tlcid; // which of these combinations each observation corresponds to
   array[ntlc] real<lower=0> timelag; // time lags (keeping only those corresponding to distinct (timelag, covariates)
-
+  array[T] int<lower=1,upper=3> obstype;
 
   int npastates; // number of states on observable space that have phase-type approximations
   int npaqkl; // TODO only applicable to spline phaseapprox method 
@@ -376,8 +375,7 @@ transformed parameters {
   for (i in 1:ntlc){
     P[i,,] = matrix_exp(Q[i,,]*timelag[i]);
   }
-
-
+  
   for (i in 1:nindiv){
     array[TI[i],K] real mp; // marg prob of data up to time t and true state k at time t.
     
@@ -389,7 +387,27 @@ transformed parameters {
 	int oi = starti[i] - 1 + t;
 	for (k in 1:K){
 	  for (j in 1:K){
-	    mp_jk[j] = mp[t-1,j] * P[tlcid[oi],j,k] * E[k,obs[oi]];
+
+	    real trans_prob;
+	    if (obstype[oi]==1){
+	      trans_prob = P[tlcid[oi],j,k];
+	    } 
+	    else if (obstype[oi]==2){
+	      trans_prob = exp(Q[tlcid[oi],j,j]*timelag[tlcid[oi]]);
+	      if (j != k)
+		trans_prob = trans_prob*Q[tlcid[oi],j,k];
+	    }
+	    else if (obstype[oi]==3){
+	      trans_prob = 0;
+	      // note msm assumes the state is known when obstype 3
+	      // so its code (lik.c:update_likhidden) is simpler 
+	      for (r in 1:K){
+		if (r != k)
+		  trans_prob += P[tlcid[oi],j,r] * Q[tlcid[oi],r,k];
+	      }
+	    }
+
+	    mp_jk[j] = mp[t-1,j] * trans_prob * E[k,obs[oi]];
 	  }
 	  mp[t,k] = sum(mp_jk[1:K]);
 	}

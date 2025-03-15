@@ -19,11 +19,12 @@
 
 * `msmbayes` now supports semi-Markov models with phase-type approximations to Weibull and Gamma sojourn distributions.
 
+* `obstype` and `deathexact` supported for exact transition times, as in `msm`. 
+
 * Misclassification models with fixed misclassification probabilities now supported.
 
 * Computation now uses `rstan` instead of `cmdstanr`.  `cmdstanr` is now only used for Pathfinder, and is no longer a dependency.
 
-* `obstype` and `deathexact` supported for exact transition times, as in `msm`. 
 
 
 TODO list any new exported functions 

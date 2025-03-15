@@ -26,6 +26,8 @@ shapescale_to_rates(
 
 \item{method}{Type of spline used to interpolate between the training points (pointwise optima) when deriving the function that best maps the shape to each phase-type parameter}
 
+\item{nphase}{Number of phases.}
+
 \item{list}{If \code{TRUE} then separate components are returned for progression and absorption rates.
 Otherwise, and by default, a vector (or matrix) is returned combining all rates.
 If a vector is supplied for shape or scale, the returned object (or the list components) is a matrix.}
