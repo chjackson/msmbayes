@@ -10,6 +10,7 @@ shapescale_to_rates(
   family = "weibull",
   canonical = FALSE,
   method = "kl_hermite",
+  nphase = 5,
   list = FALSE,
   drop = TRUE
 )

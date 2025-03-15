@@ -12,15 +12,15 @@ load_all() # msmbayes
 ##'
 ##' @noRd
 obj_pointwise <- function(par, a, tmax=10, family="weibull",
-                          deriv=FALSE, fixedpars=NULL, fixedvals=NULL){
+                          deriv=FALSE, fixedpars=NULL, fixedvals=NULL, canonical=TRUE){
   nphase <- (length(par) + length(fixedpars) + 1) / 2
-  parnames <- phase_cannames(nphase)
+  parnames <- if (canonical) phase_cannames(nphase) else phase_ratenames(nphase)
   optpars <- setdiff(parnames, fixedpars)
   par_use <- setNames(numeric(length(parnames)), parnames)
   par_use[optpars] <- par
   par_use[fixedpars] <- fixedvals
 
-  rates <- canpars_to_rates(par_use, type="list")
+  rates <- if (canonical) canpars_to_rates(par_use, type="list") else rates_to_list(par_use)
   prate <- rates$p; arate <- rates$a
   if (any(is.na(prate)) || any(is.na(arate))) return(Inf)
   tgrid <- c(seq(0, tmax, by=0.10), Inf)

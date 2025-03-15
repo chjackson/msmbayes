@@ -27,8 +27,7 @@ sojourn distribution in the non-Markov state to get the transition
 rates from the phases to the destination state.}
 
 \item{pastates}{This indicates which states (if any) are given a
-Weibull or Gamma sojourn distribution approximated by a 5-phase
-model.
+Weibull or Gamma sojourn distribution approximated by a phase-type model
 Ignored if \code{nphase} is supplied.}
 
 \item{shape}{shape parameter.  This can be vectorised.}

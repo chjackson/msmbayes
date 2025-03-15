@@ -13,7 +13,7 @@ msmbayes_priorpred_sample(
   covariates = NULL,
   pastates = NULL,
   pafamily = "weibull",
-  pamethod = "kl_linear",
+  pamethod = "moment",
   nphase = NULL,
   E = NULL,
   priors = NULL,
@@ -74,8 +74,7 @@ models (specified with \code{E}), the numbers in \code{Q()} refer to transition
 rates on the latent state space.}
 
 \item{pastates}{This indicates which states (if any) are given a
-Weibull or Gamma sojourn distribution approximated by a 5-phase
-model.
+Weibull or Gamma sojourn distribution approximated by a phase-type model
 Ignored if \code{nphase} is supplied.}
 
 \item{pafamily}{\code{"weibull"} or \code{"gamma"}, indicating the
@@ -83,12 +82,13 @@ approximated sojourn distribution in the phased state.  Either a
 vector of the same length as \code{pastates}, or just one to apply to
 all states.}
 
-\item{pamethod}{\code{"kl_linear"} or \code{"kl_hermite"}. Advanced: spline
-used in constructing the approximations. May remove this argument
-if one of these turns out to be good enough.}
+\item{pamethod}{\verb{"moment", "kl_linear"} or
+\code{"kl_hermite"}. Advanced.  Method of constructing the
+approximations. May remove this argument if one of these turns
+out to be good enough.}
 
 \item{nphase}{Only required for models with phase-type sojourn
-distributions specified manually (not through \code{pastates}).
+distributions specified directly (not through \code{pastates}).
 \code{nphase} is a vector with one element per state, giving the
 number of phases per state.  This element is 1 for states that do
 not have phase-type sojourn distributions.}
