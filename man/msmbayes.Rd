@@ -13,9 +13,12 @@ msmbayes(
   covariates = NULL,
   pastates = NULL,
   pafamily = "weibull",
-  pamethod = "kl_hermite",
+  pamethod = "moment",
+  panphase = NULL,
   E = NULL,
   Efix = NULL,
+  obstype = NULL,
+  deathexact = FALSE,
   nphase = NULL,
   priors = NULL,
   prob_initstate = NULL,
@@ -78,8 +81,7 @@ models (specified with \code{E}), the numbers in \code{Q()} refer to transition
 rates on the latent state space.}
 
 \item{pastates}{This indicates which states (if any) are given a
-Weibull or Gamma sojourn distribution approximated by a 5-phase
-model.
+Weibull or Gamma sojourn distribution approximated by a phase-type model
 Ignored if \code{nphase} is supplied.}
 
 \item{pafamily}{\code{"weibull"} or \code{"gamma"}, indicating the
@@ -87,9 +89,16 @@ approximated sojourn distribution in the phased state.  Either a
 vector of the same length as \code{pastates}, or just one to apply to
 all states.}
 
-\item{pamethod}{\code{"kl_linear"} or \code{"kl_hermite"}. Advanced: spline
-used in constructing the approximations. May remove this argument
-if one of these turns out to be good enough.}
+\item{pamethod}{\verb{"moment", "kl_linear"} or
+\code{"kl_hermite"}. Advanced.  Method of constructing the
+approximations. May remove this argument if one of these turns
+out to be good enough.}
+
+\item{panphase}{Number of phases to use for each state given a
+phase-type Gamma or Weibull approximation.  Vector of same length
+as \code{pastates}. More phases allow a wider range of shape parameters.
+Only applicable for \code{pamethod="moment"}.  For the spline-based
+methods, 5 phases are always used.}
 
 \item{E}{By default, \code{msmbayes} fits a (non-hidden) Markov model.
 If \code{E} is supplied, then a Markov model with misclassification is
@@ -113,8 +122,39 @@ known value for the corresponding misclassification probability.
 The \eqn{(r,s)} entry of \code{Efix} is 0 for any error probabilities
 that are estimated from the data or not permitted.}
 
+\item{obstype}{Character string, giving a variable in the data
+which defines what a "row of the data" means.  The variable
+must contain only the following values, which may be different
+in different rows:
+
+\code{1}: Intermittent observation. The state is unknown between the
+previous observation and the current observation (other than any
+knowledge implied by the structure \code{Q} of permitted transitions).
+
+\code{2}: Exact transition times. The state is constant at the
+previous observed value between the previous and current times in
+the data, and the transition to the current state is made exactly
+at the current time.
+
+\code{3}: "Exact death times". the transition to the current state is
+made exactly at the current time, but the state in the period
+from the previous observation to the instant before the
+transition is unknown.  Typical (but not necessary) for
+observations of death in epidemiological studies.
+
+This is the same feature as in the \code{msm} package.  If omitted,
+then all observations are assumed to be intermittent, with
+\code{obstype} 1.}
+
+\item{deathexact}{Set to \code{TRUE} if death times are observed with
+the \verb{obstype 3} scheme.  This is a shortcut for including an
+\code{obstype} variable with 3 in the positions with the absorbing
+state, and 1 elsewhere.  If there are multiple absorbing states,
+then this is taken to only apply to the last of them - use an
+\code{obstype} variable if you want it to apply to all.}
+
 \item{nphase}{Only required for models with phase-type sojourn
-distributions specified manually (not through \code{pastates}).
+distributions specified directly (not through \code{pastates}).
 \code{nphase} is a vector with one element per state, giving the
 number of phases per state.  This element is 1 for states that do
 not have phase-type sojourn distributions.}

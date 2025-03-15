@@ -26,17 +26,13 @@ Models are fitted with Bayesian estimation, via any of the algorithms available 
 
 ## Limitations of msmbayes compared to msm 
 
-* "Exact death time" observation schemes are not supported (but models can still have absorbing states, or any state structure).
-
-* Continuously-observed processes (`exacttimes` in `msm()`) are not supported.
-
 * "Censored states" are not supported.
-
-* Equality constraints and fixed parameters are not supported.  However, parameters can be constrained through their prior distributions.
 
 * Time-inhomogeneous models specified through `pci` in `msm()` are not supported.  However, models with time-varying intensities can still be specified through a time-dependent covariate (e.g. time itself), which assumes that intensities are constant between successive observations of the state. 
 
 * Hidden Markov models with general outcome distributions are not supported.  The only HMMs supported are those where the observed state space is the same as (or a subset of) the true state space.  This includes misclassification and phase-type models.
+
+* Equality constraints and fixed parameters are not supported.  However, parameters can be constrained through their prior distributions.
 
 * Multivariate hidden Markov models are not supported.
 

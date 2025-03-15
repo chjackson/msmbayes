@@ -46,11 +46,12 @@ data {
   array[N] int<lower=1,upper=K> fromstate;
   array[N,K] int<lower=0> ntostate;
   array[N] real<lower=0> timelag;
-
+  array[N] int<lower=1,upper=3> obstype;   // 1: intermittent observation. 2: exact transition time, 3: "exact death time". as in msm
+  array[N] int<lower=0,upper=K> exactdeath_state; // which state obstype=3 refers to, or 0 if not applicable
   array[N] int<lower=1> covind;      // index of distinct covariate value for each row of transition count data
   int<lower=1> ncovind;              // number of distinct covariate values.  1 if no covariates
 
-  // Covariate data
+  // Covariate information
   int<lower=0> nx; // total number of covariates
   array[nqpars] int<lower=0> xstart; // starting index into X for each transition. 0 if no covariates on that transition 
   array[nqpars] int<lower=0> xend;   // ending index into X for each transition 
@@ -133,7 +134,26 @@ transformed parameters {
       array[nzilen[fromstate[i]]] int nz; 
       nz = segment(nzinds, nzifrom[fromstate[i]], nzilen[fromstate[i]]);
       
-      loglik += multinomial_lpmf(ntostate[i,nz] | probs[nz]);
+      if (obstype[i]==1){ // intermittent observation
+	loglik += multinomial_lpmf(ntostate[i,nz] | probs[nz]);
+      }
+      else if (obstype[i]==2){ // exact transition times, state constant since previous observation
+	for (k in nz){ 
+	  if (ntostate[i,k] > 0){
+	    real lp = Q[covind[i], fromstate[i], fromstate[i]]*timelag[i]; // log of exponential CDF
+	    if (k != fromstate[i]) lp += log(Q[covind[i], fromstate[i], k]);
+	    loglik += ntostate[i,k]*lp;
+	  }
+	}
+      }
+      else if (obstype[i]==3){ // exact transition time, state at previous instant unknown (common for death times)
+	real pexactdeath = 0;
+	for (k in nz){
+	  if (k != exactdeath_state[i])
+	    pexactdeath += probs[k] * Q[covind[i], k, exactdeath_state[i]];
+	}
+	loglik += ntostate[i,exactdeath_state[i]] * log(pexactdeath);
+      }
     }  
 
     if (nsoj > 0){

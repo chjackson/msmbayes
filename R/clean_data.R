@@ -147,6 +147,29 @@ check_dup_obs <- function(state, time, subject, call=caller_env()){
 ## * time numeric
 ## * subject num or char or factor.
 
+form_obstype <- function(dat, obstype, deathexact, state, qm, call=caller_env()){
+  if (is.null(obstype)) {
+    dat$obstype <- 1
+    if (deathexact)
+      dat$obstype[dat[[state]] == max(absorbing_states(qm))] <- 3
+  }
+  else {
+    check_dat_variables(dat=dat, obstype=obstype)
+    check_obstype(dat[[obstype]])
+    dat$obstype <- dat[[obstype]]
+  }
+  dat
+}
+
+check_obstype <- function(obstype, call=caller_env()){
+  badobs <- which(! (obstype %in% c(1, 2, 3)) )
+  if (length(badobs) > 0){
+    cli_abort(c("`obstype` variable data must only have values 1, 2 or 3.",
+                "Found bad values at position{?s} {badobs} in the data"),
+              call=call)
+  }
+}
+
 
 #' Clean the user-supplied data for a msmbayes model
 #'
@@ -160,12 +183,14 @@ check_dup_obs <- function(state, time, subject, call=caller_env()){
 #'
 #' @md 
 #' @noRd
-clean_data <- function(dat, state="state", time="time", subject="subject",
-                       X=NULL, prior_sample=FALSE, call=caller_env()){
+clean_data <- function(dat, state="state", time="time", subject="subject", 
+                       X=NULL, obstype=NULL, deathexact=FALSE, qm, 
+                       prior_sample=FALSE, call=caller_env()){
   if (nrow(dat)==0) return(dat)
   if (prior_sample) dat[[state]] <- rep(0, nrow(dat)) # temporary to bypass check
-  dat <- dat[,c(state, time, subject)]
-  names(dat) <- c("state", "time", "subject")
+  dat <- form_obstype(dat, obstype, deathexact, state, qm)
+  dat <- dat[,c(state, time, subject, "obstype")]
+  names(dat) <- c("state", "time", "subject","obstype")
   if (is.factor(dat$state)) dat$state <- as.numeric(as.character(dat$state))
   dat$X <- X
   dat <- drop_missing_data(dat)

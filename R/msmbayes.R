@@ -109,6 +109,37 @@
 #' If only one parameter is given a non-default prior, a single `msmprior`
 #' call can be supplied here instead of a list.
 #'
+#' @param obstype Character string, giving a variable in the data
+#'   which defines what a "row of the data" means.  The variable
+#'   must contain only the following values, which may be different
+#'   in different rows:
+#'
+#'   `1`: Intermittent observation. The state is unknown between the
+#'   previous observation and the current observation (other than any
+#'   knowledge implied by the structure `Q` of permitted transitions).
+#'
+#'   `2`: Exact transition times. The state is constant at the
+#'   previous observed value between the previous and current times in
+#'   the data, and the transition to the current state is made exactly
+#'   at the current time.
+#' 
+#'   `3`: "Exact death times". the transition to the current state is
+#'   made exactly at the current time, but the state in the period
+#'   from the previous observation to the instant before the
+#'   transition is unknown.  Typical (but not necessary) for
+#'   observations of death in epidemiological studies.
+#'
+#'    This is the same feature as in the `msm` package.  If omitted,
+#'    then all observations are assumed to be intermittent, with
+#'    `obstype` 1. 
+#' 
+#' @param deathexact Set to `TRUE` if death times are observed with
+#'   the `obstype 3` scheme.  This is a shortcut for including an
+#'   `obstype` variable with 3 in the positions with the absorbing
+#'   state, and 1 elsewhere.  If there are multiple absorbing states,
+#'   then this is taken to only apply to the last of them - use an
+#'   `obstype` variable if you want it to apply to all. 
+#'
 #' @param nphase Only required for models with phase-type sojourn
 #'   distributions specified directly (not through `pastates`).
 #'   `nphase` is a vector with one element per state, giving the
@@ -186,6 +217,8 @@ msmbayes <- function(data, state="state", time="time", subject="subject",
                      panphase = NULL, 
                      E = NULL,
                      Efix = NULL,
+                     obstype = NULL,
+                     deathexact = FALSE,
                      nphase = NULL,
                      priors = NULL,
                      prob_initstate = NULL,
@@ -195,13 +228,15 @@ msmbayes <- function(data, state="state", time="time", subject="subject",
                      ...){
 
   m <- msmbayes_form_internals(data=data, state=state, time=time, subject=subject,
-                               Q=Q, covariates=covariates, pastates=pastates,
-                               pafamily=pafamily, panphase=panphase, pamethod=pamethod, E=E, Efix=Efix,
+                               Q=Q, covariates=covariates,
+                               obstype=obstype, deathexact=deathexact,
+                               pastates=pastates, pafamily=pafamily,
+                               panphase=panphase, pamethod=pamethod, E=E, Efix=Efix,
                                nphase=nphase, priors=priors, soj_priordata=soj_priordata)
 
   if (!m$em$hmm){
     standat <- make_stan_aggdata(dat=m$data, qm = m$qm, cm = m$cm,
-                                 priors = m$priors,
+                                 priors = m$priors, 
                                  soj_priordata = m$soj_priordata)
     stanfile <- "msm"
   } else {

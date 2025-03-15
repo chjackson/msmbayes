@@ -14,7 +14,7 @@ test_that("msmprior errors",{
                "transition 1-37 is not in the model")
   expect_error(msmbayes(dat, "state","time","subject", Q=Q,
                         priors = list("logq(1,37)", upper=0, median=-2)),
-               "should be an object returned by")
+               "should be an object")
   priors <- list(msmprior("loghr(badcov,1,2)", median=-2, lower=-6))
   expect_warning(msmbayes(dat, "state","time","subject", Q=Q,
                           priors = priors, fit_method="optimize"),

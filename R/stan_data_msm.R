@@ -12,11 +12,11 @@ make_stan_aggdata <- function(dat, qm=NULL, cm=NULL, priors=NULL,
                               soj_priordata = NULL){
   if (length(dat[["time"]])==0)
     cli_inform("No observations in the data, carrying on and hoping for the best...")
-  dat_trans <- form_transition_data(dat)
+  dat_trans <- form_transition_data(dat, qm, deathexact=deathexact)
   dat_agg <- aggregate_transition_data(dat_trans, K=qm$K)
   dwide <- aggdata_towide(dat_agg, K=qm$K)
   covind <- as.array(dwide$covind)
-  pstruc <- form_P_struc(qm$Q) # structural zeros.  Unsure if this needed in stan_data_hmm too 
+  pstruc <- form_P_struc(qm$Q) # structural zeros.  Unsure if this needed in stan_data_hmm too
 
   res <- list(K = qm$K,
               N = nrow(dwide),
@@ -31,14 +31,17 @@ make_stan_aggdata <- function(dat, qm=NULL, cm=NULL, priors=NULL,
               timelag = as.array(dwide$timelag),
               covind = covind,
               ncovind = length(unique(covind)),
+              obstype = as.array(dwide$obstype),
+              exactdeath_state = as.array(dwide$exactdeath_state),
               nx = cm$nx,
               nxq = as.array(cm$nxq),
               xstart = as.array(cm$xstart), # cmdstanr errors with NAs
               xend = as.array(cm$xend),
               X = attr(dat_agg, "Xuniq")
               )
-  
-  res$multinom_const <- sum(lfactorial(rowSums(res$ntostate)) - rowSums(lfactorial(res$ntostate)))
+
+  rno1 <- res$ntostate[res$obstype==1,,drop=FALSE]
+  res$multinom_const <- sum(lfactorial(rowSums(rno1)) - rowSums(lfactorial(rno1)))
   res <- c(res, priors, pstruc, soj_priordata)
   res
 }
@@ -51,13 +54,13 @@ make_stan_aggdata <- function(dat, qm=NULL, cm=NULL, priors=NULL,
 #' The covariate design matrix is stored in a "matrix column" \code{X}.
 #'
 #' @noRd
-form_transition_data <- function(dat, time=TRUE){
+form_transition_data <- function(dat, qm, time=TRUE, deathexact=FALSE){
   state <- dat[["state"]]
   nobs <- length(state)
   firstobs <- !duplicated(dat[["subject"]])
   lastobs <- rev(!duplicated(rev(dat[["subject"]])))
   fromstate <- c(NA, state[1:(nobs-1)])
-  datnew <- data.frame(subject=dat[["subject"]], fromstate, tostate=state)
+  datnew <- data.frame(subject=dat[["subject"]], fromstate, tostate=state, obstype=dat[["obstype"]])
   if (time)
     datnew$timelag <- c(NA, diff(dat[["time"]]))
   datnew <- datnew[!firstobs,,drop=FALSE]
@@ -78,27 +81,30 @@ form_transition_data <- function(dat, time=TRUE){
 #'
 #' @noRd
 aggregate_transition_data <- function(dat,K){
-  X <- fromstate <- tostate <- timelag <- Xstr <- subject <- NULL
+  X <- fromstate <- tostate <- timelag <- Xstr <- subject <- obstype <- NULL
   dat <- dat |>
     mutate(Xstr = apply(X, 1, paste, collapse=";"),
            tostate = factor(tostate, levels=1:K),
            ## avoid floating point problems: ensure timelag is discrete while matching
            timelag = factor(timelag))
   tab_df <- dat |>
-    dplyr::group_by(fromstate, tostate, timelag, Xstr) |>
+    dplyr::group_by(fromstate, tostate, timelag, obstype, Xstr) |>
     dplyr::summarise(count=n(), .groups = "drop") |>
     ## keep all potential tostates in table, so we end up with zero count if
     ## transition didn't occur
     tidyr::complete(tostate=tostate,
-                    tidyr::nesting(fromstate, timelag, Xstr),
+                    tidyr::nesting(fromstate, timelag, obstype, Xstr),
                     fill=list(count=0))
-  fttx <- paste(dat$fromstate, dat$tostate, dat$timelag, dat$Xstr, sep=";")
+  fttx <- paste(dat$fromstate, dat$tostate, dat$timelag,
+                dat$obstype, dat$Xstr, sep=";")
   inds <- which(!duplicated(fttx))
   dat_agg <- dat[inds,] |>
-    dplyr::right_join(tab_df, by=c("fromstate","tostate","timelag","Xstr")) |>
+    dplyr::right_join(tab_df, by=c("fromstate","tostate","timelag",
+                                   "obstype","Xstr")) |>
     mutate(covind = match(Xstr, unique(dat$Xstr)),
-           timelag = as.numeric(as.character(timelag))) |>
-  select(-subject)
+           timelag = as.numeric(as.character(timelag)),
+           exactdeath_state = ifelse(obstype==3, tostate, 0)) |>
+    select(-subject)
 
   attr(dat_agg, "Xuniq") <- dat$X[!duplicated(dat$Xstr),,drop=FALSE]
   dat_agg  # |> select(-Xstr)
@@ -122,7 +128,8 @@ aggdata_towide <- function(dat, K){
   #                           names_prefix = "count",
   #                           values_from = count)
 
-  dwide <- reshape(dat, idvar=c("fromstate","timelag","covind"),
+  dwide <- reshape(dat, idvar=c("fromstate","timelag","covind",
+                                "obstype","exactdeath_state"),
                    timevar="tostate", direction="wide")
   cnames <- paste("count",1:K,sep=".")
   dwide$ntostate <- as.matrix(dwide[,cnames])

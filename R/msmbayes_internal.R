@@ -1,6 +1,6 @@
 
 msmbayes_form_internals <- function(data, state="state", time="time", subject="subject",
-                                    Q, covariates=NULL,
+                                    Q, covariates=NULL, obstype=NULL, deathexact=FALSE,
                                     pastates=NULL, pafamily="weibull",
                                     panphase=NULL, pamethod="hermite",
                                     E=NULL, Efix=NULL, nphase=NULL,
@@ -18,12 +18,16 @@ msmbayes_form_internals <- function(data, state="state", time="time", subject="s
   } else
     em <- form_emodel(E, qmobs, Efix)
 
-  check_data(data, state, time, subject, qm, prior_sample=prior_sample)
+  check_data(data, state, time, subject, 
+             qm, prior_sample=prior_sample)
   cm <- form_covariates(covariates, data, qm, pm, qmobs)
-  data <- clean_data(data, state, time, subject, cm$X, prior_sample=prior_sample)
+  data <- clean_data(data, state, time, subject, 
+                     cm$X, obstype, deathexact, qm,
+                     prior_sample=prior_sample)
   priors <- process_priors(priors, qm, cm, pm, em, qmobs)
   soj_priordata <- form_soj_priordata(soj_priordata)
-  list(qm=qm, pm=pm, cm=cm, em=em, qmobs=qmobs, data=data, priors=priors, soj_priordata=soj_priordata)
+  list(qm=qm, pm=pm, cm=cm, em=em, qmobs=qmobs,
+       data=data, priors=priors, soj_priordata=soj_priordata)
 }
 
 #' @return List of information about the transition structure

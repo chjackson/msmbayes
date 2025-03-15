@@ -66,7 +66,7 @@ head(infsim)
 
 We analyse this dataset with continuous-time multistate models, where we assume transitions between states can happen at any time, and not just at the observation times.  In this demonstration, when we fit the models, we pretend that we only know the state at the time of each test, and that we don't know the true times of infection and recovery.  This is the typical style of data that the `msm` package is used for --- where the state is only known at a series of arbitrary times. 
 
-> **Note:** Both `msm` and `msmbayes` allow any number of states and structure of allowed transitions.  This includes models with or without "absorbing" states, such as death.   However, `msmbayes` has some limitations, listed on the [front page](../index.html).   For example, the "exact death times" observation scheme (where we suppose the time of death is known, but the state immediately before death is unknown) is not supported. 
+> **Note:** Both `msm` and `msmbayes` allow any number of states and structure of allowed transitions.  This includes models with or without "absorbing" states, such as death.
 
 
 # Fitting a basic Markov model with msmbayes
