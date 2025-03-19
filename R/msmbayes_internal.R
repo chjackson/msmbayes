@@ -1,6 +1,7 @@
 
 msmbayes_form_internals <- function(data, state="state", time="time", subject="subject",
                                     Q, covariates=NULL, obstype=NULL, deathexact=FALSE,
+                                    obstrue=NULL, censor_states=NULL,
                                     pastates=NULL, pafamily="weibull",
                                     panphase=NULL, pamethod="hermite",
                                     E=NULL, Efix=NULL, nphase=NULL,
@@ -14,16 +15,22 @@ msmbayes_form_internals <- function(data, state="state", time="time", subject="s
     qm <- phase_expand_qmodel(qmobs, pm)
     qmobs <- attr(qm, "qmobs")
     E <- pm$E
-    em <- form_emodel(E, qm, pm$Efix)
+    em <- form_emodel(E, qm, pm$Efix, call=call)
   } else
-    em <- form_emodel(E, qmobs, Efix)
+    em <- form_emodel(E, qmobs, Efix, censor_states, call=call)
 
-  check_data(data, state, time, subject, 
-             qm, prior_sample=prior_sample)
+  check_data(data, state, time, subject,
+             obstype=obstype, obstrue=obstrue,
+             qm, censor_states, prior_sample=prior_sample, call=call)
   cm <- form_covariates(covariates, data, qm, pm, qmobs)
   data <- clean_data(data, state, time, subject, 
-                     cm$X, obstype, deathexact, qm,
-                     prior_sample=prior_sample)
+                     cm$X, obstype, deathexact,
+                     obstrue=obstrue, censor_states=censor_states,
+                     qm, em, pm,
+                     prior_sample=prior_sample, call=call)
+  em$censor <- any(data$state==0) # use non-HMM lik if no censor codes in data
+  em$hmm <- em$ne>0 || em$censor  #  and no misclassification
+
   priors <- process_priors(priors, qm, cm, pm, em, qmobs)
   soj_priordata <- form_soj_priordata(soj_priordata)
   list(qm=qm, pm=pm, cm=cm, em=em, qmobs=qmobs,
@@ -104,8 +111,17 @@ form_P_struc <- function(Q){
 #' \code{ne} number of permitted misclassifications (nefix+nepars)
 #'
 #' @noRd
-form_emodel <- function(E, qm, Efix=NULL, initprobs=NULL){
-  if (is.null(E)) return(list(hmm=FALSE,nepars=0))
+form_emodel <- function(E, qm, Efix=NULL, censor_states=NULL, call=caller_env()){
+  censor <- form_censor(censor_states, call)
+  if (is.null(E))
+    return(list(hmm=censor,
+                ne=0, nepars=0, # ensures identity E is constructed in stan
+                nefix=0, censor=censor,
+                erow = array(dim=0), ecol = array(dim=0),
+                efix = array(dim=0),
+                efixrow = array(dim=0), efixcol = array(dim=0)
+                ))
+
   check_E(E, qm$Q)
   diag(E) <- 0
   if (!is.null(Efix)){
@@ -126,7 +142,8 @@ form_emodel <- function(E, qm, Efix=NULL, initprobs=NULL){
   diag(E) <- 0
   E[Efix==1] <- 0
   list(
-    hmm = (ne>0),
+    hmm = ((ne > 0) || censor), # hmm likelihood / stan file needed
+    censor = censor, # has a censor_states been supplied [TODO needed? not checked yet? hmm stan file only needed if cens codes appear in data]
     E = E,
     K = nrow(E),
     erow = erow, ecol = ecol,
@@ -137,15 +154,35 @@ form_emodel <- function(E, qm, Efix=NULL, initprobs=NULL){
   )
 }
 
+form_censor <- function(censor_states, call=caller_env()){
+  if (is.null(censor_states))
+    censor <- FALSE
+  else {
+    check_censor_states(censor_states, call=call)
+    censor <- TRUE
+  }
+  censor
+}
+
+## TODO check codes appear in the data 
+check_censor_states <- function(censor_states, call=caller_env()){
+  if (!is.list(censor_states))
+    cli_abort("{.var censor_states} should be a list",
+              call=call)
+}
+
+
+## TODO spec for others?
+
 ##' @return Matrix with one row per individual, one column per true state
 ##' @noRd
-form_initprobs <- function(initprobs=NULL, em, dat, pm, call=caller_env()){
+form_initprobs <- function(initprobs=NULL, qm, em, dat, pm, call=caller_env()){
   initstate <- dat[["state"]][!duplicated(dat[["subject"]])]
   if (!is.null(initprobs))
     initprobs <- check_initprobs(initprobs, em, dat, pm, call)
   else {
     nindiv <- length(unique(dat[["subject"]]))
-    initprobs <- matrix(0, nrow=nindiv, ncol=em$K)
+    initprobs <- matrix(0, nrow=nindiv, ncol=qm$K)
     if (pm$phasetype){
       iprow <- which(initstate %in% pm$phased_states)
       state_old <- initstate[initstate %in% pm$phased_states]
@@ -157,6 +194,13 @@ form_initprobs <- function(initprobs=NULL, em, dat, pm, call=caller_env()){
     } else initprobs[,1] <- 1 # misclassification models, start in state 1
     ## no warning currently if state 1 is impossible given misc structure
     ## perhaps this should be the first of the states for which em[,obs] > 0 ?
+  }
+  if (em$ne==0){ # HMM lik used but no misclassification (e.g. censoring)
+    ## censdat is matrix(nobs, nstates): P(obs | true state).  O or 1 
+    ## Not really initial "probabilities" in this model, where likelihood is a sum of pathway probs
+    firstobs <- which(!duplicated(dat[["subject"]]))
+    cens_first <- dat$censdat[firstobs,,drop=FALSE]
+    initprobs <-  cens_first
   }
   if (pm$phasetype){
     ## for indivs whose first observed state is non-phased, prob must be 1 for that

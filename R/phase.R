@@ -183,8 +183,6 @@ form_Ephase <- function(nphase, E=NULL, Efix, Q, call=caller_env()){
 #' @return A matrix suitable to be passed as the \code{Efix} argument
 #'   to \code{\link{msmbayes}}.
 #'
-#' TODO with user supplied Efix
-#'
 #' @noRd
 form_Efixphase <- function(Ephase, nphase, Efix=NULL){
   if (is.null(Efix))

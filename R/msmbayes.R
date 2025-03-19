@@ -137,8 +137,36 @@
 #'   the `obstype 3` scheme.  This is a shortcut for including an
 #'   `obstype` variable with 3 in the positions with the absorbing
 #'   state, and 1 elsewhere.  If there are multiple absorbing states,
-#'   then this is taken to only apply to the last of them - use an
-#'   `obstype` variable if you want it to apply to all. 
+#'   then this is taken to only apply to the last of them in the
+#'   state space - use an `obstype` variable if you want it to apply
+#'   to all absorbing states.
+#'
+#' @param obstrue Only applicable to models with misclassification.  A
+#'   character string indicating a variable in the data whose value is
+#'   1 if the true state is known to equal the value in "state", and 0
+#'   otherwise.
+#'
+#' @param censor_states A named list indicating the codes used for
+#'   "censored" states.  This is used when there are observations that
+#'   are known to be one of a subset of states, but it is not known
+#'   which.  The names of the list indicate codes that may appear in
+#'   the `"state"` variable.  The values of the corresponding component
+#'   indicate the subset which is represented by the code.  For
+#'   example
+#'
+#'   `censor_states = list("99" = c(2,3), "999" = c(3,4))`
+#'
+#'   means that a code of 99 in the `"state"` variable indicates
+#'   "state is either 2 or 3 at this time", and a code of 999
+#'   indicates "state is either 3 or 4".
+#'
+#'   Note the names of the list must be quoted strings that are
+#'    interpretable as integers, since the `"state"` variable must be
+#'    an integer.
+#'
+#'   In misclassification models, the subset refers to values of the
+#'   true state if `obstrue` is 1, or the observed state if `obstrue`
+#'   is 0.
 #'
 #' @param nphase Only required for models with phase-type sojourn
 #'   distributions specified directly (not through `pastates`).
@@ -191,7 +219,9 @@
 #'   `rstan` or `cmdstanr` that fits the model.  Note that initial
 #'    values are determined by sampling from the prior (after
 #'    dividing the prior SD 5), not using
-#'    Stan's default, but this can be overridden here.
+#'    Stan's default, but this can be overridden here (currently
+#'    not documented - this needs knowledge of the Stan variable names
+#'    and formats)
 #'
 #' @return A data frame in the \code{draws} format of the
 #'   \pkg{posterior} package, containing draws from the posterior of
@@ -219,6 +249,8 @@ msmbayes <- function(data, state="state", time="time", subject="subject",
                      Efix = NULL,
                      obstype = NULL,
                      deathexact = FALSE,
+                     obstrue = NULL,
+                     censor_states = NULL,
                      nphase = NULL,
                      priors = NULL,
                      prob_initstate = NULL,
@@ -230,6 +262,7 @@ msmbayes <- function(data, state="state", time="time", subject="subject",
   m <- msmbayes_form_internals(data=data, state=state, time=time, subject=subject,
                                Q=Q, covariates=covariates,
                                obstype=obstype, deathexact=deathexact,
+                               obstrue=obstrue, censor_states=censor_states, 
                                pastates=pastates, pafamily=pafamily,
                                panphase=panphase, pamethod=pamethod, E=E, Efix=Efix,
                                nphase=nphase, priors=priors, soj_priordata=soj_priordata)
@@ -245,7 +278,7 @@ msmbayes <- function(data, state="state", time="time", subject="subject",
                                  priors = m$priors,
                                  prob_initstate = prob_initstate,
                                  soj_priordata = m$soj_priordata)
-    stanfile <- "hmm"  # if (m$pm$phaseapprox) "phaseapprox" else "hmm"
+    stanfile <- "hmm"
   }
 
   if (fit_method %in% .cmdstanr_fit_methods)

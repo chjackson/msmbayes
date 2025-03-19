@@ -5,16 +5,18 @@
 ## then the rest is applying column names and dropping missing data
 
 ## what does msmhist need from the data
-## standard col names, but is it OK with missing data? 
+## standard col names, but is it OK with missing data?
 
 check_data <- function(dat, state="state", time="time", subject="subject",
-                       qm=NULL, prior_sample=FALSE, call=caller_env()){
+                       obstype=NULL, obstrue=NULL,
+                       qm=NULL, censor_states, prior_sample=FALSE, call=caller_env()){
   check_data_frame(dat, call)
-  check_dat_variables(dat=dat, time=time, subject=subject, call=call)
+  check_dat_variables(dat=dat, time=time, subject=subject,
+                      obstype=obstype, obstrue=obstrue, call=call)
   if (!prior_sample)
     check_dat_variables(dat=dat, state=state)
   if (!is.null(qm) && !prior_sample)
-    check_state_leq_nstates(dat[[state]], qm, call)
+    check_state_leq_nstates(dat[[state]], qm, censor_states, call)
   check_dup_obs(dat[[state]], dat[[time]], dat[[subject]], call)
 }
 
@@ -29,9 +31,11 @@ check_dat_variables <- function(dat,...,call=caller_env()){
   check_varnames_quoted(..., call=call)
   args <- list(...)
   for (i in seq_along(args)){
-    check_character(args[[i]], names(args)[i], call)
-    check_scalar(args[[i]], names(args)[i], call)
-    check_variable_in_data(dat, args[[i]])
+    if (!is.null(args[[i]])){ # else optional variables
+      check_character(args[[i]], names(args)[i], call)
+      check_scalar(args[[i]], names(args)[i], call)
+      check_variable_in_data(dat, args[[i]])
+    }
   }
 }
 
@@ -40,7 +44,7 @@ check_varnames_quoted <- function(...,call=caller_env()){
            error = function(e){
              if (grepl("not found", e$message))
                cli_abort(c(e$message,
-                           "note the names of variables must be quoted"),
+                           "Note: the names of variables must be quoted"),
                          call=call)
              else cli_abort(e$message)
            }
@@ -81,12 +85,15 @@ check_square_matrix <- function(mat,matname="mat",call=caller_env()){
 
 ## see https://search.r-project.org/CRAN/refmans/cli/html/inline-markup.html for things like .var, .cls, .str, and doc for collapsing vectors (e.g. truncates at 20)
 
-check_state_leq_nstates <- function(state, qm, call=caller_env()){
+check_state_leq_nstates <- function(state, qm, censor_states, call=caller_env()){
   nst <- qm$K
-  badst <- which(!is.na(state) & !(state %in% 1:nst))
+  censor_codes <- as.numeric(names(censor_states)) # TODO checks.
+                                                   # cmodel? outside
+  valid_states <- c(1:nst, censor_codes)
+  badst <- which(!is.na(state) & !(state %in% valid_states))
   if (length(badst) > 0){
     cli_abort(c("States should be in 1,...,K, where K is the number of rows in the intensity matrix Q",
-                "{qty(badst)} Found state{?s} {state[badst]} at position{?s} {badst}"),
+                "{qty(length(badst))} Found state{?s} {state[badst]} at {qty(length(badst))} position{?s} {badst}"),
               call=call)
   }
 }
@@ -147,18 +154,16 @@ check_dup_obs <- function(state, time, subject, call=caller_env()){
 ## * time numeric
 ## * subject num or char or factor.
 
-form_obstype <- function(dat, obstype, deathexact, state, qm, call=caller_env()){
-  if (is.null(obstype)) {
+form_obstype <- function(dat, deathexact=FALSE, qm=NULL, call=caller_env()){
+  if (is.null(dat$obstype)) {
     dat$obstype <- 1
     if (deathexact)
-      dat$obstype[dat[[state]] == max(absorbing_states(qm))] <- 3
+      dat$obstype[dat$state == max(absorbing_states(qm))] <- 3
   }
   else {
-    check_dat_variables(dat=dat, obstype=obstype)
-    check_obstype(dat[[obstype]])
-    dat$obstype <- dat[[obstype]]
+    check_obstype(dat$obstype)
   }
-  dat
+  dat$obstype
 }
 
 check_obstype <- function(obstype, call=caller_env()){
@@ -170,10 +175,65 @@ check_obstype <- function(obstype, call=caller_env()){
   }
 }
 
+form_obstrue <- function(dat, em=NULL, call=caller_env()){
+  if (is.null(dat$obstrue)) {
+    if (is.null(em))
+      dat$obstrue <- 0 # barebones(state,time,subject) use of clean_data
+    else if (em$ne==0 && em$censor) # e.g. non-HMM lik, or phasetype with censoring
+      dat$obstrue <- 1              # ensure censdat used rather than identity E
+    else dat$obstrue <- 0 # some may be overwritten in form_censdat if censor supplied.
+  } else {
+    if (em$ne == 0)
+      cli_warn("`obstrue` supplied, but model does not include misclassification of states")
+    dat$obstrue <- check_obstrue(dat$obstrue)
+  }
+  dat$obstrue
+}
+
+check_obstrue <- function(obstrue, call=caller_env()){
+  obstrue <- as.numeric(obstrue)
+  badobs <- which(! (obstrue %in% c(0, 1)) )
+  if (length(badobs) > 0){
+    cli_abort(c("`obstrue` variable data must only have values 0, 1, TRUE or FALSE.",
+                "Found bad values at position{?s} {badobs} in the data"),
+              call=call)
+  }
+  obstrue
+}
+
+form_censdat <- function(dat, censor_states, qm, em, pm, call=caller_env()){
+  dat$censdat <- matrix(0, nrow=nrow(dat), ncol=qm$K)
+  ot <- dat$state %in% 1:qm$K  &  (dat$obstrue==1)
+  # state known, not a censor code
+  inds <- cbind(which(ot==1), dat$state[ot==1])
+  dat$censdat[inds] <- 1
+
+  for (i in seq_along(censor_states)){
+    code <- as.numeric(names(censor_states)[[i]])
+    states <- censor_states[[i]]
+    if (sum(dat$state==code) == 0)
+      cli_inform("Note: {.var censor_states} includes code {code}, but the {.var state} variable does not contain observations of {code}", call=call)
+    if (pm$phasetype){
+      ## censdat is 1 if col is in the phase spaces of any of "states" for that row
+      rows <- rep(which(dat$state==code), each=sum(pm$pdat$oldinds %in% states))
+      cols <- rep(which(pm$pdat$oldinds %in% states), sum(dat$state==code))
+    }
+    else {
+      rows <- rep(which(dat$state==code), each=length(states))
+      cols <- rep(states, sum(dat$state==code))
+    }
+    dat$censdat[cbind(rows,cols)] <- 1
+    if (em$ne == 0)
+      dat$obstrue[dat$state==code] <- 1
+    dat$state[dat$state==code] <- 0
+  }
+  dat
+}
+
 
 #' Clean the user-supplied data for a msmbayes model
 #'
-#' This does the following 
+#' This does the following
 #'
 #' * Apply standard names (state, time, subject) to columns
 #'
@@ -181,16 +241,27 @@ check_obstype <- function(obstype, call=caller_env()){
 #'
 #' * Return cleaned data frame ready to be passed to standata.R
 #'
-#' @md 
+#' @md
 #' @noRd
-clean_data <- function(dat, state="state", time="time", subject="subject", 
-                       X=NULL, obstype=NULL, deathexact=FALSE, qm, 
+clean_data <- function(dat, state="state", time="time", subject="subject",
+                       X=NULL, obstype=NULL, deathexact=FALSE,
+                       obstrue=NULL, censor_states = NULL,
+                       qm=NULL, em=NULL, pm=NULL,
                        prior_sample=FALSE, call=caller_env()){
   if (nrow(dat)==0) return(dat)
   if (prior_sample) dat[[state]] <- rep(0, nrow(dat)) # temporary to bypass check
-  dat <- form_obstype(dat, obstype, deathexact, state, qm)
-  dat <- dat[,c(state, time, subject, "obstype")]
-  names(dat) <- c("state", "time", "subject","obstype")
+
+  datkeep <- dat[,c(state, time, subject)]
+  names(datkeep) <- c("state","time","subject")
+  if (!is.null(obstype)) datkeep$obstype <- dat[[obstype]]
+  if (!is.null(obstrue)) datkeep$obstrue <- dat[[obstrue]]
+  if (!is.null(qm)){
+    datkeep$obstype <- form_obstype(datkeep, deathexact, qm, call)
+    datkeep$obstrue <- form_obstrue(datkeep, em, call)
+    datkeep <- form_censdat(datkeep, censor_states, qm, em, pm, call)
+  }
+  dat <- datkeep
+
   if (is.factor(dat$state)) dat$state <- as.numeric(as.character(dat$state))
   dat$X <- X
   dat <- drop_missing_data(dat)

@@ -35,11 +35,12 @@ make_stan_obsdata <- function(dat, qm=NULL, cm=NULL,
   tlcid[notfirstobs] <- match(tlc, unique(tlc))
 
   nindiv <- length(unique(dat[["subject"]]))
-  initprobs <- form_initprobs(prob_initstate, em, dat, pm, call)
+  initprobs <- form_initprobs(prob_initstate, qm, em, dat, pm, call)
   TI <- table(dat[["subject"]])
 
   sumefixed <- rep(0, qm$K)
-  sumefixed[em$efixrow] <- tapply(em$efix, em$efixrow, sum)
+  if (em$nefix > 0)
+    sumefixed[em$efixrow] <- tapply(em$efix, em$efixrow, sum)
 
   standat <- list(
     K = qm$K,
@@ -50,6 +51,7 @@ make_stan_obsdata <- function(dat, qm=NULL, cm=NULL,
     nindiv = nindiv,
     nefix = length(em$efix),
     noddsabs = qm$noddsabs,
+    misc = as.integer(em$ne > 0),
 
     starti = as.array(which(!duplicated(dat[["subject"]]))),
     TI = as.array(TI),
@@ -69,6 +71,8 @@ make_stan_obsdata <- function(dat, qm=NULL, cm=NULL,
     tlcid = as.array(tlcid),
     timelag = as.array(timelag),
     obstype = as.array(dat[["obstype"]]),
+    obstrue = as.array(dat[["obstrue"]]),
+    censdat = dat[["censdat"]],
 
     nx = cm$nx,
     nxq = as.array(cm$nxq),

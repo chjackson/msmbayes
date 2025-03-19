@@ -144,7 +144,8 @@ data {
   int<lower=0> nepars;
   int<lower=1> nindiv;
   int<lower=0> nefix;
-
+  int misc; // is there any state misclassification (e.g. 0 if basic phasetype model or censored states, 1 if misclassification on top of those)
+  
   array[nindiv] int<lower=1> starti; // starting index in the data for each individual
   array[nindiv] int<lower=1> TI; // number of observations per individual
 
@@ -162,11 +163,13 @@ data {
   array[nepars] real loemean;
   array[nepars] real<lower=0> loesd; // prior mean and SE for error log odds
 
-  array[T] int<lower=1,upper=K> obs; // observed state data
+  array[T] int<lower=0,upper=K> obs; // observed state data. 0 for censored
   int<lower=1> ntlc;                 // number of distinct (timelag, covariates)
   array[T] int<lower=0,upper=ntlc> tlcid; // which of these combinations each observation corresponds to
   array[ntlc] real<lower=0> timelag; // time lags (keeping only those corresponding to distinct (timelag, covariates)
   array[T] int<lower=1,upper=3> obstype;
+  array[T] int<lower=0,upper=1> obstrue;
+  array[T,K] int<lower=0,upper=1> censdat;
 
   int npastates; // number of states on observable space that have phase-type approximations
   int npaqkl; // TODO only applicable to spline phaseapprox method 
@@ -378,12 +381,22 @@ transformed parameters {
   
   for (i in 1:nindiv){
     array[TI[i],K] real mp; // marg prob of data up to time t and true state k at time t.
+    real misc_prob, outcome_prob;
     
-    for (k in 1:K)
-      mp[1,k] = E[k,obs[starti[i]]] * initprobs[i, k]; 
+    // each person's first observation
+    for (k in 1:K){
+      int censor = (obs[starti[i]]==0);
+      if (!misc || (misc && censor && obstrue[starti[i]]))
+	outcome_prob = censdat[starti[i],k];
+      else if (misc && censor && !obstrue[starti[i]])
+	outcome_prob = dot_product(to_vector(E[k,1:K]), to_vector(censdat[starti[i],1:K])); // observe "obs state in censor set".  so sum E over outcomes in censor set
+      else if (misc && !censor)
+	outcome_prob = E[k,obs[starti[i]]];
+      mp[1,k] = outcome_prob * initprobs[i, k];
+    }
 
     if (TI[i]>1){
-      for (t in 2:TI[i]){
+      for (t in 2:TI[i]){ // subsequent observations after the first
 	int oi = starti[i] - 1 + t;
 	for (k in 1:K){
 	  for (j in 1:K){
@@ -406,8 +419,15 @@ transformed parameters {
 		  trans_prob += P[tlcid[oi],j,r] * Q[tlcid[oi],r,k];
 	      }
 	    }
+	    int censor = (obs[oi]==0);
+	    if (!misc || (misc && censor && obstrue[oi]))
+	      outcome_prob = censdat[oi,k]; // observe "true state in censor set". likelihood contribution is an 0/1 indicator
+	    else if (misc && censor && !obstrue[oi])
+	      outcome_prob = dot_product(to_vector(E[k,1:K]), to_vector(censdat[oi,1:K])); // observe "obs state in censor set".  so sum E over outcomes in censor set
+	    else if (misc && !censor)
+	      outcome_prob = E[k,obs[oi]];
 
-	    mp_jk[j] = mp[t-1,j] * trans_prob * E[k,obs[oi]];
+	    mp_jk[j] = mp[t-1,j] * trans_prob * outcome_prob;
 	  }
 	  mp[t,k] = sum(mp_jk[1:K]);
 	}

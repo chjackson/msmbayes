@@ -115,6 +115,8 @@ msm_optim_gr <- function(par, index=NULL, formula, subject, data, qmatrix,
 }
 
 
+## note https://cran.r-project.org/web/packages/optimg/index.html is another implementation of SGA for a generic function
+
 ##' Maximum likelihood estimation of multi-state models for intermittently-observed data where one state has a non-exponential distribution approximated by a phase-type model
 ##'
 ##' @param formula model formula as in msm
