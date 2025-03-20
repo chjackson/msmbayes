@@ -77,7 +77,8 @@
 <span>  scale <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  family <span class="op">=</span> <span class="st">"weibull"</span>,</span>
 <span>  canonical <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  spline <span class="op">=</span> <span class="st">"hermite"</span>,</span>
+<span>  method <span class="op">=</span> <span class="st">"kl_hermite"</span>,</span>
+<span>  nphase <span class="op">=</span> <span class="fl">5</span>,</span>
 <span>  list <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  drop <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -103,8 +104,12 @@
 <dd><p>Return the phase-type parameters in canonical form (phase 1 sojourn rate, sojourn rate increments in subsequent states, absorption probabilities).  If <code>FALSE</code> then phase transition rates are returned.</p></dd>
 
 
-<dt id="arg-spline">spline<a class="anchor" aria-label="anchor" href="#arg-spline"></a></dt>
+<dt id="arg-method">method<a class="anchor" aria-label="anchor" href="#arg-method"></a></dt>
 <dd><p>Type of spline used to interpolate between the training points (pointwise optima) when deriving the function that best maps the shape to each phase-type parameter</p></dd>
+
+
+<dt id="arg-nphase">nphase<a class="anchor" aria-label="anchor" href="#arg-nphase"></a></dt>
+<dd><p>Number of phases.</p></dd>
 
 
 <dt id="arg-list">list<a class="anchor" aria-label="anchor" href="#arg-list"></a></dt>

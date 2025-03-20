@@ -78,9 +78,11 @@
 <li><p>New function <code><a href="../reference/standardise_to.html">standardise_to()</a></code> for computing outputs standardised over the distribution of a given population.</p></li>
 </ul></div>
     <div class="section level2">
-<h2 class="page-header" data-toc-text="0.3" id="version-03-">Version 0.3 (??)<a class="anchor" aria-label="anchor" href="#version-03-"></a></h2>
+<h2 class="page-header" data-toc-text="0.3" id="version-03-202503">Version 0.3 (2025/03/??)<a class="anchor" aria-label="anchor" href="#version-03-202503"></a></h2>
 <ul><li><p><code>msmbayes</code> now supports semi-Markov models with phase-type approximations to Weibull and Gamma sojourn distributions.</p></li>
-<li><p>Misclassification models with fixed misclassification probabilities new supported.</p></li>
+<li><p><code>obstype</code> and <code>deathexact</code> supported for exact transition times, as in <code>msm</code>.</p></li>
+<li><p>Censored states supported through <code>censor_states</code>.</p></li>
+<li><p>Misclassification models with fixed misclassification probabilities now supported.</p></li>
 <li><p>Computation now uses <code>rstan</code> instead of <code>cmdstanr</code>. <code>cmdstanr</code> is now only used for Pathfinder, and is no longer a dependency.</p></li>
 </ul><p>TODO list any new exported functions</p>
 </div>

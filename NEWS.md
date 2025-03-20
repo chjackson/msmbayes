@@ -15,11 +15,13 @@
   over the distribution of a given population.
 
 
-# Version 0.3 (??)
+# Version 0.3 (2025/03/??)
 
 * `msmbayes` now supports semi-Markov models with phase-type approximations to Weibull and Gamma sojourn distributions.
 
 * `obstype` and `deathexact` supported for exact transition times, as in `msm`. 
+
+* Censored states supported through `censor_states`.
 
 * Misclassification models with fixed misclassification probabilities now supported.
 
