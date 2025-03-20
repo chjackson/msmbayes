@@ -112,7 +112,7 @@ form_P_struc <- function(Q){
 #'
 #' @noRd
 form_emodel <- function(E, qm, Efix=NULL, censor_states=NULL, call=caller_env()){
-  censor <- form_censor(censor_states, call)
+  censor <- form_censor(censor_states, qm, call)
   if (is.null(E))
     return(list(hmm=censor,
                 ne=0, nepars=0, # ensures identity E is constructed in stan
@@ -142,8 +142,7 @@ form_emodel <- function(E, qm, Efix=NULL, censor_states=NULL, call=caller_env())
   diag(E) <- 0
   E[Efix==1] <- 0
   list(
-    hmm = ((ne > 0) || censor), # hmm likelihood / stan file needed
-    censor = censor, # has a censor_states been supplied [TODO needed? not checked yet? hmm stan file only needed if cens codes appear in data]
+    hmm = ((ne > 0) || censor), # hmm likelihood / stan file needed (done even if censor_states supplied and no cens codes in data)
     E = E,
     K = nrow(E),
     erow = erow, ecol = ecol,
@@ -154,25 +153,40 @@ form_emodel <- function(E, qm, Efix=NULL, censor_states=NULL, call=caller_env())
   )
 }
 
-form_censor <- function(censor_states, call=caller_env()){
+form_censor <- function(censor_states, qm, call=caller_env()){
   if (is.null(censor_states))
     censor <- FALSE
   else {
-    check_censor_states(censor_states, call=call)
+    check_censor_states(censor_states, qm=qm, call=call)
     censor <- TRUE
   }
   censor
 }
 
-## TODO check codes appear in the data 
-check_censor_states <- function(censor_states, call=caller_env()){
+check_censor_states <- function(censor_states, qm, call=caller_env()){
   if (!is.list(censor_states))
     cli_abort("{.var censor_states} should be a list",
               call=call)
+  codes <- names(censor_states)
+  not_number <- which(!grepl("[[:space:]]*[[:digit:]]+[[:space:]]*", codes))
+  if (length(not_number) > 0){
+    cli_abort(c("Names of {.var censor_states} should be interpretable as numbers",
+                "Found bad values {codes[not_number]}"),
+              call=call)
+  }
+  bad_codes <- which(as.numeric(names(censor_states)) %in% 1:qm$K)
+  if (length(bad_codes) > 0){
+    cli_abort(c("Names of {.var censor_states} cannot be the same as observable states",
+                "Found invalid value{?s} {codes[bad_codes]}"),
+              call=call)
+  }
+  for (i in seq_along(censor_states)){
+    if (any(!(censor_states[[i]] %in% 1:qm$K)))
+      cli_abort(c("component {i} of {.var censor_states} contains values {unique(censor_states[[i]])},",
+                  "but this should only contain values in the state space 1,...,{qm$K}"),
+                call=call)
+  }
 }
-
-
-## TODO spec for others?
 
 ##' @return Matrix with one row per individual, one column per true state
 ##' @noRd

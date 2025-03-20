@@ -87,12 +87,12 @@ check_square_matrix <- function(mat,matname="mat",call=caller_env()){
 
 check_state_leq_nstates <- function(state, qm, censor_states, call=caller_env()){
   nst <- qm$K
-  censor_codes <- as.numeric(names(censor_states)) # TODO checks.
-                                                   # cmodel? outside
+  censor_codes <- as.numeric(names(censor_states))
   valid_states <- c(1:nst, censor_codes)
   badst <- which(!is.na(state) & !(state %in% valid_states))
   if (length(badst) > 0){
-    cli_abort(c("States should be in 1,...,K, where K is the number of rows in the intensity matrix Q",
+    cli_abort(c("States should either be in 1,...,K, where K is the number of rows in the intensity matrix Q,",
+                "or should appear in the names of {.var censor_codes}.",
                 "{qty(length(badst))} Found state{?s} {state[badst]} at {qty(length(badst))} position{?s} {badst}"),
               call=call)
   }
@@ -236,6 +236,8 @@ form_censdat <- function(dat, censor_states, qm, em, pm, call=caller_env()){
 #' This does the following
 #'
 #' * Apply standard names (state, time, subject) to columns
+#'
+#' * Constructs obstype, obstrue and censdat if needed
 #'
 #' * Converts the covariates (if supplied) to a design matrix, as a matrix column X
 #'

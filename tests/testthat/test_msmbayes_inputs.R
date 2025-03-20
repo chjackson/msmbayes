@@ -31,7 +31,7 @@ test_that("msmbayes: data validation",{
   state_bad <- c(1,2,99)
   expect_error(msmbayes(dat = data.frame(state=state_bad, time=1:3, subject=1:3),
                         state="state", time="time", subject="subject", Q=infsimQ),
-               "States should be in")
+               "States should")
   subjects_not_adj <- c(1,2,1)
   expect_warning(
   expect_error(msmbayes(dat = data.frame(state=c(1,2,2), time=1:3,

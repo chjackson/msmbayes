@@ -2,13 +2,17 @@
 
 `msmbayes` is an R package for Bayesian multi-state modelling of intermittently-observed data.
 
-It is similar to the [`msm`](https://chjackson.github.io/msm) package.  It supports the following models:
+It is similar to the [`msm`](https://chjackson.github.io/msm) package.  It supports the following continuous-time multi-state models.
 
-* Markov models for intermittently-observed state data
+* Markov models
 
-* Hidden Markov models for intermittently-observed, misclassified (discrete) state data
+* Semi-Markov models using phase-type distributions
 
-* Phase-type semi-Markov models for intermittently-observed state data
+* Hidden Markov models for misclassified (discrete) state data
+
+The same observation schemes are supported as in `msm`: intermittent observations, exact transition times, "exact death times" and censored (coarsened)  states.  Covariates may be time-homogeneous or piecewise-constant.
+
+Any transition structures are permitted for any models (any number of states, with or without cycles, with or without absorbing states).
 
 Models are fitted with Bayesian estimation, via any of the algorithms available in [Stan](http://mc-stan.org), whereas `msm` uses only maximum likelihood.
 
@@ -26,13 +30,13 @@ Models are fitted with Bayesian estimation, via any of the algorithms available 
 
 ## Limitations of msmbayes compared to msm 
 
-* "Censored states" are not supported.
-
-* Time-inhomogeneous models specified through `pci` in `msm()` are not supported.  However, models with time-varying intensities can still be specified through a time-dependent covariate (e.g. time itself), which assumes that intensities are constant between successive observations of the state. 
-
 * Hidden Markov models with general outcome distributions are not supported.  The only HMMs supported are those where the observed state space is the same as (or a subset of) the true state space.  This includes misclassification and phase-type models.
 
+* Covariates on misclassification probabilities are not supported in misclassification models 
+
 * Equality constraints and fixed parameters are not supported.  However, parameters can be constrained through their prior distributions.
+
+* The `pci` syntax for time-inhomogeneous models is not supported.  However, these models can still be specified, by treating time as a time-dependent covariate, and including censored states at the occasions when the covariate changes but not the state.
 
 * Multivariate hidden Markov models are not supported.
 

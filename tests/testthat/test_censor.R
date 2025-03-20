@@ -7,6 +7,28 @@ censor_states <- list("99" = c(3:4))
 cav$state_cens <- cav$state
 cav$state_cens[5:6] <- 99
 
+test_that("error handling for censor_states",{
+  expect_error(msmbayes(data=cav, state="state_cens", time="years", subject="PTNUM",
+                        Q=Qcav2, init=init2,
+                        censor_states = list("foo"=1:3, "3"=1:4),
+                        algorithm="Fixed_param", chains=1, iter=1),
+               "should be interpretable as numbers")
+  expect_no_error(msmbayes(data=cav, state="state_cens", time="years", subject="PTNUM",
+                           Q=Qcav2, init=init2,
+                           censor_states = list(" 99 "=1:3),
+                           algorithm="Fixed_param", chains=1, iter=1))
+  expect_error(msmbayes(data=cav, state="state_cens", time="years", subject="PTNUM",
+                        Q=Qcav2, init=init2,
+                        censor_states = list("99"=c(1:3,9)),
+                        algorithm="Fixed_param", chains=1, iter=1),
+               "should only contain values in the state space")
+  expect_error(msmbayes(data=cav, state="state_cens", time="years", subject="PTNUM",
+                        Q=Qcav2, init=init2,
+                        censor_states = list("3"=c(1:3)),
+                        algorithm="Fixed_param", chains=1, iter=1),
+               "cannot be the same as observable")
+})
+
 test_that("likelihood for censor agrees with msm",{
   mod <- msm(state_cens ~ years, subject = PTNUM, data = cav,
              censor = 99, censor.states = censor_states,
