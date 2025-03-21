@@ -17,7 +17,7 @@
 
 # Version 0.3 (2025/03/??)
 
-* `msmbayes` now supports semi-Markov models with phase-type approximations to Weibull and Gamma sojourn distributions.
+* `msmbayes()` now supports semi-Markov models with phase-type approximations to Weibull and Gamma sojourn distributions.
 
 * `obstype` and `deathexact` supported for exact transition times, as in `msm`. 
 
@@ -25,8 +25,10 @@
 
 * Misclassification models with fixed misclassification probabilities now supported.
 
-* Computation now uses `rstan` instead of `cmdstanr`.  `cmdstanr` is now only used for Pathfinder, and is no longer a dependency.
+* Bayesian computation now uses `rstan` instead of `cmdstanr`.  `cmdstanr` is now only used for Pathfinder, and is no longer a dependency.
 
+* Functions `msmbayes_prior_sample()` and `msmbayes_priorpred_sample()` to simulate from prior and prior predictive distributions.
 
+* Data summary function, `statetable()`, similar to its `msm` counterpart.
 
-TODO list any new exported functions 
+* New function `soj_prob()` to return the CDF of the fitted sojourn distribution at arbitrary points.

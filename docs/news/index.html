@@ -79,13 +79,15 @@
 </ul></div>
     <div class="section level2">
 <h2 class="page-header" data-toc-text="0.3" id="version-03-202503">Version 0.3 (2025/03/??)<a class="anchor" aria-label="anchor" href="#version-03-202503"></a></h2>
-<ul><li><p><code>msmbayes</code> now supports semi-Markov models with phase-type approximations to Weibull and Gamma sojourn distributions.</p></li>
+<ul><li><p><code><a href="../reference/msmbayes.html">msmbayes()</a></code> now supports semi-Markov models with phase-type approximations to Weibull and Gamma sojourn distributions.</p></li>
 <li><p><code>obstype</code> and <code>deathexact</code> supported for exact transition times, as in <code>msm</code>.</p></li>
 <li><p>Censored states supported through <code>censor_states</code>.</p></li>
 <li><p>Misclassification models with fixed misclassification probabilities now supported.</p></li>
-<li><p>Computation now uses <code>rstan</code> instead of <code>cmdstanr</code>. <code>cmdstanr</code> is now only used for Pathfinder, and is no longer a dependency.</p></li>
-</ul><p>TODO list any new exported functions</p>
-</div>
+<li><p>Bayesian computation now uses <code>rstan</code> instead of <code>cmdstanr</code>. <code>cmdstanr</code> is now only used for Pathfinder, and is no longer a dependency.</p></li>
+<li><p>Functions <code><a href="../reference/msmbayes_prior_sample.html">msmbayes_prior_sample()</a></code> and <code><a href="../reference/msmbayes_priorpred_sample.html">msmbayes_priorpred_sample()</a></code> to simulate from prior and prior predictive distributions.</p></li>
+<li><p>Data summary function, <code><a href="../reference/statetable.html">statetable()</a></code>, similar to its <code>msm</code> counterpart.</p></li>
+<li><p>New function <code><a href="../reference/soj_prob.html">soj_prob()</a></code> to return the CDF of the fitted sojourn distribution at arbitrary points.</p></li>
+</ul></div>
   </div>
 
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
