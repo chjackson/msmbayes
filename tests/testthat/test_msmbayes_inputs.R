@@ -153,7 +153,7 @@ test_that("msmbayes: validation of covariate formulae",{
   covlist_badcovs <- list(Q(1,2) ~ age10 + sex, Q(2,1) ~ foo)
   expect_error(
     msmbayes(dat = infsim, state="state", time="months", subject="subject",
-             Q=infsimQ, covariates=covlist_badcovs), "predictors were not found")
+             Q=infsimQ, covariates=covlist_badcovs), "not found")
 
   covlist_badstate <- list(Q(1,2) ~ age10 + sex, Q(2,99) ~ age10)
   expect_error(msmbayes(dat = infsim, state="state", time="months", subject="subject",
@@ -174,13 +174,13 @@ test_that("msmbayes: validation of covariate formulae",{
 
 test_that("msmbayes: validation of new_data",{
   nd <- "foo"
-  expect_error(mean_sojourn(infsim_modelc, new_data=nd), "class of `new_data`")
+  expect_error(mean_sojourn(infsim_modelc, new_data=nd), "should be a data frame")
   nd <- data.frame(sex = "boo")
   warn <- capture_warnings(
     expect_error(mean_sojourn(infsim_modelc, new_data=nd),
                  "no rows where all values of covariates")
   )
-  expect_match(warn, "Novel levels")
+  expect_match(warn, "Novel level")
 
   warn <- capture_warnings(
     mean_sojourn(infsim_model, new_data=nd)

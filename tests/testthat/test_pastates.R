@@ -100,3 +100,13 @@ test_that("phase-type approximations with multiple exit states: transition probs
   expect_equal(med_rvar(qmatrix(fitpa)["2","3"]),
                med_rvar(qmatrix(fitm)[2,3]), tolerance=0.01)
 })
+
+test_that("phase type approximations: error handling",{
+  expect_error(msmbayes(data=infsim, state="statep", time="months", 
+                        Q=Q, fit_method="optimize", pastates = c(3)),
+               "number of states")
+  expect_error(msmbayes(data=infsim, state="statep", time="months", 
+                        Q = rbind(c(0, 1), c(0, 0)),
+                        fit_method="optimize", pastates = c(2)),
+               "absorbing states")
+})

@@ -210,7 +210,7 @@ Dcanpars_dshape_hermite <- function(shape, family="weibull"){
 ##' @export
 qphaseapprox <- function(qmatrix, pastates, shape, scale=1, family="weibull", method="kl_hermite", att=FALSE){
   qm <- form_qmodel(qmatrix)
-  pm <- form_phasetype(pastates = pastates, Q=qmatrix, pafamily=family)
+  pm <- form_phasetype(pastates = pastates, qm=list(Q=qmatrix), pafamily=family)
   qm <- phase_expand_qmodel(qm, pm)
   qnew <- pm$Qphase
   for (i in 1:pm$npastates){

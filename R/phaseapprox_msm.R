@@ -266,7 +266,7 @@ profile_points <- function(opt, par = 2, xrange=NULL, np=10){
 
 panames_msmpars <- function(qphase, imatrix, qmatrix, pastates){
   qm <- form_qmodel(qmatrix)
-  pm <- form_phasetype(pastates = pastates, Q=qmatrix)
+  pm <- form_phasetype(pastates = pastates, qm=list(Q=qmatrix))
   qm <- phase_expand_qmodel(qm, pm)
   pd <- qm$phasedata
   labs <- array(dim=dim(qphase))

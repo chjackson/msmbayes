@@ -188,6 +188,7 @@ mean_sojourn_phase <- function(qvec, tdat, state) {
 #'
 #' @noRd
 new_data_to_X <- function(new_data, draws, call=caller_env()){
+  check_new_data(new_data, call=call)
   blueprints <- attr(draws,"cmodel")$blueprint # or plural???
   nforms <- length(blueprints)
   X <- vector("list", nforms)
@@ -206,6 +207,12 @@ new_data_to_X <- function(new_data, draws, call=caller_env()){
   X
 }
 
+check_new_data <- function(new_data, call=caller_env()){
+  if (!is.data.frame(new_data))
+    cli_abort("{.var new_data} should be a data frame",
+              call=call)
+  ## hardhat takes care of checking valid factor levels 
+}
 
 soj_prob_phase <- function(draws, t, state, new_data=NULL,
                            method = "analytic"){

@@ -155,7 +155,7 @@ check_dup_obs <- function(state, time, subject, call=caller_env()){
 ## * subject num or char or factor.
 
 form_obstype <- function(dat, deathexact=FALSE, qm=NULL, call=caller_env()){
-  if (is.null(dat$obstype)) {
+  if (is.null(dat[["obstype"]])) {
     dat$obstype <- 1
     if (deathexact)
       dat$obstype[dat$state == max(absorbing_states(qm))] <- 3
@@ -176,7 +176,7 @@ check_obstype <- function(obstype, call=caller_env()){
 }
 
 form_obstrue <- function(dat, em=NULL, call=caller_env()){
-  if (is.null(dat$obstrue)) {
+  if (is.null(dat[["obstrue"]])) {
     if (is.null(em))
       dat$obstrue <- 0 # barebones(state,time,subject) use of clean_data
     else if (em$ne==0 && em$censor) # e.g. non-HMM lik, or phasetype with censoring

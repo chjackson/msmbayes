@@ -6,16 +6,17 @@
 #' @return A list DOCME
 #'
 #' @noRd
-form_phasetype <- function(nphase=NULL, Q,
+form_phasetype <- function(nphase=NULL, qm,
                            pastates=NULL, pafamily="weibull",
                            panphase=NULL,
                            pamethod="kl_hermite",
                            E=NULL,
                            Efix=NULL,
                            call=caller_env()){
+  Q <- qm$Q
   if (!is.null(pastates))
-    nphase <- nphase_from_approx(panphase, pastates, Q)
-  else nphase <- check_nphase(nphase, Q, call)
+    nphase <- nphase_from_approx(panphase, pastates, qm, call)
+  else nphase <- check_nphase(nphase, qm, call)
   if (is.null(nphase) || all(nphase==1))
     return(list(phasetype=FALSE, phaseapprox=FALSE, npastates = 0,
                 pdat=NULL, E=NULL, Efix=NULL, Qphase=Q))
@@ -48,12 +49,9 @@ check_pafamily <- function(pafamily, pastates){
   pafamily
 }
 
-nphase_from_approx <- function(panphase, pastates=NULL, Q, call=caller_env()){
-  nstates <- nrow(Q)
-  badp <- which(!(pastates %in% 1:nstates))
-  if (length(badp) > 0)
-    cli_abort(c("{.var pastates} should be a vector containing only integers from 1 up to the number of states ({nstates}). Found {pastates[badp]}"),
-              call=call)    
+nphase_from_approx <- function(panphase, pastates=NULL, qm, call=caller_env()){
+  check_pastates(pastates, qm, call)
+  nstates <- nrow(qm$Q)
   nphase <- rep(1, nstates)
   if (is.null(panphase)){
     nphase[pastates] <- 5
@@ -62,6 +60,18 @@ nphase_from_approx <- function(panphase, pastates=NULL, Q, call=caller_env()){
     nphase[pastates] <- panphase
   }
   nphase
+}
+
+check_pastates <- function(pastates, qm, call=caller_env()){
+  nstates <- nrow(qm$Q)
+  badp <- which(!(pastates %in% 1:nstates))
+  if (length(badp) > 0)
+    cli_abort(c("{.var pastates} should be a vector containing only integers from 1 up to the number of states ({nstates}). Found {pastates[badp]}"),
+              call=call)
+  badp <- which(pastates %in% absorbing_states(qm))
+  if (length(badp) > 0)
+    cli_abort(c("{.var pastates} cannot be applied to absorbing states, such as {pastates[badp]} in this case"),
+              call=call)
 }
 
 check_panphase <- function(panphase, pastates, call=caller_env()){
@@ -77,13 +87,14 @@ check_panphase <- function(panphase, pastates, call=caller_env()){
               call=call)
 }
 
-check_nphase <- function(nphase, Q, call=caller_env()){
+check_nphase <- function(nphase, qm, call=caller_env()){
   if (is.null(nphase)) return(NULL)
   check_numeric(nphase, "nphase", call)
-  check_length(nphase, "nphase", nrow(Q),
+  check_length(nphase, "nphase", nrow(qm$Q),
                "This should be the same as the number of states in Q, which is")
   check_wholenumber(nphase, "nphase", call)
   check_posint(nphase, "nphase", call)
+  nphase[absorbing_states(qm)] <- 1
   if (all(nphase==1)) return(NULL) else return(nphase)
 }
 
