@@ -11,12 +11,30 @@ print.msmbayes <- function(x,...){
 #'
 #' @param object Object returned by \code{\link{msmbayes}}.
 #'
-#' @param log Present log transition intensities and log hazard ratios,
-#' rather than transition intensities and hazard ratios.
+#' @param pars Character string indicating the parameters to include in the summary.  This can include:
 #'
-#' @param time Present inverse transition intensities (i.e. mean times to events)
+#' `q`: transition intensities
 #'
-#' @param ... Further arguments passed to both \code{\link{qdf}} and \code{\link{loghr}}.
+#' `logq`: log transition intensities
+#'
+#' `time`: inverse transition intensities (mean time to event without competing risks)
+#'
+#' `mst`: mean sojourn times
+#'
+#' `shape`, `scale`: shape and/or scale for Weibull/Gamma phase-type approximations
+#'
+#' `logshape`,`logscale` corresponding log shape or scale
+#'
+#' `hr`: hazard ratios
+#'
+#' `loghr`: log hazard ratios
+#'
+#' `e`: misclassification probabilities
+#'
+#' This defaults to whichever of `c("q","mst","hr","shape","scale","e")` are included in the model.
+#'
+#' @param ... Further arguments passed to both \code{\link{qdf}},
+#' \code{\link{hr}}, \code{\link{loghr}} and \code{\link{edf}}.
 #'
 #' @return A data frame with one row for each basic model parameter,
 #'   plus rows for the mean sojourn times.  The posterior distribution
@@ -48,37 +66,56 @@ print.msmbayes <- function(x,...){
 #' summary(summary(infsim_model))
 #' summary(summary(infsim_model), median, ~quantile(.x, 0.025, 0.975))
 #'
+#' @md
 #' @export
-summary.msmbayes <- function(object,log=FALSE,time=FALSE,...){
+summary.msmbayes <- function(object, pars=NULL,...){
   name <- from <- to <- state <- value <- prior_string <- NULL
-  names <- if (log) c(q="logq",hr="loghr") else c(q="q",hr="hr")
-  qres <- qdf(object, ...)
-  if (time) {
-    names["q"] <- "time"
-    qres$value <- 1/qres$value
-  } else if (log) qres$value <- log(qres$value)
-  res <- qres |>
-    mutate(name=names["q"]) |>
+  if (is.null(pars)){
+    pars <- c("q","mst","hr","shape","scale","e")
+  }
+
+  res <- qres <- qdf(object, ...) |> mutate(name="q") |>
     select(name, from, to, value)
-  mst <- mean_sojourn(object) |>
-    mutate(name="mst", to=NA) |>
-    rename(from="state") |>
-    select(name, from, to, value)
-  res <- rbind(res, mst)
-  if (is_phaseapprox(object)){
-    pa <- phaseapprox_pars(object) |>
-      mutate(to=NA) |>
+
+  if ("time" %in% pars) {
+    timeres <- qres |> mutate(name="time", value=1/value)
+    res <- rbind(res, timeres)
+  }
+  if ("logq" %in% pars) {
+    logqres <- qres |> mutate(name="logq", value=log(value))
+    res <- rbind(res, logqres)
+  }
+  if ("mst" %in% pars){
+    mst <- mean_sojourn(object) |>
+      mutate(name="mst", to=NA) |>
+      rename(from="state") |>
+      select(name, from, to, value)
+    res <- rbind(res, mst)
+  }
+  if (is_phaseapprox(object) && (("shape" %in% pars)||("scale" %in% pars))){
+    pa <- phaseapprox_pars(object) |> mutate(to=NA) |>
       select(name, from=state, to, value)
     res <- rbind(res, pa)
   }
-  if (has_covariates(object)){
-    loghr_ests <-
-      (if (log) loghr(object, ...) else hr(object, ...) )|>
+  if (is_phaseapprox(object) && (("logshape" %in% pars)||("logscale" %in% pars))){
+    pa <- phaseapprox_pars(object, log=TRUE) |> mutate(to=NA) |>
+      select(name, from=state, to, value)
+    res <- rbind(res, pa)
+  }
+  res <- res |> filter(name %in% pars)
+  if (has_covariates(object) && ("hr" %in% pars)){
+    hr_ests <- hr(object, ...) |>
       select(name, from, to, value) |>
-      mutate(name=sprintf("%s(%s)", names["hr"], name))
+      mutate(name=sprintf("hr(%s)", name))
+    res <- rbind(res, hr_ests)
+  }
+  if (has_covariates(object) && ("loghr" %in% pars)){
+    loghr_ests <- loghr(object, ...) |>
+      select(name, from, to, value) |>
+      mutate(name=sprintf("loghr(%s)", name))
     res <- rbind(res, loghr_ests)
   }
-  if (has_misc(object)){
+  if (has_misc(object) && ("e" %in% pars)){
     e_ests <- edf(object, ...) |>
       mutate(name="e") |>
       select(name, from, to, value)
@@ -101,7 +138,7 @@ summary_priors <- function(object){
 #' @return data frame with prior rvars and strings left-joined to `object`
 #'
 #' Might want to make this user visible
-#' 
+#'
 #' @noRd
 attach_priors <- function(object, draws, basename=NULL, cov=FALSE){
   string <- rvar <- from <- NULL
