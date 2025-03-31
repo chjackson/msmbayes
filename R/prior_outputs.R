@@ -112,7 +112,7 @@ prior_loghr_db <- function(priors, cm){
     xname = cm$Xnames,
     from = rep(cm$from, cm$nxquser),
     to = rep(cm$to, cm$nxquser),
-    prior = prior_to_rvar(priors$loghrmean, priors$loghrsd, n=1000)
+    prior = prior_to_rvar(priors$loghrmean, priors$loghrsd, n=1000)[cm$consid]
   ) |>
     mutate(loghr  = prior,
            hr  = exp(prior)) |>

@@ -33,12 +33,10 @@ test_that("phase-type approximations with tight prior on shape give results clos
 test_that("phase-type approximations with tight prior on shape give results close to markov",{
   priors <- list(msmprior("logshape(1)", 0, 0.01),
                  msmprior("logshape(2)", 0, 0.01))
-#  sink("debug2.out")
   fit_pa <- msmbayes(data=infsim, state="statep", time="months", priors=priors,
                      Q=Q, fit_method="optimize",
                      pastates = c(1,2), pafamily=c("weibull","gamma"),
                      seed = 1)
-#  sink()
   expect_equal(med_rvar(phaseapprox_pars(fit_pa) |> filter(name=="shape")),
                c(1.0, 1.0), tolerance=0.02)
   compare_soj(fit_pa, tolerance=0.1)

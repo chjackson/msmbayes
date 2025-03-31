@@ -37,7 +37,7 @@
 #' to each of the \code{nx} effects
 #'
 #' @noRd
-form_covariates <- function(covariates, data, qm, pm, qmobs, call=caller_env()){
+form_covariates <- function(covariates, data, constraint, qm, pm, qmobs, call=caller_env()){
   if (pm$phaseapprox) {
     qm_latent <- qm
     qm <- qmobs
@@ -81,6 +81,7 @@ form_covariates <- function(covariates, data, qm, pm, qmobs, call=caller_env()){
   cm$covnames_orig <- unique(unlist(lapply(covariates, all.vars)))
   if (pm$phaseapprox)
     cm <- expand_phaseapprox_cm(cm, qm_latent, qmobs)
+  cm <- parse_constraint(constraint, cm, qm, call)
   cm
 }
 

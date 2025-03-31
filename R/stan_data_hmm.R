@@ -75,6 +75,8 @@ make_stan_obsdata <- function(dat, qm=NULL, cm=NULL,
     censdat = dat[["censdat"]],
 
     nx = cm$nx,
+    nxuniq = cm$nxuniq,
+    consid = cm$consid, 
     nxq = as.array(cm$nxq),
     xstart = as.array(cm$xstart),
     xend = as.array(cm$xend),

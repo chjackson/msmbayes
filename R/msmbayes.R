@@ -57,7 +57,7 @@
 #'
 #' @param pastates This indicates which states (if any) are given a
 #'   Weibull or Gamma sojourn distribution approximated by a phase-type model
-#'   Ignored if `nphase` is supplied. 
+#'   Ignored if `nphase` is supplied.
 #'
 #' @param pafamily `"weibull"` or `"gamma"`, indicating the
 #'   approximated sojourn distribution in the phased state.  Either a
@@ -101,10 +101,17 @@
 #' the result of a call to \code{\link{msmprior}}.  Any parameters
 #' with priors not specified here are given default priors: normal
 #' with mean -2 and SD 2 for log intensities, normal with mean
-#' 0 and SD 10 for log hazard ratios, or normal(0,1) for all others
-#' (log shape, log scale and log odds parameters in
-#' phase-type approximation and misclassification models).  See
-#' \code{\link{msmprior}} for more details.
+#' 0 and SD 10 for log hazard ratios, normal(0,1) for log odds parameters
+#' in misclassification models.
+#'
+#' In phase-type approximation models, the default priors are normal
+#' with mean 2, SD 2 for scale parameters (i.e. the log inverse of the
+#' default prior for the rate), normal(0, SD=0.5) truncated on the
+#' supported region for log shape parameters, and normal(0,1) for log
+#' odds of transition (relative to first exit state) in structures
+#' with competing exit states.
+#'
+#' See \code{\link{msmprior}} for more details.
 #'
 #' If only one parameter is given a non-default prior, a single `msmprior`
 #' call can be supplied here instead of a list.
@@ -122,7 +129,7 @@
 #'   previous observed value between the previous and current times in
 #'   the data, and the transition to the current state is made exactly
 #'   at the current time.
-#' 
+#'
 #'   `3`: "Exact death times". the transition to the current state is
 #'   made exactly at the current time, but the state in the period
 #'   from the previous observation to the instant before the
@@ -131,8 +138,8 @@
 #'
 #'    This is the same feature as in the `msm` package.  If omitted,
 #'    then all observations are assumed to be intermittent, with
-#'    `obstype` 1. 
-#' 
+#'    `obstype` 1.
+#'
 #' @param deathexact Set to `TRUE` if death times are observed with
 #'   the `obstype 3` scheme.  This is a shortcut for including an
 #'   `obstype` variable with 3 in the positions with the absorbing
@@ -167,6 +174,21 @@
 #'   In misclassification models, the subset refers to values of the
 #'   true state if `obstrue` is 1, or the observed state if `obstrue`
 #'   is 0.
+#'
+#' @param constraint Constraints that a covariate has an equal effect
+#'   on a particular set of transition intensities.  A list with one
+#'   component for each covariate that has constraints.  Each
+#'   component is a list of sets (or a single set) of intensities
+#'   where the effect of that covariate is equal.  For example, to
+#'   constrain the effect of age to be equal for transitions 1-2 and
+#'   2-3, and also equal for transitions 1-4 and 2-4, and the effect
+#'   of sexMALE to be equal for transitions 1-2 and 2-3, specify
+#'
+#'   `constraint = list(age = list(c("1-2","2-3"),
+#'                                 c("1-4","2-4")),
+#'                      sex = list(c("1-2","2-3")))`
+#'
+#'   This is the same feature as in `msm`, but with an easier interface.
 #'
 #' @param nphase Only required for models with phase-type sojourn
 #'   distributions specified directly (not through `pastates`).
@@ -244,13 +266,14 @@ msmbayes <- function(data, state="state", time="time", subject="subject",
                      pastates = NULL,
                      pafamily = "weibull",
                      pamethod = "moment", # TODO remove eventually
-                     panphase = NULL, 
+                     panphase = NULL,
                      E = NULL,
                      Efix = NULL,
                      obstype = NULL,
                      deathexact = FALSE,
                      obstrue = NULL,
                      censor_states = NULL,
+                     constraint = NULL,
                      nphase = NULL,
                      priors = NULL,
                      prob_initstate = NULL,
@@ -262,14 +285,15 @@ msmbayes <- function(data, state="state", time="time", subject="subject",
   m <- msmbayes_form_internals(data=data, state=state, time=time, subject=subject,
                                Q=Q, covariates=covariates,
                                obstype=obstype, deathexact=deathexact,
-                               obstrue=obstrue, censor_states=censor_states, 
+                               obstrue=obstrue, censor_states=censor_states,
                                pastates=pastates, pafamily=pafamily,
                                panphase=panphase, pamethod=pamethod, E=E, Efix=Efix,
+                               constraint=constraint,
                                nphase=nphase, priors=priors, soj_priordata=soj_priordata)
 
   if (!m$em$hmm){
     standat <- make_stan_aggdata(dat=m$data, qm = m$qm, cm = m$cm,
-                                 priors = m$priors, 
+                                 priors = m$priors,
                                  soj_priordata = m$soj_priordata)
     stanfile <- "msm"
   } else {
@@ -356,14 +380,14 @@ prior_random_inits <- function(standat, init_scale=5, chain_id=1){
   nq <- length(standat$logqmean)
   logq <- logq_markov <- rnorm(nq, mean=standat$logqmean, sd=standat$logqsd / init_scale)
   nhr <- length(standat$loghrmean)
-  loghr <- rnorm(nhr, mean=standat$loghrmean, sd=standat$loghrsd / init_scale)
+  loghr_uniq <- rnorm(nhr, mean=standat$loghrmean, sd=standat$loghrsd / init_scale)
   npa <- length(standat$logshapemean)
   logshape <- msm::rtnorm(npa, mean=standat$logshapemean, sd=standat$logshapesd / init_scale, upper=standat$logshapemax)
   logscale <- rnorm(npa, mean=standat$logscalemean, sd=standat$logscalesd / init_scale)
   logoddse <- rnorm(length(standat$loemean), mean=standat$loemean, sd=standat$loesd / init_scale)
   logoddsabs <- rnorm(length(standat$loamean), mean=standat$loamean, sd=standat$loasd / init_scale)
   list(logq = as.array(logq), logq_markov = as.array(logq_markov),
-       loghr = as.array(loghr),
+       loghr_uniq = as.array(loghr_uniq),
        logshape = as.array(logshape), logscale = as.array(logscale),
        logoddse = as.array(logoddse), logoddsabs = as.array(logoddsabs))
 }

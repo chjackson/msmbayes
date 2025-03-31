@@ -177,14 +177,16 @@ data {
   array[npriorq] real logqmean;        // mean of normal prior on markov log(q)
   array[npriorq] real<lower=0> logqsd; // sd of normal prior on log(q)
 
-  int<lower=0> nx; // total number of covariates on the intensities
+  int<lower=0> nxuniq; // number of unique covariate effects
+  int<lower=0> nx; // total number of covariates on the intensities including repeated constrained ones
   array[nqpars] int<lower=0> xstart; // starting index into X for each transition. 0 if no covariates on that transition 
   array[nqpars] int<lower=0> xend;   // ending index into X for each transition 
   array[nqpars] int<lower=0> nxq;    // number of covariates per transition
+  array[nx] int<lower=1,upper=nxuniq> consid; // index into loghr_uniq for each loghr
 
   matrix[ntlc,nx] X;              // all model matrices, column-binded together and keeping only rows corresponding to distinct (timelag, covariates)
-  array[nx] real loghrmean;        // mean of normal prior on covariate effects
-  array[nx] real<lower=0> loghrsd; // sd of normal prior on covariate effects
+  array[nxuniq] real loghrmean;        // mean of normal prior on covariate effects
+  array[nxuniq] real<lower=0> loghrsd; // sd of normal prior on covariate effects
 
   // Prior pseudo-data for sojourn distribution
   int<lower=0> nsoj;
@@ -241,7 +243,7 @@ parameters {
   vector[npastates] logscale;
 
   array[nepars] real logoddse;  // log(ers/err), error rate log odds
-  vector[nx] loghr;             // log hazard ratios for covariates
+  vector[nxuniq] loghr_uniq;    // log hazard ratios for covariates
   vector[noddsabs] logoddsabs;  // log odds of competing destinations from phase-type approximated states
 } 
 
@@ -254,6 +256,9 @@ transformed parameters {
   real loglik = 0;
   array[K] vector[K] E = rep_array(rep_vector(0,K), K);    // full matrix of error probs
   array[nepars] real evec; // absolute error probs, for those modelled
+
+  vector[nx] loghr;     // log hazard ratios for covariates after replicating constrained ones 
+  for (i in 1:nx){  loghr[i] = loghr_uniq[consid[i]];  }
     
   // JUST FOR MISCLASSIFICATION MODELS
   if (nepars > 0){
@@ -454,15 +459,12 @@ model {
     logq_markov[i] ~ normal(logqmean[i], logqsd[i]); // or could be gamma
   }
   for (i in 1:npastates){
-    //    if (method==1)
-      logshape[i] ~ normal(logshapemean[i], logshapesd[i])T[logshapemin[i],logshapemax[i]];
-      //else 
-      //  logshape[i] ~ normal(logshapemean[i], logshapesd[i]); // T[logshapemin[i],logshapemax[i]]; // Test doing this for both
+    logshape[i] ~ normal(logshapemean[i], logshapesd[i])T[logshapemin[i],logshapemax[i]];
     logscale[i] ~ normal(logscalemean[i], logscalesd[i]);
   }  
-  if (nx > 0){
-    for (i in 1:nx){
-      loghr[i] ~ normal(loghrmean[i], loghrsd[i]);
+  if (nxuniq > 0){
+    for (i in 1:nxuniq){
+      loghr_uniq[i] ~ normal(loghrmean[i], loghrsd[i]);
     }
   }
   if (nepars > 0){

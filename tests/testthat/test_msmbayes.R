@@ -14,7 +14,7 @@ test_that("likelihood at fixed parameters agrees with msm",{
 })
 
 test_that("likelihood with covariates agrees with msm",{
-  init<- list(list(logq=c(0, 0),loghr=c(-2,-2)))
+  init<- list(list(logq=c(0, 0),loghr_uniq=c(-2,-2)))
   draws <- msmbayes(data=infsim,  time="months", Q=Q,
                     covariates=list(Q(1,2) ~ age10, Q(2,1) ~ age10), init=init,
                     algorithm="Fixed_param", chains=1, iter=1, keep_data=TRUE)
@@ -28,7 +28,7 @@ test_that("likelihood with covariates agrees with msm",{
 
 test_that("likelihood with covariates on one transition agrees with msm",{
   init<- list(list(logq=c(0, 0),
-                   loghr=as.array(c(-2))))
+                   loghr_uniq=as.array(c(-2))))
   draws <- msmbayes(data=infsim,  time="months", Q=Q,
                     covariates=list(Q(2,1) ~ age10), init=init,
                     algorithm="Fixed_param", chains=1, iter=1, keep_data=TRUE)

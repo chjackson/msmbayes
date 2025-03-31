@@ -21,6 +21,7 @@ msmbayes(
   deathexact = FALSE,
   obstrue = NULL,
   censor_states = NULL,
+  constraint = NULL,
   nphase = NULL,
   priors = NULL,
   prob_initstate = NULL,
@@ -183,6 +184,19 @@ In misclassification models, the subset refers to values of the
 true state if \code{obstrue} is 1, or the observed state if \code{obstrue}
 is 0.}
 
+\item{constraint}{Constraints that a covariate has an equal effect
+on a particular set of transition intensities.  A list with one
+component for each covariate that has constraints.  Each
+component is a list of sets (or a single set) of intensities
+where the effect of that covariate is equal.  For example, to
+constrain the effect of age to be equal for transitions 1-2 and
+2-3, and also equal for transitions 1-4 and 2-4, and the effect
+of sexMALE to be equal for transitions 1-2 and 2-3, specify
+
+\code{constraint = list(age = list(c("1-2","2-3"), c("1-4","2-4")), sex = list(c("1-2","2-3")))}
+
+This is the same feature as in \code{msm}, but with an easier interface.}
+
 \item{nphase}{Only required for models with phase-type sojourn
 distributions specified directly (not through \code{pastates}).
 \code{nphase} is a vector with one element per state, giving the
@@ -193,10 +207,17 @@ not have phase-type sojourn distributions.}
 the result of a call to \code{\link{msmprior}}.  Any parameters
 with priors not specified here are given default priors: normal
 with mean -2 and SD 2 for log intensities, normal with mean
-0 and SD 10 for log hazard ratios, or normal(0,1) for all others
-(log shape, log scale and log odds parameters in
-phase-type approximation and misclassification models).  See
-\code{\link{msmprior}} for more details.
+0 and SD 10 for log hazard ratios, normal(0,1) for log odds parameters
+in misclassification models.
+
+In phase-type approximation models, the default priors are normal
+with mean 2, SD 2 for scale parameters (i.e. the log inverse of the
+default prior for the rate), normal(0, SD=0.5) truncated on the
+supported region for log shape parameters, and normal(0,1) for log
+odds of transition (relative to first exit state) in structures
+with competing exit states.
+
+See \code{\link{msmprior}} for more details.
 
 If only one parameter is given a non-default prior, a single \code{msmprior}
 call can be supplied here instead of a list.}

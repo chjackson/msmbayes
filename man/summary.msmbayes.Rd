@@ -4,17 +4,35 @@
 \alias{summary.msmbayes}
 \title{Summarise basic parameter estimates from an msmbayes model}
 \usage{
-\method{summary}{msmbayes}(object, log = FALSE, time = FALSE, ...)
+\method{summary}{msmbayes}(object, pars = NULL, ...)
 }
 \arguments{
 \item{object}{Object returned by \code{\link{msmbayes}}.}
 
-\item{log}{Present log transition intensities and log hazard ratios,
-rather than transition intensities and hazard ratios.}
+\item{pars}{Character string indicating the parameters to include in the summary.  This can include:
 
-\item{time}{Present inverse transition intensities (i.e. mean times to events)}
+\code{q}: transition intensities
 
-\item{...}{Further arguments passed to both \code{\link{qdf}} and \code{\link{loghr}}.}
+\code{logq}: log transition intensities
+
+\code{time}: inverse transition intensities (mean time to event without competing risks)
+
+\code{mst}: mean sojourn times
+
+\code{shape}, \code{scale}: shape and/or scale for Weibull/Gamma phase-type approximations
+
+\code{logshape},\code{logscale} corresponding log shape or scale
+
+\code{hr}: hazard ratios
+
+\code{loghr}: log hazard ratios
+
+\code{e}: misclassification probabilities
+
+This defaults to whichever of \code{c("q","mst","hr","shape","scale","e")} are included in the model.}
+
+\item{...}{Further arguments passed to both \code{\link{qdf}},
+\code{\link{hr}}, \code{\link{loghr}} and \code{\link{edf}}.}
 }
 \value{
 A data frame with one row for each basic model parameter,

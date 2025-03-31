@@ -52,7 +52,7 @@ test_that("msmbayes misclassification likelihood agrees with msm for structures 
 
 test_that("msmbayes misclassification likelihood agrees with msm, with covariates on transition rates",{
   init <- list(list(logq_markov=c(0, 0), logoddse=qlogis(c(0.01, 0.01)),
-                    loghr=c(-2, -2)))
+                    loghr_uniq=c(-2, -2)))
   drawse <- msmbayes(data=infsim, time="months", Q=Q, E=E,
                      covariates = list(Q(1,2)~age10,
                                        Q(2,1)~sex), init=init,

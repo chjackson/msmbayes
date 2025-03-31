@@ -5,7 +5,7 @@
 #'
 #' `"logq"`.  Log transition intensity.  It should then two include indices
 #' indicating the transition, e.g. `"logq(2,3)"` for the log
-#' transition intensity from state 2 to state 3.  
+#' transition intensity from state 2 to state 3.
 #'
 #' `"q"`, Transition intensity (in the same format)
 #'
@@ -32,8 +32,8 @@
 #' sojourn distribution in a phase-type approximation model.
 #'The index indicates the state,
 #' e.g. `logshape(2)` and `logscale(2)` indicate the log shape and
-#' scale parameter for the sojourn distribution in state 2. 
-#' 
+#' scale parameter for the sojourn distribution in state 2.
+#'
 #' `"loa"`.  Log odds of transition to a destination state in a
 #' phase-type approximation model with competing destination states.
 #' These parameters are only used in phase-type approximation
@@ -41,7 +41,7 @@
 #' could transition to immediately on leaving the state that has a
 #' phase-type approximation sojourn distribution.  These parameters
 #' are defined with two indices.  For example, `loa(1,2)` is the log
-#' odds of transition to state 2 on leaving state 1.  The odds 
+#' odds of transition to state 2 on leaving state 1.  The odds
 #' is the probability of transition to state 2 divided by the
 #' probability of transition to the first out of the set of potential
 #' destination states.
@@ -52,7 +52,7 @@
 #' covariates.  This can be done with or without the brackets, e.g.
 #' `"logq()"` or `"logq"` are both understood.
 #'
-#' 
+#'
 #'
 #' @param mean Prior mean.  This is only used for the parameters that have direct normal priors, that is `logq`, `loghr`, `logshape`, `logscale`, `loe`, `loa`.  That is, excluding `time`, `q` and `hr`, whose priors are defined by transformations of a normal distribution.
 #'
@@ -165,7 +165,7 @@ transform_mlu <- function(par, mlu){
 }
 
 .msmprior_pars <- list(
-  "logq"  = c("logq", "q", "time"), 
+  "logq"  = c("logq", "q", "time"),
   "loghr" = c("loghr", "hr"),
   "logshape" = c("logshape"),
   "logscale" = c("logscale"),
@@ -240,8 +240,8 @@ extraneous_covname_error <- function(res){
   ## currently must be normal priors, can't change family.
   logq = list(mean=-2, sd=2),
   loghr = list(mean=0, sd=10),
-  logshape = list(mean=0, sd=0.5),
-  logscale = list(mean=0, sd=0.5),
+  logshape = list(mean=0, sd=0.5), # this gets truncated on the supported region in hmm.stan
+  logscale = list(mean=2, sd=2), # log inverse of default prior for q, ie rate when shape is 1
   loe = list(mean=0, sd=1),
   loa = list(mean=0, sd=1)
 )
@@ -258,8 +258,8 @@ process_priors <- function(priors, qm, cm, pm, em, qmobs){
   priors <- check_priors(priors)
   logqmean <- rep(.default_priors$logq$mean, qm$npriorq)
   logqsd <- rep(.default_priors$logq$sd, qm$npriorq)
-  loghrmean <- rep(.default_priors$loghr$mean, cm$nx)
-  loghrsd <- rep(.default_priors$loghr$sd, cm$nx)
+  loghrmean <- rep(.default_priors$loghr$mean, cm$nxuniq)
+  loghrsd <- rep(.default_priors$loghr$sd, cm$nxuniq)
   logshapemean <- rep(.default_priors$logshape$mean, pm$npastates)
   logshapesd <- rep(.default_priors$logshape$sd, pm$npastates)
   logscalemean <- rep(.default_priors$logscale$mean, pm$npastates)
@@ -268,6 +268,7 @@ process_priors <- function(priors, qm, cm, pm, em, qmobs){
   loasd <- rep(.default_priors$loa$sd, qm$noddsabs)
   loemean <- rep(.default_priors$loe$mean, em$nepars)
   loesd <- rep(.default_priors$loe$sd, em$nepars)
+  loghr_user <- rep(FALSE, cm$nx)
 
   for (i in seq_along(priors)){
     prior <- priors[[i]]
@@ -282,8 +283,10 @@ process_priors <- function(priors, qm, cm, pm, em, qmobs){
       else {
         qind <- get_prior_qindex(prior, qmobs, markov_only=FALSE)
         bind <- get_prior_hrindex(prior, qmobs, cm, qind)
-        loghrmean[bind] <- prior$mean
-        loghrsd[bind] <- prior$sd
+        loghrmean[cm$consid[bind]] <- prior$mean
+        loghrsd[cm$consid[bind]] <- prior$sd
+        loghr_user[bind] <- TRUE
+        check_repeated_prior(bind, cm, loghr_user) 
       }
     } else if (prior$par_base=="logshape"){
       ind <- get_prior_ssindex(prior, pm)
@@ -310,13 +313,21 @@ process_priors <- function(priors, qm, cm, pm, em, qmobs){
        loemean = as.array(loemean), loesd = as.array(loesd))
 }
 
+check_repeated_prior <- function(bind, cm, loghr_user){
+  cids <- setdiff(which(loghr_user & (cm$consid == cm$consid[bind])), bind)
+  if (length(cids) > 0){
+    bad_eff <- sprintf("loghr(%s,%s,%s)",cm$Xnames[bind], cm$xfrom[bind], cm$xto[bind])
+    cli_warn("Ignoring redundant prior for constrained covariate effect{?s} {bad_eff}")
+  }
+}
+
 logshape_bounds <- function(pm){
   if (pm$npastates==0)
     return(list(min=array(dim=0), max=array(dim=0)))
   if (pm$pamethod=="moment"){
     logshapemin <- rep(-Inf, length(pm$pafamily))
     logshapemax <- log(shape_ubound(pm$nphase[pm$pastates], pm$pafamily))
-  } else { 
+  } else {
     traindatw <- phase5approx("weibull")$traindat
     traindatg <- phase5approx("gamma")$traindat
     wmin <- log(min(traindatw$a)); wmax <- log(max(traindatw$a))
@@ -374,11 +385,15 @@ get_prior_hrindex <- function(prior, qm, cm, qind){
 
 ## Which in the set of misclassification error log odds does a prior refer to
 get_prior_ssindex <- function(prior, pm){
+  if (prior$ind1 == "all_indices")
+    prior$ind1 <- pm$pastates
+  else {
+    if (!prior$ind1 %in% pm$pastates)
+      cli_abort("Found state ID of {prior$ind1} in prior for shape or scale parameter. Expected this to be one of the states with phase-type sojourn distributions, {pm$pastates}")
+  }
   ind <- match(prior$ind1, pm$pastates)
   if (!pm$phaseapprox)
     cli_abort("Supplied a prior for a shape or scale parameter, but model does not have any states with phase-type approximations")
-  if (!(prior$ind1 %in% pm$pastates))
-    cli_abort("Found state ID of {prior$ind1} in prior for shape or scale parameter. Expected this to be one of the states with phase-type sojourn distributions, {pm$pastates}")
   ind
 }
 

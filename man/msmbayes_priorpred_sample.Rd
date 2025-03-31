@@ -108,10 +108,17 @@ is ignored.}
 the result of a call to \code{\link{msmprior}}.  Any parameters
 with priors not specified here are given default priors: normal
 with mean -2 and SD 2 for log intensities, normal with mean
-0 and SD 10 for log hazard ratios, or normal(0,1) for all others
-(log shape, log scale and log odds parameters in
-phase-type approximation and misclassification models).  See
-\code{\link{msmprior}} for more details.
+0 and SD 10 for log hazard ratios, normal(0,1) for log odds parameters
+in misclassification models.
+
+In phase-type approximation models, the default priors are normal
+with mean 2, SD 2 for scale parameters (i.e. the log inverse of the
+default prior for the rate), normal(0, SD=0.5) truncated on the
+supported region for log shape parameters, and normal(0,1) for log
+odds of transition (relative to first exit state) in structures
+with competing exit states.
+
+See \code{\link{msmprior}} for more details.
 
 If only one parameter is given a non-default prior, a single \code{msmprior}
 call can be supplied here instead of a list.}

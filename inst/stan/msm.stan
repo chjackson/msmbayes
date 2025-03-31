@@ -52,14 +52,16 @@ data {
   int<lower=1> ncovind;              // number of distinct covariate values.  1 if no covariates
 
   // Covariate information
-  int<lower=0> nx; // total number of covariates
+  int<lower=0> nxuniq; // number of unique covariate effects
+  int<lower=0> nx; // total number of covariate effects including repeated constrained ones
   array[nqpars] int<lower=0> xstart; // starting index into X for each transition. 0 if no covariates on that transition 
   array[nqpars] int<lower=0> xend;   // ending index into X for each transition 
   array[nqpars] int<lower=0> nxq;    // number of covariates per transition
+  array[nx] int<lower=1,upper=nxuniq> consid; // index into loghr_uniq for each loghr
 
   matrix[ncovind,nx] X;              // all model matrices, column-binded together and keeping only distinct rows
-  array[nx] real loghrmean;        // mean of normal prior on covariate effects
-  array[nx] real<lower=0> loghrsd; // sd of normal prior on covariate effects
+  array[nxuniq] real loghrmean;        // mean of normal prior on covariate effects
+  array[nxuniq] real<lower=0> loghrsd; // sd of normal prior on covariate effects
 
   // Prior pseudo-data for sojourn distribution
   int<lower=0> nsoj;
@@ -83,21 +85,24 @@ data {
 parameters {
   vector[nqpars] logq; // vector of transition intensities to be estimated
                           // logs of non-zero off-diagonal entries of Q
-  vector[nx] loghr;     // log hazard ratios for covariates
+  vector[nxuniq] loghr_uniq;     // log hazard ratios for covariates
 }
 
 transformed parameters {
   real loglik = 0;  // save loglik for use in priorsense, but keep other variables local here
   array[nqpars] real prior_logq;
-  array[nx] real prior_loghr;
+  array[nxuniq] real prior_loghr;
+
+  vector[nx] loghr;     // log hazard ratios for covariates after replicating constrained ones 
+  for (i in 1:nx){  loghr[i] = loghr_uniq[consid[i]];  }
 
   for (i in 1:nqpars){
     prior_logq[i] = normal_lpdf(logq[i] | logqmean[i], logqsd[i]); 
   }
 
-  if (nx > 0){
-    for (i in 1:nx){
-      prior_loghr[i] = normal_lpdf(loghr[i] | loghrmean[i], loghrsd[i]);
+  if (nxuniq > 0){
+    for (i in 1:nxuniq){
+      prior_loghr[i] = normal_lpdf(loghr_uniq[i] | loghrmean[i], loghrsd[i]);
     }
   }
 
@@ -173,8 +178,8 @@ model {
   for (i in 1:nqpars){
     target += prior_logq[i];
   }
-  if (nx > 0){
-    for (i in 1:nx){
+  if (nxuniq > 0){
+    for (i in 1:nxuniq){
       target += prior_loghr[i];
     }
   }

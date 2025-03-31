@@ -34,6 +34,8 @@ make_stan_aggdata <- function(dat, qm=NULL, cm=NULL, priors=NULL,
               obstype = as.array(dwide$obstype),
               exactdeath_state = as.array(dwide$exactdeath_state),
               nx = cm$nx,
+              nxuniq = cm$nxuniq,
+              consid = cm$consid, 
               nxq = as.array(cm$nxq),
               xstart = as.array(cm$xstart), # cmdstanr errors with NAs
               xend = as.array(cm$xend),
@@ -60,7 +62,9 @@ form_transition_data <- function(dat, qm, time=TRUE){
   firstobs <- !duplicated(dat[["subject"]])
   lastobs <- rev(!duplicated(rev(dat[["subject"]])))
   fromstate <- c(NA, state[1:(nobs-1)])
-  datnew <- data.frame(subject=dat[["subject"]], fromstate, tostate=state, obstype=dat[["obstype"]])
+  datnew <- data.frame(subject=dat[["subject"]], fromstate, tostate=state)
+  if (!is.null(dat[["obstype"]])) # else bare bones cleaned data
+    datnew$obstype <- dat$obstype
   if (time)
     datnew$timelag <- c(NA, diff(dat[["time"]]))
   datnew <- datnew[!firstobs,,drop=FALSE]

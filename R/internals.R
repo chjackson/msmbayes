@@ -4,7 +4,8 @@ msmbayes_form_internals <- function(data, state="state", time="time", subject="s
                                     obstrue=NULL, censor_states=NULL,
                                     pastates=NULL, pafamily="weibull",
                                     panphase=NULL, pamethod="hermite",
-                                    E=NULL, Efix=NULL, nphase=NULL,
+                                    E=NULL, Efix=NULL,
+                                    constraint=NULL, nphase=NULL,
                                     priors=NULL, soj_priordata=NULL,
                                     prior_sample = FALSE,
                                     call = caller_env()){
@@ -22,7 +23,7 @@ msmbayes_form_internals <- function(data, state="state", time="time", subject="s
   check_data(data, state, time, subject,
              obstype=obstype, obstrue=obstrue,
              qm, censor_states, prior_sample=prior_sample, call=call)
-  cm <- form_covariates(covariates, data, qm, pm, qmobs)
+  cm <- form_covariates(covariates, data, constraint, qm, pm, qmobs)
   data <- clean_data(data, state, time, subject, 
                      cm$X, obstype, deathexact,
                      obstrue=obstrue, censor_states=censor_states,
