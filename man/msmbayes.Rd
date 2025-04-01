@@ -57,7 +57,9 @@ determined by Stan from the prior distributions, and the specific
 values supplied for positive entries of \code{Q} are disregarded.}
 
 \item{covariates}{Specification of covariates on transition intensities.
-This should be a list of formulae.  Each formula should have a
+This should be a list of formulae, or a single formula.
+
+If a list is supplied, each formula should have a
 left-hand side that looks like \code{Q(r,s)}, and a right hand side
 defining the regression model for the log of the transition intensity
 from state \eqn{r} to state \eqn{s}.
@@ -72,10 +74,13 @@ linear function of age and sex, and the log 2-1 transition intensity
 is a linear function of age.  You do not have to list all of the
 intensities here if some of them are not influenced by covariates.
 
-In models with phase-type approximated
-states (specified with \code{pastates}), as in standard Markov models, the
-numbers inside \code{Q()} refer
-to the observed state space.  For such phase-type models, the
+If a single formula is supplied, this is assumed to apply to all
+intensities.  If doing this, then take care with potential lack of
+identifiability of effects from sparse data.
+
+In models with phase-type approximated states (specified with
+\code{pastates}), as in standard Markov models, the numbers inside \code{Q()}
+refer to the observed state space.  For such phase-type models, the
 covariate has an identical multiplicative effect on all rates of
 transition between phases for a given states.
 

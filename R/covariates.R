@@ -44,12 +44,15 @@ form_covariates <- function(covariates, data, constraint, qm, pm, qmobs, call=ca
   }
   nxq <- xstart <- xend <- rep(0, qm$nqpars)
   xlevs <- covnames <- vector(mode="list", length=qm$nqpars)
+  if (inherits(covariates,"formula")){
+    covariates <- cov_formula_to_list(covariates, qm)
+  }
   if (is.null(covariates)){
     cm <- list(nx=0, nxq=nxq, xstart=xstart, xend=xend,
                X=matrix(0, nrow=nrow(data), ncol=0))
   }
   else if (!is.list(covariates))
-    cli_abort("{.var covariates} must be a list", call=call)
+    cli_abort("{.var covariates} must be a list of formulae or a single formula", call=call)
   else {
     X <- bp <- vector("list", length(covariates))
     prevend <- 0
@@ -137,7 +140,7 @@ parse_msm_formula <- function(form, data, qm, call=caller_env()){
 parse_msm_formula_lhs <- function(form, qm, call=caller_env()){
   forml <- as.character(form)[2]
   if (!grepl("Q\\([[:space:]]*[[:digit:]]+[[:space:]]*,[[:space:]]*[[:digit:]]+[[:space:]]*\\)", forml)){
-    cli_abort(c("{.var covariates} has an element with left-hand side {.var {forml}}",
+    cli_abort(c("{.var covariates} formula has left-hand side {.var {forml}}",
                 "This should be of the form {.var Q(r,s)}, where `r` and `s` are numbers indicating states of the model"),
               call=call)
   }
@@ -163,3 +166,9 @@ parse_msm_formula_rhs <- function(form, data, call=caller_env()){
 ## see https://hardhat.tidymodels.org/reference/default_formula_blueprint.html
 ## work around its behaviour of including baseline factor level in the design matrix
 ## TESTME with prediction
+
+cov_formula_to_list <- function(covariates, qm){
+  rhs <- as.character(covariates[2])
+  forms <- sprintf("Q(%s,%s) ~ %s", qm$tr$from, qm$tr$to, rhs)
+  lapply(as.list(forms), as.formula)
+}
