@@ -2,13 +2,19 @@
 #' Lower-level function to return vector of transition intensities
 #' with no meta-data included
 #'
-#' @return rvar array with ncovs rows and nqpars columns
+#' @param type
+#' `posterior`: set of MCMC samples
+#' `mode`: posterior mode
+#'
+#' @return Array with ncovs rows and nqpars columns.
+#' If type is `posterior` then each component is an rvar
+#' If type is `mode` then each component is a number
 #'
 #' @noRd
-qvector <- function(draws, new_data=NULL, X=NULL){
-  td <- tidy_draws(draws)
+qvector <- function(draws, new_data=NULL, X=NULL, type="posterior", drop=FALSE){
+  if (type=="mode" && !is_mode(draws)) return(NULL)
+  td <- tidy_draws(if (type=="posterior") draws else get_mode_draws(draws))
   logq <- td |> gather_rvars(logq[]) |> pull(".value")
-
   if (!has_covariates(draws)){
     if (!is.null(new_data))
       cli_warn("Ignoring `new_data`, because there are no covariates in the model")
@@ -21,24 +27,33 @@ qvector <- function(draws, new_data=NULL, X=NULL){
     ncovvals <- 1
   }
   else {
+    cm <- attr(draws, "cmodel")
+    loghr <- td |>  gather_rvars(loghr[]) |>  pull(".value")
     if (is.null(X))
       X <- new_data_to_X(new_data, draws)
     else check_X(X, draws)
     ncovvals <- nrow(X)
-    loghr <- td |>  gather_rvars(loghr[]) |>  pull(".value")
-    cm <- attr(draws, "cmodel")
-    logqnew <- rvar(array(dim=c(ndraws(logq), nrow(X), nqpars(draws))))
+    logqnew <- rvar(array(dim=c(ndraws(logq), ncovvals, nqpars(draws))))
     for (i in 1:nqpars(draws)){
       inds <- cm$xstart[i]:cm$xend[i]
       logqnew[,i] <- logq[i]
       if (cm$nxq[i] > 0)
         logqnew[,i] <- logqnew[,i] +
-        X[,inds,drop=FALSE] %**% loghr[inds]  # %**% from posterior
+          X[,inds,drop=FALSE] %**% loghr[inds]  # %**% from posterior
     }
   }
   qvec <- exp(logqnew)
-  if (isTRUE(attr(new_data, "std")))
+  if (isTRUE(attr(new_data, "std"))){
     qvec <- standardise_qvector(qvec)
+    ncovvals <- 1
+  }
+  if (type=="mode"){
+    ## mean() only necessary here when standardising
+    qvec <- array(mean(draws_of(qvec)), dim=c(ncovvals, nqpars(draws)))
+  }
+  if (type=="posterior" && is_mode(draws))
+    attr(qvec, "mode") <- qvector(draws, new_data, X, type="mode", drop=TRUE)
+  if (drop && ncovvals==1) qvec <- qvec[1,]
   qvec
 }
 
@@ -64,21 +79,58 @@ combine_draws <- function(x) {
 #' formed from concatenating the posterior samples
 #' to represent sample from marginal output
 #'
+#' For modes, take the average of point estimates over covariates
+#'
 #' @noRd
-standardise_qvector <- function(qvec){
-  t(posterior::rvar_apply(qvec, 2, combine_draws))
+standardise_qvector <- function(qvec, type="posterior"){
+  post <- t(posterior::rvar_apply(qvec, 2, combine_draws))
+  if (type=="mode") post <- mean(post)
+  post
 }
 
 ## Modelled misclassification probabilities
 ## Same as first few lines of qvector
 ## No covs on e so this is simpler.  share code if do this.
 
-evector <- function(draws, new_data=NULL){
-  td <- tidy_draws(draws)
+evector <- function(draws, new_data=NULL, type="posterior", drop=FALSE){
+  if (type=="mode" && !is_mode(draws)) return(NULL)
+  td <- tidy_draws(if (type=="posterior") draws else get_mode_draws(draws))
   evec <- td |>
     gather_rvars(evec[]) |>
     pull(".value")
+  if (type=="mode") evec <- matrix(draws_of(evec), nrow=1)
+  if (type=="posterior" && is_mode(draws))
+    attr(evec, "mode") <- evector(draws, type="mode", drop=TRUE)
+  if (drop) evec <- evec[1,]
   evec
+}
+
+loghr_internal <- function(draws, type="posterior"){
+  if (type=="mode" && !is_mode(draws)) return(NULL)
+  td <- tidy_draws(if (type=="posterior") draws else get_mode_draws(draws))
+  loghr <- td |>
+    gather_rvars(loghr[]) |>
+    pull(".value") |>
+    t() |>
+    as.data.frame() |>
+    rename(posterior=V1)
+  if (type=="mode")
+    loghr <- loghr |> rename(mode=posterior) |> mutate(mode=as.numeric(draws_of(mode)))
+  if (type=="posterior" && is_mode(draws))
+    loghr$mode <- loghr_internal(draws, type="mode")$mode
+  loghr
+}
+
+phaseapprox_pars_internal <- function(draws, type="posterior", log=FALSE){
+  if (!is_phaseapprox(draws)) return(NULL)
+  if (type=="mode" && !is_mode(draws)) return(NULL)
+  td <- tidy_draws(if (type=="posterior") draws else get_mode_draws(draws))
+  shape <- td |> gather_rvars(shape[]) |> pull(".value")
+  scale <- td |> gather_rvars(scale[]) |> pull(".value")
+  value <- c(shape, scale)
+  if (log) value <- log(value)
+  if (type=="mode") value <- as.numeric(draws_of(value))
+  value
 }
 
 #' @param qvec vector of rvars
@@ -96,8 +148,23 @@ qvec_rvar_to_Q <- function(qvec, qm){
   Q
 }
 
-qvec_rvar_to_mst <- function(qvec, qm){
-  Q <- qvec_rvar_to_Q(qvec, qm)
+qvec_numeric_to_Q <- function(qvec, qm){
+  Q <- array(0, dim=c(qm$K, qm$K))
+  for (i in 1:qm$nqpars){
+    Q[qm$qrow[i], qm$qcol[i]] <- qvec[i]
+  }
+  diag(Q) <- -rowSums(Q)
+  Q
+}
+
+qvec_to_Q <- function(qvec, qm){
+  if (inherits(qvec,"rvar"))
+    qvec_rvar_to_Q(qvec, qm)
+  else qvec_numeric_to_Q(qvec, qm)
+}
+
+qvec_to_mst <- function(qvec, qm){
+  Q <- qvec_to_Q(qvec, qm)
   -1 / diag(Q)
 }
 
@@ -109,12 +176,16 @@ qvec_rvar_to_mst <- function(qvec, qm){
 #'   values and elements of the vector.  The covariate values from
 #'   \code{new_data} are joined to form additional columns.
 #'
+#' TODO document ordering : by vecid within covid
+#' ensure mode matches
+#'
 #' A column \code{vecid} gives the index into the original vector
 #' of outputs
 #'
 #' @noRd
-vecbycovs_to_df <- function(rvarmat, new_data){
+vecbycovs_to_df <- function(rvarmat, new_data, mode=FALSE){
   covid <- vecid <- NULL
+  if (is.null(rvarmat)) return(NULL)
   ncovvals <- dim(rvarmat)[1]
   nelts <- if (length(dim(rvarmat))==1) 1 else ncol(rvarmat)
   res <- rvarmat |>
@@ -123,11 +194,14 @@ vecbycovs_to_df <- function(rvarmat, new_data){
     mutate(covid = 1:ncovvals) |>
     tidyr::pivot_longer(cols=matches("vecid"), names_to="vecid",
                         names_prefix = "vecid",
-                        names_transform=list(vecid=as.integer))
+                        names_transform=list(vecid=as.integer)) |>
+    rename(posterior = value)
   if (!is.null(new_data) && !isTRUE(attr(new_data, "std")))
     res <- res |>
       left_join(new_data |> mutate(covid=1:n()), by="covid")
-  as_msmbres(res) |> select(-covid)
+  res <- as_msmbres(res) |>
+    select(-covid)
+  res
 }
 
 #' Convert transition intensities in a phase-type model to a mixture
@@ -211,28 +285,36 @@ check_new_data <- function(new_data, call=caller_env()){
   if (!is.data.frame(new_data))
     cli_abort("{.var new_data} should be a data frame",
               call=call)
-  ## hardhat takes care of checking valid factor levels 
+  ## hardhat takes care of checking valid factor levels
 }
 
 soj_prob_phase <- function(draws, t, state, new_data=NULL,
                            method = "analytic"){
-  fromobs <- ttype <- value <- covid <- NULL
+  fromobs <- ttype <- posterior <- covid <- NULL
   qphase <- qdf(draws, new_data=new_data) |> filter(fromobs==state)
-  arate <- qphase |> filter(ttype=="abs") |> pull(value) |> draws_of()
-  prate <- qphase |> filter(ttype=="prog") |> pull(value) |> draws_of()
+  arate <- qphase |> filter(ttype=="abs") |> pull(posterior) |> draws_of()
+  prate <- qphase |> filter(ttype=="prog") |> pull(posterior) |> draws_of()
+  arate_mode <- qphase |> filter(ttype=="abs") |> pull(mode)
+  prate_mode <- qphase |> filter(ttype=="prog") |> pull(mode)
+
   ntimes <- length(t)
   ncovvals <- max(NROW(new_data), 1)
   surv <- array(0, dim=c(ndraws(draws), ncovvals, ntimes))
+  surv_mode <- array(0, dim=c(ncovvals, ntimes))
   for (i in 1:ntimes){
     for (j in 1:ncovvals){
       covid_p <- rep(1:ncovvals, length.out=ncol(prate))
       covid_a <- rep(1:ncovvals, length.out=ncol(arate))
       surv[,j,i] <- 1 - pnphase(t[i], prate[,covid_p==j], arate[,covid_a==j],
                                 method = method)
+      surv_mode[j,i] <- 1 - pnphase(t[i], prate_mode[covid_p==j], arate_mode[covid_a==j],
+                                     method = method)
     }
   }
+  mode <- vecbycovs_to_df(surv_mode, new_data)$posterior
   res <- data.frame(time = rep(t, ncovvals),
-                    value = as.vector(rvar(surv))) |>
+                    posterior = as.vector(rvar(surv)),
+                    mode = mode) |>
     as_msmbres()
   if (!is.null(new_data))
     res <- res |>
@@ -245,16 +327,22 @@ soj_prob_phase <- function(draws, t, state, new_data=NULL,
 soj_prob_nonphase <- function(draws, t, state, new_data=NULL){
   vecid <- NULL
   qv <- - qmatrix(draws, new_data=new_data, drop=FALSE)[, state, state] |> draws_of()
+  qv_mode <- if (is_mode(draws)) - qmatrix(draws, new_data=new_data, drop=FALSE, type="mode")[, state, state] else NULL
   ntimes <- length(t)
   ncovvals <- dim(qv)[2]
   surv <- array(0, dim=c(ndraws(draws), ncovvals, ntimes))
+  surv_mode <- if (is_mode(draws)) array(0, dim=c(ncovvals, ntimes)) else NULL
   for (i in 1:ntimes){
     surv[,,i] <- pexp(t[i], rate = qv, lower.tail=FALSE)
+    if (is_mode(draws)) surv_mode[,i] <- pexp(t[i], rate = qv_mode, lower.tail=FALSE) 
   }
+  mode <- vecbycovs_to_df(surv_mode, new_data)$posterior
   res <- rvar(surv) |>
     vecbycovs_to_df(new_data) |>
+    mutate(mode = mode) |>
     mutate(time = t[vecid]) |>
+    relocate(time) |>
     select(-vecid) |>
-    as_msmbres()
+    as_msmbres() 
   res
 }

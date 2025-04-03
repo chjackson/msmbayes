@@ -37,7 +37,7 @@ This defaults to whichever of \code{c("q","mst","hr","shape","scale","e")} are i
 \value{
 A data frame with one row for each basic model parameter,
 plus rows for the mean sojourn times.  The posterior distribution
-for the parameter is encoded in the column \code{value}, which
+for the parameter is encoded in the column \code{posterior}, which
 has the \code{rvar} data type defined by the \pkg{posterior
   package}.  This distribution can be summarised in any way by
 calling \code{summary} again on the data frame (see the

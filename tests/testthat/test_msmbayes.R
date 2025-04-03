@@ -5,12 +5,9 @@ test_that("likelihood at fixed parameters agrees with msm",{
   init<- list(list(logq=c(0, 0)))
   draws <- msmbayes(data=infsim,  time="months", Q=Q, init=init,
                     algorithm="Fixed_param", chains=1, iter=1, keep_data=TRUE)
-  ## Stan multinomial_lpmf function includes this normalising constant
-  mnconst <- attr(draws,"standat")$multinom_const
-  lik_msmbayes <- -2*(draws$loglik - mnconst)
   lik_msm <- msm(state~months, subject=subject,
                  data=infsim, qmatrix=Q, fixedpars=TRUE)$minus2loglik
-  expect_equal(lik_msmbayes, lik_msm)
+  expect_equal(-2*logLik(draws), lik_msm)
 })
 
 test_that("likelihood with covariates agrees with msm",{
@@ -18,12 +15,10 @@ test_that("likelihood with covariates agrees with msm",{
   draws <- msmbayes(data=infsim,  time="months", Q=Q,
                     covariates=list(Q(1,2) ~ age10, Q(2,1) ~ age10), init=init,
                     algorithm="Fixed_param", chains=1, iter=1, keep_data=TRUE)
-  mnconst <- attr(draws,"standat")$multinom_const
-  lik_msmbayes <- -2*(draws$loglik - mnconst)
   lik_msm <- msm(state~months, subject=subject, covariates = ~age10,
                  covinits = list(age10 = c(-2, -2)), center=FALSE,
                  data=infsim, qmatrix=Q, fixedpars=TRUE)$minus2loglik
-  expect_equal(lik_msmbayes, lik_msm)
+  expect_equal(-2*logLik(draws), lik_msm)
 })
 
 test_that("likelihood with covariates on one transition agrees with msm",{
@@ -32,12 +27,10 @@ test_that("likelihood with covariates on one transition agrees with msm",{
   draws <- msmbayes(data=infsim,  time="months", Q=Q,
                     covariates=list(Q(2,1) ~ age10), init=init,
                     algorithm="Fixed_param", chains=1, iter=1, keep_data=TRUE)
-  mnconst <- attr(draws,"standat")$multinom_const
-  lik_msmbayes <- -2*(draws$loglik - mnconst)
   lik_msm <- msm(state~months, subject=subject, covariates = ~age10,
                  covinits = list(age10 = c(0, -2)), center=FALSE,
                  data=infsim, qmatrix=Q, fixedpars=TRUE)$minus2loglik
-  expect_equal(lik_msmbayes, lik_msm)
+  expect_equal(-2*logLik(draws), lik_msm)
 })
 
 set.seed(1)

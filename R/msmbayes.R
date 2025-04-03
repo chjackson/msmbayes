@@ -121,6 +121,17 @@
 #' If only one parameter is given a non-default prior, a single `msmprior`
 #' call can be supplied here instead of a list.
 #'
+#' Maximum likelihood estimation can be performed by setting
+#' `priors="mle"`, and using `fit_method="optimize"`.  This is
+#' equivalent to estimating the posterior mode with improper uniform
+#' priors on the unconstrained parameter space (i.e. positive
+#' parameters on the log scale).  Uncertainty is then quantified by
+#' sampling from the multivariate normal defined by the Hessian at the
+#' mode .  The sample can be summarised to produce confidence
+#' intervals, as in the `ci="normal"` method in the `msm` package.
+#' These are equivalent to credible intervals from a Laplace
+#' approximation to the posterior.
+#'
 #' @param obstype Character string, giving a variable in the data
 #'   which defines what a "row of the data" means.  The variable
 #'   must contain only the following values, which may be different
@@ -222,12 +233,14 @@
 #' about the mean sojourn times.  Experimental, undocumented feature.
 #'
 #' @param fit_method Quoted string specifying the algorithm to fit the
-#'   model.  The default \code{"sample"} uses NUTS/HMC MCMC, via
-#'   [rstan::sampling()].  Alternatives are
+#'   model.  \code{"sample"} uses NUTS/HMC MCMC, via
+#'   [rstan::sampling()].  This is the default unless `priors="mle"`.
+#'   Alternatives are
 #'
 #' \code{"optimize"} to use posterior mode optimization (with respect
 #' to parameters on the log scale) followed by Laplace approximation
-#' around the mode (via [rstan::optimizing()]).
+#' around the mode (via [rstan::optimizing()]). This is the default
+#' if `priors="mle"`.
 #'
 #' \code{"variational"} to use variational Bayes (via [rstan::vb()]).
 #'
@@ -283,7 +296,7 @@ msmbayes <- function(data, state="state", time="time", subject="subject",
                      priors = NULL,
                      prob_initstate = NULL,
                      soj_priordata = NULL,
-                     fit_method = "sample",
+                     fit_method = NULL,
                      keep_data = FALSE,
                      ...){
 
@@ -310,6 +323,8 @@ msmbayes <- function(data, state="state", time="time", subject="subject",
     stanfile <- "hmm"
   }
 
+  if (is.null(fit_method))
+    fit_method <- if (m$priors$mle) "optimize" else "sample"
   if (fit_method %in% .cmdstanr_fit_methods)
     fit <- cmdstanr_fit(stanfile, standat, fit_method, ...)
   else if (fit_method %in% .rstan_fit_methods)
@@ -325,12 +340,22 @@ msmbayes <- function(data, state="state", time="time", subject="subject",
   attr(res, "cmodel") <- m$cm[names(m$cm)!="X"]
   attr(res, "stanpriors") <- m$priors
   attr(res, "priors") <- prior_db(m$priors, m$qm, m$cm, m$pm, m$qmobs, m$em)
+  attr(res, "fit_method") <- fit_method
+  attr(res, "opt") <- attr(fit, "opt")
+  attr(res, "mle") <- m$priors$mle
+  attr(res, "loglik") <- get_loglik(m, standat, res, fit_method)
   if (keep_data) {
     attr(res, "data") <- m$data
     attr(res, "standat") <- standat
   }
   class(res) <- c("msmbayes",class(res))
   res
+}
+
+get_loglik <- function(m, standat, fit, fit_method){
+  ll <- if (fit_method=="optimize") attr(fit, "opt")$value else fit$loglik
+  mnconst <- if (m$em$hmm) 0 else standat$multinom_const
+  ll - mnconst
 }
 
 .cmdstanr_fit_methods <- c("pathfinder", "laplace")
@@ -364,6 +389,7 @@ rstan_fit <- function(stanfile, standat, fit_method, ...){
   args$data <- standat
   if (is.null(args[["init"]]))
     args$init <- function(){prior_random_inits(standat)}
+  else check_inits(args[["init"]], fit_method)
   if (fit_method == "sample"){
     fit <- do.call(rstan::sampling, args)
   }
@@ -380,21 +406,16 @@ rstan_fit <- function(stanfile, standat, fit_method, ...){
   fit
 }
 
-prior_random_inits <- function(standat, init_scale=5, chain_id=1){
-  set.seed(chain_id)
-  nq <- length(standat$logqmean)
-  logq <- logq_markov <- rnorm(nq, mean=standat$logqmean, sd=standat$logqsd / init_scale)
-  nhr <- length(standat$loghrmean)
-  loghr_uniq <- rnorm(nhr, mean=standat$loghrmean, sd=standat$loghrsd / init_scale)
-  npa <- length(standat$logshapemean)
-  logshape <- msm::rtnorm(npa, mean=standat$logshapemean, sd=standat$logshapesd / init_scale, upper=standat$logshapemax)
-  logscale <- rnorm(npa, mean=standat$logscalemean, sd=standat$logscalesd / init_scale)
-  logoddse <- rnorm(length(standat$loemean), mean=standat$loemean, sd=standat$loesd / init_scale)
-  logoddsabs <- rnorm(length(standat$loamean), mean=standat$loamean, sd=standat$loasd / init_scale)
-  list(logq = as.array(logq), logq_markov = as.array(logq_markov),
-       loghr_uniq = as.array(loghr_uniq),
-       logshape = as.array(logshape), logscale = as.array(logscale),
-       logoddse = as.array(logoddse), logoddsabs = as.array(logoddsabs))
+
+check_inits <- function(inits, fit_method){
+  if (fit_method=="sample"){
+    if (!(is.list(inits) && is.list(inits[[1]])))
+      cli_abort("{.var init} should be a list of lists if {.var fit_method=\"sample\"}")
+  }
+  if (fit_method=="optimize"){
+    if (!(is.list(inits) && !is.list(inits[[1]])))
+      cli_abort("{.var init} should be a single list, not a list of lists, if {.var fit_method=\"optimize\"}")
+  }
 }
 
 has_covariates <- function(draws){
@@ -419,4 +440,29 @@ nstates <- function(draws){
 
 nqpars <- function(draws){
   attr(draws, "qmodel")$nqpars
+}
+
+get_mode <- function(draws){
+  attr(draws,"opt")$par
+}
+
+is_mode <- function(draws){
+  isTRUE(attr(draws,"fit_method")=="optimize")
+}
+
+is_mcmc <- function(draws){
+  isTRUE(attr(draws,"fit_method")=="sample")
+}
+
+is_mle <- function(draws){
+  isTRUE(attr(draws,"mle"))
+}
+
+get_mode_draws <- function(draws){
+  posterior::as_draws_df(as.list(get_mode(draws)))
+}
+
+##' @export
+logLik.msmbayes <- function(object, ...){
+  attr(object, "loglik")
 }

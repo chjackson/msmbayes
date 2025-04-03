@@ -144,7 +144,8 @@ data {
   int<lower=0> nepars;
   int<lower=1> nindiv;
   int<lower=0> nefix;
-  int misc; // is there any state misclassification (e.g. 0 if basic phasetype model or censored states, 1 if misclassification on top of those)
+  int<lower=0,upper=1> misc; // is there any state misclassification (e.g. 0 if basic phasetype model or censored states, 1 if misclassification on top of those)
+  int<lower=0,upper=1> mle; // If 1 then omit the prior - equivalent to MLE for pars on log scale
   
   array[nindiv] int<lower=1> starti; // starting index in the data for each individual
   array[nindiv] int<lower=1> TI; // number of observations per individual
@@ -455,26 +456,28 @@ transformed parameters {
 
 model {
   
-  for (i in 1:npriorq){
-    logq_markov[i] ~ normal(logqmean[i], logqsd[i]); // or could be gamma
-  }
-  for (i in 1:npastates){
-    logshape[i] ~ normal(logshapemean[i], logshapesd[i])T[logshapemin[i],logshapemax[i]];
-    logscale[i] ~ normal(logscalemean[i], logscalesd[i]);
-  }  
-  if (nxuniq > 0){
-    for (i in 1:nxuniq){
-      loghr_uniq[i] ~ normal(loghrmean[i], loghrsd[i]);
+  if (!mle){
+    for (i in 1:npriorq){
+      logq_markov[i] ~ normal(logqmean[i], logqsd[i]); // or could be gamma
     }
-  }
-  if (nepars > 0){
-    for (i in 1:nepars){
-      logoddse[i] ~ normal(loemean[i], loesd[i]);
+    for (i in 1:npastates){
+      logshape[i] ~ normal(logshapemean[i], logshapesd[i])T[logshapemin[i],logshapemax[i]];
+      logscale[i] ~ normal(logscalemean[i], logscalesd[i]);
+    }  
+    if (nxuniq > 0){
+      for (i in 1:nxuniq){
+	loghr_uniq[i] ~ normal(loghrmean[i], loghrsd[i]);
+      }
     }
-  }
-  if (noddsabs > 0){
-    for (i in 1:noddsabs){
-      logoddsabs[i] ~ normal(loamean[i], loasd[i]);
+    if (nepars > 0){
+      for (i in 1:nepars){
+	logoddse[i] ~ normal(loemean[i], loesd[i]);
+      }
+    }
+    if (noddsabs > 0){
+      for (i in 1:noddsabs){
+	logoddsabs[i] ~ normal(loamean[i], loasd[i]);
+      }
     }
   }
 

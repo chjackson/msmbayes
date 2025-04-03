@@ -126,7 +126,18 @@ with competing exit states.
 See \code{\link{msmprior}} for more details.
 
 If only one parameter is given a non-default prior, a single \code{msmprior}
-call can be supplied here instead of a list.}
+call can be supplied here instead of a list.
+
+Maximum likelihood estimation can be performed by setting
+\code{priors="mle"}, and using \code{fit_method="optimize"}.  This is
+equivalent to estimating the posterior mode with improper uniform
+priors on the unconstrained parameter space (i.e. positive
+parameters on the log scale).  Uncertainty is then quantified by
+sampling from the multivariate normal defined by the Hessian at the
+mode .  The sample can be summarised to produce confidence
+intervals, as in the \code{ci="normal"} method in the \code{msm} package.
+These are equivalent to credible intervals from a Laplace
+approximation to the posterior.}
 
 \item{complete_obs}{If \code{complete_obs=FALSE} (the default)
 intermittently-observed states are generated for the subjects

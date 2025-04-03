@@ -20,9 +20,10 @@ the matrix exponential involved in the phase-type sojourn distribution.
 See \code{\link{pnphase}}.}
 }
 \value{
-A data frame with column \code{value} giving the probability of
-remaining in \code{state} by time \code{t} since state entry, as an \code{rvar}
-object. Other columns give the time and any covariate values.
+A data frame with column \code{posterior} giving the posterior
+distribution for the probability of remaining in \code{state} by time
+\code{t} since state entry, as an \code{rvar} object. Other columns give
+the time and any covariate values.
 
 See \code{\link{qdf}} for notes on the \code{rvar} format.
 }

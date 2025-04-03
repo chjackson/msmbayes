@@ -92,7 +92,3 @@
 ##' @format \code{infsim_modelpc} is a phase-type model with covariates.
 "infsim_modelpc"
 
-##' @rdname example_models
-##' @format \code{cav_misc} is the misclassification model fitted to the CAV data from msm in the "Advanced multi-state models in msmbayes" vignette.
-##' intensities.
-"cav_misc"

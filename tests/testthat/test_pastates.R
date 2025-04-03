@@ -60,7 +60,7 @@ test_that("phase-type approximations with covariates: tight priors reduce to sma
   fitc <- msmbayes(state="statep", time="months", data=infsim,
                   Q=Q, fit_method="optimize", pastates = 2, priors=priors,
                   covariates = list(Q(2,1) ~ sex), seed=1)
-  expect_equal(med_rvar(loghr(fitc) |> pull(value)), 0, tolerance=0.01)
+  expect_equal(med_rvar(loghr(fitc) |> pull(posterior)), 0, tolerance=0.01)
   fit <- msmbayes(state="statep", time="months", data=infsim,
                    Q=Q, fit_method="optimize", pastates = 2, seed=1)
   expect_equal(med_rvar(phaseapprox_pars(fitc) |> filter(name=="scale")),

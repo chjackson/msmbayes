@@ -255,6 +255,9 @@ extraneous_covname_error <- function(res){
 #'
 #' @noRd
 process_priors <- function(priors, qm, cm, pm, em, qmobs){
+  if (identical(priors, "mle")){
+    mle <- TRUE; priors <- NULL
+  } else mle <- FALSE
   priors <- check_priors(priors)
   logqmean <- rep(.default_priors$logq$mean, qm$npriorq)
   logqsd <- rep(.default_priors$logq$sd, qm$npriorq)
@@ -310,7 +313,8 @@ process_priors <- function(priors, qm, cm, pm, em, qmobs){
        logscalemean = as.array(logscalemean), logscalesd = as.array(logscalesd),
        logshapemin = as.array(lb$min), logshapemax = as.array(lb$max),
        loamean = as.array(loamean), loasd = as.array(loasd),
-       loemean = as.array(loemean), loesd = as.array(loesd))
+       loemean = as.array(loemean), loesd = as.array(loesd),
+       mle = mle)
 }
 
 check_repeated_prior <- function(bind, cm, loghr_user){

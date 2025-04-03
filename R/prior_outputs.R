@@ -98,7 +98,7 @@ prior_mst_db <- function(priors, qm, pm, qdb){
     name = "mst",
     from = 1:qm$K,
     to = rep(NA, qm$K),
-    rvar = qvec_rvar_to_mst(qdb$rvar, qm)
+    rvar = qvec_to_mst(qdb$rvar, qm)
   ) |>
     mutate(string = rvar_to_quantile_string(rvar)) |>
     slice(transient_states(qm)) |>

@@ -16,7 +16,7 @@ test_that("constraint with one constraint",{
                    constraint = list("age10" = list(c("1-2", "2-3"))),
                    fit_method="optimize")
   lhrs <- loghr(fitc)
-  expect_equal(lhrs$value[1],lhrs$value[2])
+  expect_equal(lhrs$posterior[1],lhrs$posterior[2])
 })
 
 test_that("constraint with two constraints",{
@@ -28,10 +28,10 @@ test_that("constraint with two constraints",{
                                                       c("2-1","3-2"))),
                    fit_method="optimize")
   lhrs <- loghr(fitc)
-  expect_equal(lhrs$value[lhrs$name=="age10" & lhrs$from==1 & lhrs$to==2],
-               lhrs$value[lhrs$name=="age10" & lhrs$from==2 & lhrs$to==3])
-  expect_equal(lhrs$value[lhrs$name=="sexmale" & lhrs$from==2 & lhrs$to==1],
-               lhrs$value[lhrs$name=="sexmale" & lhrs$from==3 & lhrs$to==2])
+  expect_equal(lhrs$posterior[lhrs$name=="age10" & lhrs$from==1 & lhrs$to==2],
+               lhrs$posterior[lhrs$name=="age10" & lhrs$from==2 & lhrs$to==3])
+  expect_equal(lhrs$posterior[lhrs$name=="sexmale" & lhrs$from==2 & lhrs$to==1],
+               lhrs$posterior[lhrs$name=="sexmale" & lhrs$from==3 & lhrs$to==2])
 })
 
 test_that("constraint with pastates/HMM",{
@@ -41,7 +41,7 @@ test_that("constraint with pastates/HMM",{
                    constraint = list("age10" = list(c("1-2", "2-3"))),
                    fit_method="optimize")
   lhrs <- loghr(fitc)
-  expect_equal(lhrs$value[1],lhrs$value[2])
+  expect_equal(lhrs$posterior[1],lhrs$posterior[2])
 })
 
 test_that("errors in constraint",{

@@ -36,6 +36,7 @@ data {
   int<lower=1> N; // number of distinct observations after aggregation
 
   int<lower=0> nqpars; // number of allowed transitions [ fixed q not yet supported ]
+  int<lower=0,upper=1> mle; // If 1 then omit the prior - equivalent to MLE for pars on log scale
 
   array[nqpars] int<lower=1,upper=K> qrow; // row of Q corresponding to each qvec
   array[nqpars] int<lower=1,upper=K> qcol; // col of Q corresponding to each qvec
@@ -175,14 +176,15 @@ transformed parameters {
 }
 
 model {
-  for (i in 1:nqpars){
-    target += prior_logq[i];
-  }
-  if (nxuniq > 0){
-    for (i in 1:nxuniq){
-      target += prior_loghr[i];
+  if (!mle){
+    for (i in 1:nqpars){
+      target += prior_logq[i];
+    }
+    if (nxuniq > 0){
+      for (i in 1:nxuniq){
+	target += prior_loghr[i];
+      }
     }
   }
   target += loglik;
-  
 }

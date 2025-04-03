@@ -74,7 +74,7 @@ test_that("msmprior for all indices",{
   set.seed(1)
   p2 <- msmbayes(data=infsim2, state="state", time="months", subject="subject",
                  Q=Q, priors=priors2, fit_method="optimize")
-  expect_equal(summary(p1)$value, summary(p2)$value)
+  expect_equal(summary(p1)$posterior, summary(p2)$posterior)
 
   priors1 <- msmprior("loghr", mean=0, sd=2)
   priors2 <- list(msmprior("loghr(1,2)", mean=0, sd=2),
@@ -91,7 +91,7 @@ test_that("msmprior for all indices",{
   p2 <- msmbayes(data=infsim2, state="state", time="months", subject="subject",
                  covariates = list(Q(2,1)~age10, Q(1,2)~xbin2),
                  Q=Q, priors=priors2, fit_method="optimize")
-  expect_equal(summary(p1)$value, summary(p2)$value)
+  expect_equal(summary(p1)$posterior, summary(p2)$posterior)
 
   priors3_wrong <- list(msmprior("loghr(age10,1,2)", mean=0, sd=2),
                         msmprior("loghr(xbin2,2,1)", mean=0, sd=2))
@@ -111,13 +111,13 @@ test_that("msmprior for all indices",{
   p3 <- msmbayes(data=infsim2, state="state", time="months", subject="subject",
                  covariates = list(Q(2,1)~age10, Q(1,2)~xbin2),
                  Q=Q, priors=priors3, fit_method="optimize")
-  expect_equal(summary(p1)$value, summary(p3)$value)
+  expect_equal(summary(p1)$posterior, summary(p3)$posterior)
 
   set.seed(1)
   p4 <- msmbayes(data=infsim2, state="state", time="months", subject="subject",
                  covariates = list(Q(2,1)~age10, Q(1,2)~xbin2),
                  Q=Q, priors=priors3, fit_method="optimize")
-  expect_equal(summary(p3)$value, summary(p4)$value)
+  expect_equal(summary(p3)$posterior, summary(p4)$posterior)
 
   priors1 <- msmprior("logq", mean=-1, sd=2)
   priors2 <- msmprior("logq()", mean=-1, sd=2)

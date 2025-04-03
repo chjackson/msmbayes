@@ -14,7 +14,14 @@
 #'   \code{nstates} x \code{nstates} matrix, or if \code{drop=FALSE}
 #'   this returns a 3D array with first dimension \code{ncovs=1}.
 #'
-#' @return An array or matrix of `rvar` objects containing the
+#' @param type
+#'
+#' `"posterior"` to return `rvar` objects containing posterior samples.
+#'
+#' `"mode"` to return posterior modes (only applicable if model was fitted
+#' with posterior mode optimisation).
+#'
+#' @return An array or matrix of `rvar` objects or numbers, representing the
 #'   transition intensity matrix for each new prediction data point
 #'
 #' @seealso \code{\link{qdf}} returns the same information in a
@@ -26,16 +33,20 @@
 #' summary(qmatrix(infsim_model), median, ~quantile(.x, c(0.025, 0.975)))
 #'
 #' @export
-qmatrix <- function(draws, new_data=NULL, X=NULL, drop=TRUE){
-  qvec <- qvector(draws, new_data, X)
+qmatrix <- function(draws, new_data=NULL, X=NULL, drop=TRUE, type="posterior"){
+  if (type=="mode" && !is_mode(draws)) return(NULL)
+  qvec <- qvector(draws, new_data, X, type)
+  ncovvals <- if(is.null(new_data)) 1 else nrow(new_data)
   qm <- attr(draws, "qmodel")
-  ncovvals <- dim(qvec)[1]
-  Q <- rvar(array(0, dim=c(ndraws(qvec), ncovvals, qm$K, qm$K)))
+  if (type=="posterior")
+    Q <- rvar(array(0, dim=c(ndraws(qvec), ncovvals, qm$K, qm$K)))
+  else Q <- array(0, dim=c(ncovvals, qm$K, qm$K))
   for (j in 1:ncovvals){
-    Q[j,,] <- qvec_rvar_to_Q(qvec[j,], qm)
+    Q[j,,] <- qvec_to_Q(qvec[j,], qm)
   }
   dimnames(Q)[2:3] <- dimnames(qm$Q)
-  if (is.null(new_data) && drop) Q <- Q[,,drop=TRUE]
+  if (is.null(new_data) && drop)
+    Q <- if (type=="posterior") Q[,,drop=TRUE] else Q[,,,drop=TRUE]
   Q
 }
 
@@ -45,7 +56,7 @@ qmatrix <- function(draws, new_data=NULL, X=NULL, drop=TRUE){
 #'
 #' @return A data frame with one row per from-state / to-state / covariate value.
 #'
-#' Column \code{value} is in the \code{rvar} format of the
+#' Column \code{posterior} is in the \code{rvar} format of the
 #' \pkg{posterior} package, representing a sample from a posterior
 #' distribution.  Use the \code{summary} function on the data frame to
 #' produce summary statistics such as the posterior median or mean (see
@@ -63,17 +74,20 @@ qmatrix <- function(draws, new_data=NULL, X=NULL, drop=TRUE){
 #'
 #' @export
 qdf <- function(draws, new_data=NULL){
-  from <- to <- value <- vecid <- NULL
+  from <- to <- posterior <- vecid <- NULL
   qvec <- qvector(draws, new_data)
+  qvecmode <- qvector(draws, new_data, type="mode")
   qm <- attr(draws, "qmodel")
   if (!has_covariates(draws)) new_data <- NULL
+  mode <- vecbycovs_to_df(qvecmode, new_data)$posterior
   vecbycovs_to_df(qvec, new_data) |>
     mutate(from = qm$qrow[vecid],
-           to = qm$qcol[vecid]) |>
+           to = qm$qcol[vecid],
+           mode = mode) |>
     select(-vecid) |>
     relabel_phase_states(draws) |>
     arrange(from,to) |>
-    relocate(from, to, value)
+    relocate(from, to, posterior)
 }
 
 
@@ -85,11 +99,12 @@ qdf <- function(draws, new_data=NULL){
 ##'   misclassification error matrix for each new prediction data point
 ##'
 ##' @export
-ematrix <- function(draws){
-  td <- tidy_draws(draws)
+ematrix <- function(draws,type="posterior"){
+  td <- tidy_draws(if (type=="posterior") draws else get_mode_draws(draws))
   E <- td |>
     gather_rvars(E[,]) |>
     pull(".value")
+  if (type=="mode") E <- array(draws_of(E), dim=dim(E))
   E
 }
 
@@ -106,20 +121,23 @@ ematrix <- function(draws){
 #' @md
 #' @export
 edf <- function(draws){
-  from <- to <- value <- vecid <- NULL
+  from <- to <- posterior <- vecid <- NULL
   em <- attr(draws, "emodel")
   if (!em$hmm)
     cli_abort("Not a misclassification model")
   if (em$nepars==0)
     cli_abort("No modelled misclassification probabilities: all are fixed")
   evec <- evector(draws)
+  evecmode <- evector(draws, type="mode")
+  mode <- vecbycovs_to_df(evecmode, new_data=NULL)$posterior
   vecbycovs_to_df(evec, new_data=NULL) |>
     mutate(from = em$erow[vecid],  # should we just name these $row, $col,
-           to = em$ecol[vecid]) |> #  if we need to work with e matrix form?
+           to = em$ecol[vecid],    #  if we need to work with e matrix form?
+           mode = mode) |>
     relabel_phase_states(draws) |>
     select(-vecid) |>
     arrange(from,to) |>
-    relocate(from, to, value)
+    relocate(from, to, posterior)
 }
 
 #' Transition probability matrix from an msmbayes model
@@ -140,26 +158,37 @@ edf <- function(draws){
 #'
 #' @md
 #' @export
-pmatrix <- function(draws,t=1,new_data=NULL,X=NULL,drop=TRUE){
+pmatrix <- function(draws,t=1,new_data=NULL,X=NULL,drop=TRUE,type="posterior"){
+  if (type=="mode" && !is_mode(draws)) return(NULL)
   check_t(t)
   ntimes <- length(t)
-  Q <- qmatrix(draws, new_data=new_data, drop=FALSE)
+  Q <- qmatrix(draws, new_data=new_data, drop=FALSE, type=type)
   ncovvals <- dim(Q)[1]
   qm <- attr(draws, "qmodel")
-  P <- array(0, dim=c(ndraws(Q), ncovvals, ntimes, qm$K, qm$K))
-  dimnames(P)[4:5] <- dimnames(qm$Q)
-
-  for (d in 1:ndraws(Q)){
+  if (type=="posterior"){
+    P <- array(0, dim=c(ndraws(Q), ncovvals, ntimes, qm$K, qm$K))
+    dimnames(P)[4:5] <- dimnames(qm$Q)
+    for (d in 1:ndraws(Q)){
+      for (i in 1:ncovvals){
+        for (j in 1:ntimes){
+          ## assume more efficient than using rfun(expm::expm)
+          Qd <- draws_of(Q)[d,i,,]
+          P[d,i,j,,] <- expm::expm(Qd * t[j])
+        }
+      }
+    }
+    P <- rvar(P)
+  } else {
+    P <- array(0, dim=c(ncovvals, ntimes, qm$K, qm$K))
+    dimnames(P)[3:4] <- dimnames(qm$Q)
     for (i in 1:ncovvals){
       for (j in 1:ntimes){
-        ## assume more efficient than using rfun(expm::expm)
-        Qd <- draws_of(Q)[d,i,,]
-        P[d,i,j,,] <- expm::expm(Qd * t[j])
+        P[i,j,,] <- expm::expm(Q[i,,] * t[j])
       }
     }
   }
-  P <- rvar(P)
-  if (is.null(new_data) && (ntimes==1) && drop) P <- P[,,,drop=TRUE]
+  if (is.null(new_data) && (ntimes==1) && drop)
+    P <- if (type=="posterior") P[,,,drop=TRUE] else P[,,,,drop=TRUE]
   P
 }
 
@@ -184,9 +213,11 @@ pmatrixdf <- function(draws, t=1, new_data=NULL){
   covid <- NULL
   if (!has_covariates(draws)) new_data <- NULL
   P <- pmatrix(draws, t, new_data, drop=FALSE)
+  Pmode <- pmatrix(draws, t, new_data, drop=FALSE, type="mode")
   pdf <- expand.grid(1:dim(P)[1], 1:dim(P)[2], 1:dim(P)[3], 1:dim(P)[4]) |>
     setNames(c("covid", "t", "from", "to")) |>
-    mutate(value = as.vector(P))
+    mutate(posterior = as.vector(P),
+           mode = as.vector(Pmode))
   if (!is.null(new_data))
     pdf <- pdf |>
       left_join(new_data |> mutate(covid=1:n()), by="covid")
@@ -207,15 +238,16 @@ pmatrixdf <- function(draws, t=1, new_data=NULL){
 #'   before progressing to the next phase.
 #'
 #'   If \code{states="phase"} then for phase-type models, this describes mean sojourn times
-#'   in the latent state space. 
-#' 
+#'   in the latent state space.
+#'
 #' @return A data frame containing samples from the posterior distribution.
 #' See \code{\link{qdf}} for notes on this format and how to summarise.
 #'
 #' @export
 mean_sojourn <- function(draws, new_data=NULL, states="obs"){
-  vecid <- state <- value <- NULL
+  vecid <- state <- posterior <- NULL
   Q <- qmatrix(draws, new_data, drop=FALSE)
+  Qmode <- qmatrix(draws, new_data, drop=FALSE, type="mode")
   qvec <- qvector(draws, new_data)
   pm <- attr(draws, "pmodel")
   qm <- attr(draws, "qmodel")
@@ -223,9 +255,12 @@ mean_sojourn <- function(draws, new_data=NULL, states="obs"){
   ncovvals <- dim(Q)[1]
   nstates <- if ((states=="phase") || !is_phasetype(draws)) qm$K else pm$nstates_orig
   mst <- rdo(matrix(nrow=ncovvals, ncol=nstates), ndraws=ndraws(Q))
+  mstmode <- matrix(nrow=ncovvals, ncol=nstates)
   for (i in 1:ncovvals){
-    if ((states=="phase") || !is_phasetype(draws))
+    if ((states=="phase") || !is_phasetype(draws)){
       mst[i,] <- -1 / diag(Q[i,,,drop=TRUE])
+      if (is_mode(draws)) mstmode[i,] <- -1 / diag(Qmode[i,,])
+    }
     else {
       for (j in pm$unphased_states){
         jnew <- match(j, pm$pdat$oldinds)
@@ -235,10 +270,12 @@ mean_sojourn <- function(draws, new_data=NULL, states="obs"){
         mst[i,j] <- mean_sojourn_phase(qvec[i,], qm$phasedata, j)
     }
   }
+
   mst <- vecbycovs_to_df(mst, new_data) |>
     mutate(state = (1:nstates)[vecid]) |>
     select(-vecid) |>
-    relocate(state, value)
+    relocate(state, posterior)
+  mst$mode <- vecbycovs_to_df(mstmode, new_data)$posterior
   if (states=="phase"){
     mst <- mst |>
       relabel_phase_states(draws) |>
@@ -262,21 +299,16 @@ mean_sojourn <- function(draws, new_data=NULL, states="obs"){
 #'
 #' @export
 loghr <- function(draws){
-  name <- value <- from <- to <- NULL
+  name <- posterior <- from <- to <- NULL
   cm <- attr(draws,"cmodel")
   qm <- attr(draws,"qmodel")
   if (cm$nx==0)
     cli_abort("No covariates in the model")
-  loghr <- tidy_draws(draws) |>
-    gather_rvars(loghr[]) |>
-    pull(".value") |>
-    t() |>
-    as.data.frame() |>
-    setNames("value") |>
+  loghr <- loghr_internal(draws) |>
     mutate(from = cm$xfrom,
            to = cm$xto,
            name = cm$Xnames) |>
-    select(from, to, name, value) |>
+    relocate(from, to, name, posterior) |>
     relabel_phase_states(draws, space="observed")
   as_msmbres(loghr)
 }
@@ -293,21 +325,23 @@ loghr <- function(draws){
 #' @export
 hr <- function(draws){
   res <- loghr(draws)
-  res$value <- exp(res$value)
+  res$posterior <- exp(res$posterior)
+  if (!is.null(res$mode)) res$mode <- exp(res$mode)
   res
 }
 
 #' @export
 summary.msmbres <- function(object, ...){
-  variable <- value <- NULL
-  summ_df <- summary(object$value, ...) |>
+  variable <- posterior <- NULL
+  summ_df <- summary(object$posterior, ...) |>
     select(-variable)
-  object <- object |> select(-value)
+  object <- object |> select(-posterior)
   cbind(object, summ_df)
 }
 
-#' Convert to "msmbayes result" class
+#' Convert result data frame to "msmbayes result" class
 #' so we can use summary.msmbres
+#' object should be data frame with `posterior` column
 #'
 #' @noRd
 as_msmbres <- function(object){
@@ -342,27 +376,38 @@ totlos <- function(draws, t, new_data=NULL, fromt=0, pstart=NULL, discount=0){
   vecid <- NULL
   nst <- nstates(draws)
   if (is.null(pstart)) pstart <- c(1, rep(0,nst-1))
-  Q <- qmatrix(draws, new_data=new_data, drop=FALSE)
+  Qpost <- qmatrix(draws, new_data=new_data, drop=FALSE)
+  Qmode <- qmatrix(draws, new_data=new_data, drop=FALSE, type="mode")
   check_t(fromt, scalar=TRUE, name="fromt")
   check_t(t, scalar=TRUE, name="t")
-  ncovvals <- dim(Q)[1]
-  totlos <- array(0, dim=c(ndraws(Q), ncovvals, nst))
-  for (d in 1:ndraws(Q)){
-    for (i in 1:ncovvals){
-      Qd <- draws_of(Q)[d,i,,]
-      Qnew <- rbind(
-        c(0, pstart),
-        cbind(rep(0,nst), Qd - discount*diag(nst))
-      )
-      totlos[d,i,] <- c(1, rep(0, nst)) %*%
-        (expm(t*Qnew) - expm(fromt*Qnew)) %*%
-        rbind(rep(0, nst), diag(nst))
+  ncovvals <- dim(Qpost)[1]
+  totlos_core <- function(Q, t, fromt, pstart, discount, nst){
+    if(is.null(Q)) return(NULL)
+    Qnew <- rbind(
+      c(0, pstart),
+      cbind(rep(0,nst), Q - discount*diag(nst))
+    )
+    totlos[d,i,] <- c(1, rep(0, nst)) %*%
+      (expm(t*Qnew) - expm(fromt*Qnew)) %*%
+      rbind(rep(0, nst), diag(nst))
+  }
+  totlos <- array(0, dim=c(ndraws(Qpost), ncovvals, nst))
+  totlos_mode <- array(0, dim=c(ncovvals, nst))
+  for (i in 1:ncovvals){
+    for (d in 1:ndraws(Qpost)){
+      totlos[d,i,] <- totlos_core(draws_of(Qpost)[d,i,,], t, fromt,
+                                  pstart, discount, nst)
     }
+    totlos_mode[i,] <- totlos_core(Qmode[i,,], t, fromt, pstart, discount, nst)
   }
   totlos <- rvar(totlos)
-  vecbycovs_to_df(totlos, new_data) |>
+  res <- vecbycovs_to_df(totlos, new_data) |>
     mutate(state = (1:nst)[vecid]) |>
-    select(-vecid)
+    select(-vecid) |>
+    relocate(state, posterior)
+  if (!is.null(Qmode))
+    res$mode <- vecbycovs_to_df(totlos_mode, new_data)$posterior
+  res
 }
 
 #' Constructor for a standardising population used for model
@@ -424,9 +469,10 @@ standardize_to <- standardise_to
 ##' the matrix exponential involved in the phase-type sojourn distribution.
 ##' See \code{\link{pnphase}}.
 ##'
-##' @return A data frame with column `value` giving the probability of
-##'   remaining in `state` by time `t` since state entry, as an `rvar`
-##'   object. Other columns give the time and any covariate values.
+##' @return A data frame with column `posterior` giving the posterior
+##'   distribution for the probability of remaining in `state` by time
+##'   `t` since state entry, as an `rvar` object. Other columns give
+##'   the time and any covariate values.
 ##'
 ##' See \code{\link{qdf}} for notes on the `rvar` format.
 ##'
@@ -450,24 +496,20 @@ soj_prob <- function(draws, t, state, new_data=NULL, method="analytic"){
 ##' @inheritParams qmatrix
 ##' @export
 phaseapprox_pars <- function(draws, log=FALSE){
-  if (!is_phaseapprox(draws)) {
-    return(NULL)
-  }
-  td <- tidy_draws(draws)
+  if (!is_phaseapprox(draws)) return(NULL)
   state <- rep(attr(draws, "pm")$pastates, 2)
   family <- rep(attr(draws, "pm")$pafamily, 2)
   name <- rep(c("shape","scale"), each=attr(draws, "pm")$npastates)
-  shape <- td |> gather_rvars(shape[]) |> pull(".value")
-  scale <- td |> gather_rvars(scale[]) |> pull(".value")
-  value <- c(shape, scale)
-  if (log) {
-    name <- paste0("log",name)
-    value <- log(value)
-  }
-  as_msmbres(data.frame(
+  if (log) name <- paste0("log",name)
+
+  posterior <- phaseapprox_pars_internal(draws, type="posterior", log=log)
+
+  res <- as_msmbres(data.frame(
     state = state,
     family = family,
     name = name,
-    value = value
+    posterior = posterior
   ) |> arrange(state))
+  res$mode <- phaseapprox_pars_internal(draws, type="mode", log=log)
+  res
 }

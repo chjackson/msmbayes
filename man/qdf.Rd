@@ -14,7 +14,7 @@ qdf(draws, new_data = NULL)
 \value{
 A data frame with one row per from-state / to-state / covariate value.
 
-Column \code{value} is in the \code{rvar} format of the
+Column \code{posterior} is in the \code{rvar} format of the
 \pkg{posterior} package, representing a sample from a posterior
 distribution.  Use the \code{summary} function on the data frame to
 produce summary statistics such as the posterior median or mean (see

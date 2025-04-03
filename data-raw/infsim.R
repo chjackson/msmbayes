@@ -105,4 +105,4 @@ Ecav <- rbind(c(0, 1, 0, 0),
               c(0, 0, 0, 0))
 cav_misc <- msmbayes(data=msm::cav, state="state", time="years", subject="PTNUM",
                      Q=Qcav, E=Ecav, fit_method="optimize")
-usethis::use_data(cav_misc, overwrite=TRUE)
+# usethis::use_data(cav_misc, overwrite=TRUE)

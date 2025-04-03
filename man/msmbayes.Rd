@@ -26,7 +26,7 @@ msmbayes(
   priors = NULL,
   prob_initstate = NULL,
   soj_priordata = NULL,
-  fit_method = "sample",
+  fit_method = NULL,
   keep_data = FALSE,
   ...
 )
@@ -225,7 +225,18 @@ with competing exit states.
 See \code{\link{msmprior}} for more details.
 
 If only one parameter is given a non-default prior, a single \code{msmprior}
-call can be supplied here instead of a list.}
+call can be supplied here instead of a list.
+
+Maximum likelihood estimation can be performed by setting
+\code{priors="mle"}, and using \code{fit_method="optimize"}.  This is
+equivalent to estimating the posterior mode with improper uniform
+priors on the unconstrained parameter space (i.e. positive
+parameters on the log scale).  Uncertainty is then quantified by
+sampling from the multivariate normal defined by the Hessian at the
+mode .  The sample can be summarised to produce confidence
+intervals, as in the \code{ci="normal"} method in the \code{msm} package.
+These are equivalent to credible intervals from a Laplace
+approximation to the posterior.}
 
 \item{prob_initstate}{Probabilities of true states at a person's first
 observation time in a misclassification or model.  If supplied,
@@ -248,12 +259,14 @@ ignored.}
 about the mean sojourn times.  Experimental, undocumented feature.}
 
 \item{fit_method}{Quoted string specifying the algorithm to fit the
-model.  The default \code{"sample"} uses NUTS/HMC MCMC, via
-\code{\link[rstan:stanmodel-method-sampling]{rstan::sampling()}}.  Alternatives are
+model.  \code{"sample"} uses NUTS/HMC MCMC, via
+\code{\link[rstan:stanmodel-method-sampling]{rstan::sampling()}}.  This is the default unless \code{priors="mle"}.
+Alternatives are
 
 \code{"optimize"} to use posterior mode optimization (with respect
 to parameters on the log scale) followed by Laplace approximation
-around the mode (via \code{\link[rstan:stanmodel-method-optimizing]{rstan::optimizing()}}).
+around the mode (via \code{\link[rstan:stanmodel-method-optimizing]{rstan::optimizing()}}). This is the default
+if \code{priors="mle"}.
 
 \code{"variational"} to use variational Bayes (via \code{\link[rstan:stanmodel-method-vb]{rstan::vb()}}).
 

@@ -52,6 +52,7 @@ make_stan_obsdata <- function(dat, qm=NULL, cm=NULL,
     nefix = length(em$efix),
     noddsabs = qm$noddsabs,
     misc = as.integer(em$ne > 0),
+    mle = priors$mle,
 
     starti = as.array(which(!duplicated(dat[["subject"]]))),
     TI = as.array(TI),

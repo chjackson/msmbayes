@@ -39,7 +39,8 @@ make_stan_aggdata <- function(dat, qm=NULL, cm=NULL, priors=NULL,
               nxq = as.array(cm$nxq),
               xstart = as.array(cm$xstart), # cmdstanr errors with NAs
               xend = as.array(cm$xend),
-              X = attr(dat_agg, "Xuniq")
+              X = attr(dat_agg, "Xuniq"),
+              mle = priors$mle
               )
 
   rno1 <- res$ntostate[res$obstype==1,,drop=FALSE]

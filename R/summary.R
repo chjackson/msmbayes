@@ -38,7 +38,7 @@ print.msmbayes <- function(x,...){
 #'
 #' @return A data frame with one row for each basic model parameter,
 #'   plus rows for the mean sojourn times.  The posterior distribution
-#'   for the parameter is encoded in the column \code{value}, which
+#'   for the parameter is encoded in the column \code{posterior}, which
 #'   has the \code{rvar} data type defined by the \pkg{posterior
 #'   package}.  This distribution can be summarised in any way by
 #'   calling \code{summary} again on the data frame (see the
@@ -69,60 +69,64 @@ print.msmbayes <- function(x,...){
 #' @md
 #' @export
 summary.msmbayes <- function(object, pars=NULL,...){
-  name <- from <- to <- state <- value <- prior_string <- NULL
+  name <- from <- to <- state <- posterior <- prior_string <- NULL
   if (is.null(pars)){
     pars <- c("q","mst","hr","shape","scale","e")
   }
+  colnames <- c("name", "from", "to", "posterior")
+  if (is_mode(object)) colnames <- c(colnames, "mode")
 
   res <- qres <- qdf(object, ...) |> mutate(name="q") |>
-    select(name, from, to, value)
+    select(all_of(colnames))
 
   if ("time" %in% pars) {
-    timeres <- qres |> mutate(name="time", value=1/value)
+    timeres <- qres |> mutate(name="time", posterior=1/posterior)
     res <- rbind(res, timeres)
   }
   if ("logq" %in% pars) {
-    logqres <- qres |> mutate(name="logq", value=log(value))
+    logqres <- qres |> mutate(name="logq", posterior=log(posterior))
     res <- rbind(res, logqres)
   }
   if ("mst" %in% pars){
     mst <- mean_sojourn(object) |>
       mutate(name="mst", to=NA) |>
       rename(from="state") |>
-      select(name, from, to, value)
+      select(all_of(colnames))
     res <- rbind(res, mst)
   }
   if (is_phaseapprox(object) && (("shape" %in% pars)||("scale" %in% pars))){
-    pa <- phaseapprox_pars(object) |> mutate(to=NA) |>
-      select(name, from=state, to, value)
+    pa <- phaseapprox_pars(object) |> mutate(from=state, to=NA) |>
+      select(all_of(colnames))
     res <- rbind(res, pa)
   }
   if (is_phaseapprox(object) && (("logshape" %in% pars)||("logscale" %in% pars))){
-    pa <- phaseapprox_pars(object, log=TRUE) |> mutate(to=NA) |>
-      select(name, from=state, to, value)
+    pa <- phaseapprox_pars(object, log=TRUE) |> mutate(from=state,to=NA) |>
+      select(all_of(colnames))
     res <- rbind(res, pa)
   }
   res <- res |> filter(name %in% pars)
   if (has_covariates(object) && ("hr" %in% pars)){
     hr_ests <- hr(object, ...) |>
-      select(name, from, to, value) |>
+      select(all_of(colnames)) |>
       mutate(name=sprintf("hr(%s)", name))
     res <- rbind(res, hr_ests)
   }
   if (has_covariates(object) && ("loghr" %in% pars)){
     loghr_ests <- loghr(object, ...) |>
-      select(name, from, to, value) |>
+      select(all_of(colnames)) |>
       mutate(name=sprintf("loghr(%s)", name))
     res <- rbind(res, loghr_ests)
   }
   if (has_misc(object) && ("e" %in% pars)){
     e_ests <- edf(object, ...) |>
       mutate(name="e") |>
-      select(name, from, to, value)
+      select(all_of(colnames))
     res <- rbind(res, e_ests)
   }
-  res$rhat <- summary(res, rhat)[,c("rhat")]
-  res <- res |> attach_priors(object)
+  if (is_mcmc(object))
+    res$rhat <- summary(res, rhat)[,c("rhat")]
+  if (!is_mle(object))
+    res <- res |> attach_priors(object)
   class(res) <- c("msmbres", class(res))
   res
 }

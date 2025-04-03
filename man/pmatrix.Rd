@@ -4,7 +4,14 @@
 \alias{pmatrix}
 \title{Transition probability matrix from an msmbayes model}
 \usage{
-pmatrix(draws, t = 1, new_data = NULL, X = NULL, drop = TRUE)
+pmatrix(
+  draws,
+  t = 1,
+  new_data = NULL,
+  X = NULL,
+  drop = TRUE,
+  type = "posterior"
+)
 }
 \arguments{
 \item{draws}{Object returned by \code{\link{msmbayes}}.}
@@ -22,6 +29,11 @@ in turn.}
 \code{new_data}. Then if \code{drop=TRUE} this returns a
 \code{nstates} x \code{nstates} matrix, or if \code{drop=FALSE}
 this returns a 3D array with first dimension \code{ncovs=1}.}
+
+\item{type}{\code{"posterior"} to return \code{rvar} objects containing posterior samples.
+
+\code{"mode"} to return posterior modes (only applicable if model was fitted
+with posterior mode optimisation).}
 }
 \value{
 Array or matrix of \code{rvar} objects giving the transition probability matrix at each requested prediction time and covariate value.  See \code{\link{qdf}} for notes on the \code{rvar} format.
