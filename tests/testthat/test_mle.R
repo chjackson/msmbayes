@@ -72,10 +72,12 @@ test_that("msmbayes with flat priors and misclassification agrees with msm",{
 })
 
 test_that("mle and mode outputs for phaseapprox",{
+  skip_on_cran()
   fit_pa <- msmbayes(data=infsim, state="statep", time="months", priors="mle",
                      Q=Q2, pastates = c(2))
   expect_true(is.numeric(phaseapprox_pars(fit_pa)$mode))
   fit_pa <- msmbayes(data=infsim, state="statep", time="months",
                      Q=Q2, pastates = c(2), chains=1, iter=1000)
   phaseapprox_pars(fit_pa)
+  totlos(fit_pa, t=1)
 })

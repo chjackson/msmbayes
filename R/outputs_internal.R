@@ -49,7 +49,7 @@ qvector <- function(draws, new_data=NULL, X=NULL, type="posterior", drop=FALSE){
   }
   if (type=="mode"){
     ## mean() only necessary here when standardising
-    qvec <- array(mean(draws_of(qvec)), dim=c(ncovvals, nqpars(draws)))
+    qvec <- array(apply(draws_of(qvec), c(2,3), mean), dim=c(ncovvals, nqpars(draws)))
   }
   if (type=="posterior" && is_mode(draws))
     attr(qvec, "mode") <- qvector(draws, new_data, X, type="mode", drop=TRUE)
@@ -129,6 +129,26 @@ phaseapprox_pars_internal <- function(draws, type="posterior", log=FALSE){
   scale <- td |> gather_rvars(scale[]) |> pull(".value")
   value <- c(shape, scale)
   if (log) value <- log(value)
+  if (type=="mode") value <- as.numeric(draws_of(value))
+  value
+}
+
+loabs_pars_internal <- function(draws, type="posterior", log=FALSE){
+  if (!is_phaseapprox(draws)) return(NULL)
+  if (type=="mode" && !is_mode(draws)) return(NULL)
+  td <- tidy_draws(if (type=="posterior") draws else get_mode_draws(draws))
+  value <- td |> gather_rvars(logoddsabs[]) |> pull(".value") |>  t() |>
+    as.data.frame() |> rename(posterior=V1) |> pull(posterior)
+  if (type=="mode") value <- as.numeric(draws_of(value))
+  value
+}
+
+padest_pars_internal <- function(draws, type="posterior", log=FALSE){
+  if (!is_phaseapprox(draws)) return(NULL)
+  if (type=="mode" && !is_mode(draws)) return(NULL)
+  td <- tidy_draws(if (type=="posterior") draws else get_mode_draws(draws))
+  value <- td |> gather_rvars(padest[]) |> pull(".value") |>  t() |>
+    as.data.frame() |> rename(posterior=V1) |>  pull(posterior)
   if (type=="mode") value <- as.numeric(draws_of(value))
   value
 }
@@ -334,7 +354,7 @@ soj_prob_nonphase <- function(draws, t, state, new_data=NULL){
   surv_mode <- if (is_mode(draws)) array(0, dim=c(ncovvals, ntimes)) else NULL
   for (i in 1:ntimes){
     surv[,,i] <- pexp(t[i], rate = qv, lower.tail=FALSE)
-    if (is_mode(draws)) surv_mode[,i] <- pexp(t[i], rate = qv_mode, lower.tail=FALSE) 
+    if (is_mode(draws)) surv_mode[,i] <- pexp(t[i], rate = qv_mode, lower.tail=FALSE)
   }
   mode <- vecbycovs_to_df(surv_mode, new_data)$posterior
   res <- rvar(surv) |>
@@ -343,6 +363,6 @@ soj_prob_nonphase <- function(draws, t, state, new_data=NULL){
     mutate(time = t[vecid]) |>
     relocate(time) |>
     select(-vecid) |>
-    as_msmbres() 
+    as_msmbres()
   res
 }

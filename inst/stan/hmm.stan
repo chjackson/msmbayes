@@ -380,7 +380,7 @@ transformed parameters {
     
   array[K] real mp_jk; // marg prob of data up to time t and true state k at time t, given true state j at time t-1 (recomputed every t, k)
 
-  // Shouldn't really need a different Q for each time lag, just for different covs. Done for convenience.
+  // Shouldn't really need a different Q for each time lag, just for different covs. Done for convenience.  Scope for efficiency savings here. Shouldn't need to export it at least.
   for (i in 1:ntlc){
     P[i,,] = matrix_exp(Q[i,,]*timelag[i]);
   }

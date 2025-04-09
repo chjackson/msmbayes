@@ -318,14 +318,19 @@ phase_expand_qmodel <- function(qm, pm){
   qmnew
 }
 
-##' @return Data frame with one row per rate from a phase of any state given a phaseapprox distribution.  Order inherited from qm$phasedata, not necessarily ordered by state. Currently by column of overall Q matrix, e.g. to-state
+##' @return Data frame with one row per rate from a phase of any state
+##'   given a phaseapprox distribution.  Order inherited from
+##'   qm$phasedata, not necessarily ordered by state. Currently by
+##'   column of overall Q matrix, e.g. to-state
 ##'
 ##' `npaqall` number of rows, total number of such rates
 ##'
-##' `prates_inds` index of each row into "prates" Stan variable, which is ordered by pastate, prog rate, abs rate.
-##' indices repeated for competing absorbing states
+##' `prates_inds` index of each row into "prates" Stan variable, which
+##'    contains all phase transition rates, ordered by pastate, prog
+##'    rate, abs rate.  Indices are repeated for competing absorbing
+##'    states
 ##'
-##' todoc other
+##' todoc others, delete unused 
 ##'
 ##' @noRd
 form_phaseapprox_ratedata <- function(qm, pm){
@@ -336,16 +341,23 @@ form_phaseapprox_ratedata <- function(qm, pm){
   rdat <- pdat[pdat$pafrom,,drop=FALSE]
   rdat$paq_inds <- which(pdat$pafrom)
   rdat$pastate <- match(rdat$oldfrom, pm$pastates)
-  praterow <- numeric(npaqall)
 
+  ## e.g. if nphase=5, there are 9 phase-transition rates per phased state
+  ## praterow indicates which out of these 9 corresponds to each row
+  rdat$praterow <- numeric(npaqall)
   for (i in 1:pm$npastates){
     np <- pm$nphase[pm$pastates[i]]
-    praterow[rdat$pastate==i & rdat$ttype=="prog"] <- 1:(np-1)
-    praterow[rdat$pastate==i & rdat$ttype=="abs"] <- np:(2*np - 1)
+    rdat$praterow[rdat$pastate==i & rdat$ttype=="prog"] <- 1:(np-1)
+    rdat$praterow[rdat$pastate==i & rdat$ttype=="abs"] <- np:(2*np - 1)
   }
   rdat$prate_abs <- as.numeric(rdat$ndest > 1 & rdat$ttype=="abs")
+  nprates_by_state <- 2*pm$nphase - 1
+  rdat$csp <- cumsum(nprates_by_state)[rdat$pastate]
   rdat$prates_inds <-
-    praterow + c(0, tapply(praterow, rdat$pastate, max)[-pm$npastates])[rdat$pastate]
+    rdat$praterow + rdat$csp - nprates_by_state[1] # TESTME
+
+#  rdat$prates_inds <-
+#    praterow + c(0, tapply(praterow, rdat$pastate, max)[-pm$npastates])[rdat$pastate]
   pdatcr <- unique(pdat[pdat$pabs, c("oldfrom","oldto","oldlab")])
   rdat$dest_inds <- match(rdat$oldlab, pdatcr$oldlab, nomatch=0)
   rdat

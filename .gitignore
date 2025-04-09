@@ -11,3 +11,7 @@ vignettes/*_files*
 *.exe
 bin/stan/*
 vignettes/articles
+src/*.o
+src/*.so
+src/*.dll
+

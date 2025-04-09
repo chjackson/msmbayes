@@ -80,7 +80,8 @@ summary.msmbayes <- function(object, pars=NULL,...){
     select(all_of(colnames))
 
   if ("time" %in% pars) {
-    timeres <- qres |> mutate(name="time", posterior=1/posterior)
+    timeres <- qres |> mutate(name="time", posterior=1/posterior,
+                              mode = if(is_mode(object)) 1/mode else NULL)
     res <- rbind(res, timeres)
   }
   if ("logq" %in% pars) {

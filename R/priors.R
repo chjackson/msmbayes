@@ -276,7 +276,7 @@ process_priors <- function(priors, qm, cm, pm, em, qmobs){
   for (i in seq_along(priors)){
     prior <- priors[[i]]
     if (prior$par_base=="logq"){
-      qind <- get_prior_qindex(prior, qmobs, markov_only=TRUE)
+      qind <- get_prior_qindex(prior, qmobs, pm, markov_only=TRUE)
       logqmean[qind] <- prior$mean # fIXME if npriorq<nqpars, qind should go up to npriorq
       logqsd[qind] <- prior$sd
     }
@@ -284,12 +284,12 @@ process_priors <- function(priors, qm, cm, pm, em, qmobs){
       if (cm$nx==0)
         cli_warn("Ignoring prior on {.var loghr}, as no covariates in the model")
       else {
-        qind <- get_prior_qindex(prior, qmobs, markov_only=FALSE)
+        qind <- get_prior_qindex(prior, qmobs, pm, markov_only=FALSE)
         bind <- get_prior_hrindex(prior, qmobs, cm, qind)
         loghrmean[cm$consid[bind]] <- prior$mean
         loghrsd[cm$consid[bind]] <- prior$sd
         loghr_user[bind] <- TRUE
-        check_repeated_prior(bind, cm, loghr_user) 
+        check_repeated_prior(bind, cm, loghr_user)
       }
     } else if (prior$par_base=="logshape"){
       ind <- get_prior_ssindex(prior, pm)
@@ -355,7 +355,7 @@ check_priors <- function(priors){
 
 ##' Which in the set of transition intensities does a prior refer to
 ##' @noRd
-get_prior_qindex <- function(prior, qm, markov_only=TRUE){
+get_prior_qindex <- function(prior, qm, pm, markov_only=TRUE){
   if (prior$ind1 == "all_indices")
     qind <- seq_len(qm$npriorq)
   else {
@@ -364,7 +364,11 @@ get_prior_qindex <- function(prior, qm, markov_only=TRUE){
     qind <- which(tr$from==prior$ind1 & tr$to==prior$ind2)
   }
   if (length(qind)==0){
-    cli_abort("Unknown prior parameter: transition {prior$ind1}-{prior$ind2} is not in the model")
+    if (prior$ind1 %in% pm$pastates)
+      cli_abort(c("Prior supplied for intensity {prior$ind1}-{prior$ind2}, but state {prior$ind1} has a phase-type approximation distribution.",
+                  "A comparable prior should be placed on logshape[{prior$ind1}]"))
+    else
+      cli_abort("Unknown prior parameter: transition {prior$ind1}-{prior$ind2} is not in the model")
   }
   qind
 }

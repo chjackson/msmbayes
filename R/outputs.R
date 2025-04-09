@@ -355,7 +355,7 @@ as_msmbres <- function(object){
 #' See [msm::totlos.msm()] for the theory behind the method used to
 #' calculate this.  The analytic formula is used, not numerical integration.
 #'
-#' @inheritParams qmatrix
+#' @inheritParams qmatrix mean_sojourn
 #'
 #' @param t End point of the time interval over which to measure
 #'   length of stay in each state
@@ -372,7 +372,8 @@ as_msmbres <- function(object){
 #'
 #' @md
 #' @export
-totlos <- function(draws, t, new_data=NULL, fromt=0, pstart=NULL, discount=0){
+totlos <- function(draws, t, new_data=NULL, fromt=0, pstart=NULL, discount=0,
+                   states="obs"){
   vecid <- NULL
   nst <- nstates(draws)
   if (is.null(pstart)) pstart <- c(1, rep(0,nst-1))
@@ -398,7 +399,8 @@ totlos <- function(draws, t, new_data=NULL, fromt=0, pstart=NULL, discount=0){
       totlos[d,i,] <- totlos_core(draws_of(Qpost)[d,i,,], t, fromt,
                                   pstart, discount, nst)
     }
-    totlos_mode[i,] <- totlos_core(Qmode[i,,], t, fromt, pstart, discount, nst)
+    if (!is.null(Qmode))
+      totlos_mode[i,] <- totlos_core(Qmode[i,,], t, fromt, pstart, discount, nst)
   }
   totlos <- rvar(totlos)
   res <- vecbycovs_to_df(totlos, new_data) |>
@@ -407,6 +409,15 @@ totlos <- function(draws, t, new_data=NULL, fromt=0, pstart=NULL, discount=0){
     relocate(state, posterior)
   if (!is.null(Qmode))
     res$mode <- vecbycovs_to_df(totlos_mode, new_data)$posterior
+  if (is_phasetype(draws)){
+    if (states=="obs"){
+      res$state <- attr(mbsmod,"pmodel")$pdat$oldinds[res$state]
+      covnames <- names(new_data)
+      res <- res |> group_by(across(all_of(c("state",covnames)))) |>
+        summarise(posterior=rvar_sum(posterior),
+                  mode = if (!is.null(Qmode)) sum(mode) else NULL)
+    } else res <- relabel_phase_states(res, draws)
+  }
   res
 }
 
@@ -508,8 +519,43 @@ phaseapprox_pars <- function(draws, log=FALSE){
     state = state,
     family = family,
     name = name,
-    posterior = posterior
-  ) |> arrange(state))
+    posterior = posterior))
   res$mode <- phaseapprox_pars_internal(draws, type="mode", log=log)
+  res <- res |> arrange(state)
   res
+}
+
+loabs_pars <- function(draws){
+  loa_post <- loabs_pars_internal(draws, type="posterior")
+  loa_mode <- loabs_pars_internal(draws, type="mode")
+  refs <- attr(draws, "qmodel")$pacrdata |> filter(dest_base)
+  pacr <- attr(draws, "qmodel")$pacrdata |> filter(!dest_base) |>
+    left_join(refs |> select(oldfrom, ref=oldto), by="oldfrom")
+  res <- data.frame(
+    state = pacr$oldfrom,
+    tostate = pacr$oldto,
+    refstate = pacr$ref,
+    posterior = loa_post
+  )
+  if (!is.null(loa_mode)) res$mode <- loa_mode
+  res |> arrange(state, tostate)
+}
+
+##' Probabilities of competing exit states in phase type models
+##'
+##' This might be generalised to handle all next-state probabilities,
+##' as pnext in msm
+##' (or could call them transition probabilities for embedded discrete-time chain)
+##'
+padest_pars <- function(draws){
+  padest_post <- padest_pars_internal(draws, type="posterior")
+  padest_mode <- padest_pars_internal(draws, type="mode")
+  pacr <- attr(draws, "qmodel")$pacrdata
+  res <- data.frame(
+    state = pacr$oldfrom,
+    tostate = pacr$oldto,
+    posterior = padest_post
+  )
+  if (!is.null(padest_mode)) res$mode <- padest_mode
+  res |> arrange(state, tostate)
 }

@@ -28,20 +28,26 @@
 ##'   according to equally-spaced quantiles of the time interval
 ##'   length.
 ##'
-##' @return A data frame with columns `fromstate`, `tostate`, `timelag` and
-##' `n` (count of transitions)
+##' @param format \code{"long"} to return one row per \code{tostate}
+##'   (a pure "tidy data" format) or \code{"wide"} to return one
+##'   column per \code{tostate} (like \code{statetable.msm} in
+##'   \pkg{msm}).
+##'
+##' @return A data frame with columns `fromstate`, `timelag` and
+##' `n` (count of transitions), and column or columns for `tostate`.
 ##'
 ##' @export
 statetable <- function(data, state="state", subject="subject", time="time",
-                       time_groups=1){
-  timelag <- NULL
+                       time_groups=1, format="wide"){
   check_data_frame(data, call)
   check_dat_variables(dat=data, state=state, time=time, subject=subject)
-  clean_data(data, state, time, subject) |>
+  res <- clean_data(data, state, time, subject) |>
     form_transition_data() |>
-    mutate(timelag = cut_allow_1(timelag, time_groups)) |>
-    dplyr::group_by(across(all_of(c("fromstate", "tostate", "timelag")))) |>
-    dplyr::summarise(n=n())
+    mutate(timelag = cut_allow_1(.data[["timelag"]], time_groups)) |>
+    dplyr::count(.data[["fromstate"]], .data[["tostate"]], .data[["timelag"]])
+  if (format=="wide")
+    res <- res |> tidyr::pivot_wider(names_from="tostate", values_from="n")
+  res
 }
 
 ## Like cut() but allows breaks=1, assuming breaks is an integer
