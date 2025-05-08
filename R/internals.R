@@ -25,9 +25,9 @@ msmbayes_form_internals <- function(data, state="state", time="time", subject="s
              qm, censor_states, prior_sample=prior_sample, call=call)
   cm <- form_covariates(covariates, data, constraint, qm, pm, qmobs)
   data <- clean_data(data, state, time, subject, 
-                     cm$X, obstype, deathexact,
+                     X=cm$X, obstype=obstype, deathexact=deathexact,
                      obstrue=obstrue, censor_states=censor_states,
-                     qm, em, pm,
+                     qm=qm, em=em, pm=pm,
                      prior_sample=prior_sample, call=call)
   em$censor <- any(data$state==0) # use non-HMM lik if no censor codes in data
   em$hmm <- em$ne>0 || em$censor  #  and no misclassification

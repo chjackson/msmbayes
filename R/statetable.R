@@ -28,6 +28,8 @@
 ##'   according to equally-spaced quantiles of the time interval
 ##'   length.
 ##'
+##' @param covariates Vector of names of covariates to summarise counts by.
+##'
 ##' @param format \code{"long"} to return one row per \code{tostate}
 ##'   (a pure "tidy data" format) or \code{"wide"} to return one
 ##'   column per \code{tostate} (like \code{statetable.msm} in
@@ -38,13 +40,16 @@
 ##'
 ##' @export
 statetable <- function(data, state="state", subject="subject", time="time",
+                       covariates = NULL,
                        time_groups=1, format="wide"){
   check_data_frame(data, call)
   check_dat_variables(dat=data, state=state, time=time, subject=subject)
-  res <- clean_data(data, state, time, subject) |>
-    form_transition_data() |>
+  res <- clean_data(data, state, time, subject,
+                    covariates=covariates) |>
+    form_transition_data(covariates=covariates) |>
     mutate(timelag = cut_allow_1(.data[["timelag"]], time_groups)) |>
-    dplyr::count(.data[["fromstate"]], .data[["tostate"]], .data[["timelag"]])
+    dplyr::count(.data[["fromstate"]], .data[["tostate"]], .data[["timelag"]],
+                 dplyr::across(dplyr::all_of(covariates)), .drop=FALSE)
   if (format=="wide")
     res <- res |> tidyr::pivot_wider(names_from="tostate", values_from="n")
   res

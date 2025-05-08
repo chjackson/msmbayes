@@ -53,17 +53,21 @@ make_stan_aggdata <- function(dat, qm=NULL, cm=NULL, priors=NULL,
 #'
 #' @inheritParams make_stan_aggdata
 #'
+#' @param covariates Named covariates in their original form in the data,
+#' if requested.  Used for data summarisation 
+#'
 #' @return A data frame with one row per transition, and columns for from-state, to-state, time lag and value of covariate at start of the interval.
 #' The covariate design matrix is stored in a "matrix column" \code{X}.
 #'
 #' @noRd
-form_transition_data <- function(dat, qm, time=TRUE){
+form_transition_data <- function(dat, qm, covariates=NULL, time=TRUE){
   state <- dat[["state"]]
   nobs <- length(state)
   firstobs <- !duplicated(dat[["subject"]])
   lastobs <- rev(!duplicated(rev(dat[["subject"]])))
   fromstate <- c(NA, state[1:(nobs-1)])
   datnew <- data.frame(subject=dat[["subject"]], fromstate, tostate=state)
+  for (i in covariates) datnew[[i]] <- dat[[i]]
   if (!is.null(dat[["obstype"]])) # else bare bones cleaned data
     datnew$obstype <- dat$obstype
   if (time)

@@ -239,7 +239,11 @@ form_censdat <- function(dat, censor_states, qm, em, pm, call=caller_env()){
 #'
 #' * Constructs obstype, obstrue and censdat if needed
 #'
-#' * Converts the covariates (if supplied) to a design matrix, as a matrix column X
+#' * Converts the covariates (if supplied in a model) to a design matrix,
+#'   as a matrix column X
+#'
+#' * Attaches any named covariates in their original form in the data, if requested.
+#'   This does not need a model. 
 #'
 #' * Return cleaned data frame ready to be passed to standata.R
 #'
@@ -248,6 +252,7 @@ form_censdat <- function(dat, censor_states, qm, em, pm, call=caller_env()){
 clean_data <- function(dat, state="state", time="time", subject="subject",
                        X=NULL, obstype=NULL, deathexact=FALSE,
                        obstrue=NULL, censor_states = NULL,
+                       covariates = NULL,
                        qm=NULL, em=NULL, pm=NULL,
                        prior_sample=FALSE, call=caller_env()){
   if (nrow(dat)==0) return(dat)
@@ -262,6 +267,7 @@ clean_data <- function(dat, state="state", time="time", subject="subject",
     datkeep$obstrue <- form_obstrue(datkeep, em, call)
     datkeep <- form_censdat(datkeep, censor_states, qm, em, pm, call)
   }
+  for (i in covariates) datkeep[[i]] <- dat[[i]]
   dat <- datkeep
 
   if (is.factor(dat$state)) dat$state <- as.numeric(as.character(dat$state))
