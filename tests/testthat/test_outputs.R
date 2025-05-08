@@ -54,7 +54,7 @@ test_that("totlos",{
   expect_error(totlos(infsim_model, t=c(1,2)), "should be of length 1")
   tlpo <- totlos(infsim_modelp, t=18, fromt=12, discount=0.01)
   tlpp <- totlos(infsim_modelp, t=18, fromt=12, discount=0.01, states="phase")
-  expect_equal(sum(tlpp$mode), tlpo$mode)
+  expect_equal(sum(tlpp$mode), sum(tlpo$mode))
 })
 
 test_that("edf",{

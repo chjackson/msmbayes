@@ -13,7 +13,7 @@
 #' @importFrom glue glue
 #' @importFrom rlang caller_env .data
 #' @importFrom magrittr "%>%"
-#' @importFrom dplyr mutate select filter slice relocate left_join n arrange group_by ungroup pull row_number full_join summarise matches all_of rename across
+#' @importFrom dplyr mutate select filter slice relocate left_join n arrange group_by ungroup pull row_number full_join summarise matches all_of rename across all_of
 #' @importFrom tidyr pivot_longer
 #' @importFrom utils head
 #' @importFrom stringr str_match

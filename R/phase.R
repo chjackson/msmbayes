@@ -311,7 +311,7 @@ phase_expand_qmodel <- function(qm, pm){
     qmnew$npriorq <- qmnew$nqpars
   }
   qmnew$paratedata <- form_phaseapprox_ratedata(qmnew, pm)
-  qmnew$pacrdata <- form_phaseapprox_comprisk_data(qmnew)
+  qmnew$pacrdata <- form_phaseapprox_comprisk_data(qmnew, pm)
   qmnew$noddsabs <- attr(qmnew$pacrdata, "noddsabs")
   qm$tr$ttype <- ifelse(qm$tr$from %in% pm$phased_states, "phase", "markov")
   attr(qmnew, "qmobs") <- qm
@@ -330,7 +330,7 @@ phase_expand_qmodel <- function(qm, pm){
 ##'    rate, abs rate.  Indices are repeated for competing absorbing
 ##'    states
 ##'
-##' todoc others, delete unused 
+##' todoc others, delete unused
 ##'
 ##' @noRd
 form_phaseapprox_ratedata <- function(qm, pm){
@@ -363,11 +363,12 @@ form_phaseapprox_ratedata <- function(qm, pm){
   rdat
 }
 
-## One row per observable next destination state from states given a phaseapprox state, including only states where there is more than one destination (competing risks)
-form_phaseapprox_comprisk_data <- function(qm){
+## One row per observable next destination state from states given a phaseapprox state
+## including only states where there is more than one destination (competing risks)
+form_phaseapprox_comprisk_data <- function(qm, pm){
   pdat <- qm$phasedata
   pdatcr <- unique(pdat[pdat$pabs, c("oldfrom","oldto","oldlab")])
-  pdatcr$dest_state <- pdatcr$oldfrom
+  pdatcr$dest_state <- match(pdatcr$oldfrom, pm$pastates)
   npadest <- length(pdatcr$dest_state)
   pdatcr$dest_base <- !duplicated(pdatcr$dest_state)
   noddsabs <- sum(!pdatcr$dest_base)

@@ -200,7 +200,9 @@ qvec_to_mst <- function(qvec, qm){
 #' ensure mode matches
 #'
 #' A column \code{vecid} gives the index into the original vector
-#' of outputs
+#' of outputs.
+#'
+#' \code{covid} indexes distinct combinations of covariate values
 #'
 #' @noRd
 vecbycovs_to_df <- function(rvarmat, new_data, mode=FALSE){
@@ -219,8 +221,8 @@ vecbycovs_to_df <- function(rvarmat, new_data, mode=FALSE){
   if (!is.null(new_data) && !isTRUE(attr(new_data, "std")))
     res <- res |>
       left_join(new_data |> mutate(covid=1:n()), by="covid")
-  res <- as_msmbres(res) |>
-    select(-covid)
+  res <- as_msmbres(res) #|>
+    #select(-covid)
   res
 }
 
@@ -312,19 +314,26 @@ soj_prob_phase <- function(draws, t, state, new_data=NULL,
                            method = "analytic"){
   fromobs <- ttype <- posterior <- covid <- NULL
   qphase <- qdf(draws, new_data=new_data) |> filter(fromobs==state)
-  arate <- qphase |> filter(ttype=="abs") |> pull(posterior) |> draws_of()
+
+  arateg <- qphase |> filter(ttype=="abs") |> group_by(from, covid)
+  arate <- arateg |>
+    summarise(posterior = rvar_sum(posterior)) |> # sum over competing exit states
+    pull(posterior) |> draws_of()
+
   prate <- qphase |> filter(ttype=="prog") |> pull(posterior) |> draws_of()
-  arate_mode <- qphase |> filter(ttype=="abs") |> pull(mode)
+  arate_mode <- arateg |>
+    summarise(mode = sum(mode)) |> pull(mode)
   prate_mode <- qphase |> filter(ttype=="prog") |> pull(mode)
 
   ntimes <- length(t)
   ncovvals <- max(NROW(new_data), 1)
+  covid_p <- rep(1:ncovvals, length.out=ncol(prate))
+  covid_a <- rep(1:ncovvals, length.out=ncol(arate))
   surv <- array(0, dim=c(ndraws(draws), ncovvals, ntimes))
   surv_mode <- array(0, dim=c(ncovvals, ntimes))
   for (i in 1:ntimes){
     for (j in 1:ncovvals){
-      covid_p <- rep(1:ncovvals, length.out=ncol(prate))
-      covid_a <- rep(1:ncovvals, length.out=ncol(arate))
+      pnphase(t[i], prate[1,covid_p==j], arate[1,covid_a==j], method = method)
       surv[,j,i] <- 1 - pnphase(t[i], prate[,covid_p==j], arate[,covid_a==j],
                                 method = method)
       surv_mode[j,i] <- 1 - pnphase(t[i], prate_mode[covid_p==j], arate_mode[covid_a==j],

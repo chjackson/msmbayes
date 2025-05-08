@@ -411,7 +411,7 @@ totlos <- function(draws, t, new_data=NULL, fromt=0, pstart=NULL, discount=0,
     res$mode <- vecbycovs_to_df(totlos_mode, new_data)$posterior
   if (is_phasetype(draws)){
     if (states=="obs"){
-      res$state <- attr(mbsmod,"pmodel")$pdat$oldinds[res$state]
+      res$state <- attr(draws,"pmodel")$pdat$oldinds[res$state]
       covnames <- names(new_data)
       res <- res |> group_by(across(all_of(c("state",covnames)))) |>
         summarise(posterior=rvar_sum(posterior),
