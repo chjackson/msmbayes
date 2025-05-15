@@ -25,7 +25,8 @@ print.msmbayes <- function(x,...){
 #'
 #' `logshape`,`logscale` corresponding log shape or scale
 #'
-#' `hr`: hazard ratios
+#' `hr`: hazard ratios on transition intensities, including effects on
+#' scale parameters in phase-type approximation models.
 #'
 #' `loghr`: log hazard ratios
 #'
@@ -69,9 +70,9 @@ print.msmbayes <- function(x,...){
 #' @md
 #' @export
 summary.msmbayes <- function(object, pars=NULL,...){
-  name <- from <- to <- state <- posterior <- prior_string <- NULL
+  name <- from <- to <- state <- tostate <- posterior <- prior_string <- NULL
   if (is.null(pars)){
-    pars <- c("q","mst","hr","shape","scale","e")
+    pars <- c("q","mst","hr","shape","scale","e","padest","rra")
   }
   colnames <- c("name", "from", "to", "posterior")
   if (is_mode(object)) colnames <- c(colnames, "mode")
@@ -105,18 +106,35 @@ summary.msmbayes <- function(object, pars=NULL,...){
       select(all_of(colnames))
     res <- rbind(res, pa)
   }
+  if (is_phaseapprox(object) && has_rra(object) && ("padest" %in% pars)){
+    pe <- padest_pars(object) |> mutate(from=state, to=tostate) |>
+      select(all_of(colnames))
+    res <- rbind(res, pe)
+  }
   res <- res |> filter(name %in% pars)
   if (has_covariates(object) && ("hr" %in% pars)){
     hr_ests <- hr(object, ...) |>
-      select(all_of(colnames)) |>
-      mutate(name=sprintf("hr(%s)", name))
+      mutate(name=sprintf("hr(%s)", name)) |>
+      select(all_of(colnames))
     res <- rbind(res, hr_ests)
   }
   if (has_covariates(object) && ("loghr" %in% pars)){
     loghr_ests <- loghr(object, ...) |>
-      select(all_of(colnames)) |>
-      mutate(name=sprintf("loghr(%s)", name))
+      mutate(name=sprintf("loghr(%s)", name)) |>
+      select(all_of(colnames))
     res <- rbind(res, loghr_ests)
+  }
+  if (has_rra_covariates(object) && ("logrra" %in% pars)){
+    logrra_ests <- logrra(object, ...) |>
+      mutate(name=sprintf("logrra(%s)", name), from=state, to=tostate) |>
+      select(all_of(colnames))
+    res <- rbind(res, logrra_ests)
+  }
+  if (has_rra_covariates(object) && ("rra" %in% pars)){
+    rra_ests <- rra(object, ...) |>
+      mutate(name=sprintf("rra(%s)", name), from=state, to=tostate) |>
+      select(all_of(colnames))
+    res <- rbind(res, rra_ests)
   }
   if (has_misc(object) && ("e" %in% pars)){
     e_ests <- edf(object, ...) |>

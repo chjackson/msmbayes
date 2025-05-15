@@ -35,10 +35,10 @@ make_stan_aggdata <- function(dat, qm=NULL, cm=NULL, priors=NULL,
               exactdeath_state = as.array(dwide$exactdeath_state),
               nx = cm$nx,
               nxuniq = cm$nxuniq,
-              consid = cm$consid, 
-              nxq = as.array(cm$nxq),
-              xstart = as.array(cm$xstart), # cmdstanr errors with NAs
-              xend = as.array(cm$xend),
+              consid = cm$tafdf$consid, 
+              nxq = as.array(cm$transdf$nxq),
+              xstart = as.array(cm$transdf$xstart), # cmdstanr errors with NAs
+              xend = as.array(cm$transdf$xend),
               X = attr(dat_agg, "Xuniq"),
               mle = priors$mle
               )

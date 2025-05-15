@@ -168,6 +168,5 @@ way to choose these based on judgements about interpretable quantities, e.g. the
 
 * How to build and interpret models with covariates on intensities.  Covariates can be placed on intensities for transitions in the phased state-space, but this has not been tested in practice.  There is a risk of over-fitting, and strong constraints on covariate effects are expected to be necessary.
 
-However, with intermittently-observed data, it is uncertain to what extent we will be 
-able to identify a detailed shape for the sojourn distribution from the data.  
+However, with intermittently-observed data, it is uncertain to what extent we will be able to identify a detailed shape for the sojourn distribution from the data.
 Therefore using [phase-type approximations to shape-scale distributions](semimarkov.html) is expected to be a more useful approach to semi-Markov modelling.

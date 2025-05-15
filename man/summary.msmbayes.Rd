@@ -23,7 +23,8 @@
 
 \code{logshape},\code{logscale} corresponding log shape or scale
 
-\code{hr}: hazard ratios
+\code{hr}: hazard ratios on transition intensities, including effects on
+scale parameters in phase-type approximation models.
 
 \code{loghr}: log hazard ratios
 

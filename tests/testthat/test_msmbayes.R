@@ -2,7 +2,7 @@ Q <- rbind(c(0, 1), c(1, 0))
 library(msm)
 
 test_that("likelihood at fixed parameters agrees with msm",{
-  init<- list(list(logq=c(0, 0)))
+  init <- list(list(logq=c(0, 0)))
   draws <- msmbayes(data=infsim,  time="months", Q=Q, init=init,
                     algorithm="Fixed_param", chains=1, iter=1, keep_data=TRUE)
   lik_msm <- msm(state~months, subject=subject,

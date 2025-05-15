@@ -109,10 +109,10 @@ prior_loghr_db <- function(priors, cm){
   if (cm$nx==0) return(NULL)
   prior <- name <- xname <- NULL
   data.frame(
-    xname = cm$Xnames,
-    from = rep(cm$from, cm$nxquser),
-    to = rep(cm$to, cm$nxquser),
-    prior = prior_to_rvar(priors$loghrmean, priors$loghrsd, n=1000)[cm$consid]
+    xname = cm$tafdf$names,
+    from = rep(cm$cmodeldf$from, cm$cmodeldf$ncovs),
+    to = rep(cm$cmodeldf$to, cm$cmodeldf$ncovs),
+    prior = prior_to_rvar(priors$loghrmean, priors$loghrsd, n=1000)[cm$tafdf$consid]
   ) |>
     mutate(loghr  = prior,
            hr  = exp(prior)) |>
@@ -157,6 +157,11 @@ prior_loa_db <- function(priors, qm){
     mutate(string = rvar_to_quantile_string(rvar)) |>
     arrange(across(all_of("from"))) |>
     select("name", "from", "to", "rvar", "string") 
+}
+
+prior_padest_db <- function(priors, pm, qm){
+  if (qm$noddsabs==0) return(NULL)
+  ## TODO transform of loa_db
 }
 
 prior_loe_db <- function(priors, em){

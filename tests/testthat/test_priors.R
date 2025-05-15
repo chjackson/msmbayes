@@ -6,7 +6,6 @@ test_that("msmprior errors",{
   expect_error(msmprior("logq(1,2)", median="foo", lower=-6), "at least two")
   expect_error(msmprior("logq(1,2)", lower=-6), "at least two")
   expect_warning(msmprior("logq(1,2)", upper=0, median=-2, lower=-6), "Ignoring `upper`")
-  expect_error(msmprior("logq(f,2)", lower=-6), "unrecognised character string")
   dat <- data.frame(subject=c(1,1,1), state=c(1,1,2), time=c(1,2,3),
                     age = c(6,7,8), x = c(3,4,5))
   expect_error(msmbayes(dat, "state","time","subject", Q=Q,

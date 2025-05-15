@@ -77,34 +77,34 @@ test_that("msmbayes: state can be a factor with number levels",{
 
 Q <- matrix(0, 3, 3); Q[1,2] <- Q[2,1] <- 1
 test_that("missing values",{
-  oldopt <- options()$warn
-  options(warn=2)
+#  oldopt <- options()$warn
+#  options(warn=2)
 
   data_na <- data.frame(
     state = c(1,1,2,1,2,2), time = c(1,2,3,NA,NA,3),
     subject = c(1,1,1,2,2,2), cov1 = c(1,2,3,1,3,4))
-  expect_error(
+  expect_warning(
     msmbayes(dat = data_na, state="state", time="time", subject="subject", Q=Q),
     "missing time")
 
   data_na <- data.frame(
     state = c(1,1,2,1,2,2), time = c(1,2,3,1,2,3),
     subject = c(1,1,1,2,NA,2), cov1 = c(1,2,3,1,3,4))
-  expect_error(
+  expect_warning(
     msmbayes(dat = data_na, state="state", time="time", subject="subject", Q=Q),
     "missing subject")
 
   data_na <- data.frame(
     state = c(1,NA,2,1,2,2), time = c(1,2,3,1,2,3),
     subject = c(1,1,1,2,2,2), cov1 = c(1,2,3,1,3,4))
-  expect_error(
+  expect_warning(
     msmbayes(dat = data_na, state="state", time="time", subject="subject", Q=Q),
     "missing state")
 
   data_na <- data.frame(
     state = c(1,1,2,1,2,2), time = c(1,2,3,1,2,3),
     subject = c(1,1,1,2,2,2), cov1 = c(1,NA,3,1,3,4))
-  expect_error(
+  expect_warning(
     msmbayes(dat = data_na, state="state", time="time", subject="subject", Q=infsimQ,
              covariates = list(Q(1,2) ~ cov1)),
     "missing covariate values")
@@ -117,7 +117,7 @@ test_that("missing values",{
              subject="subject", Q=infsimQ,
              covariates = list(Q(1,2) ~ cov1), fit_method="optimize"))
 
-  options(warn=oldopt)
+#  options(warn=oldopt)
 })
 
 test_that("nphase: input validation",{

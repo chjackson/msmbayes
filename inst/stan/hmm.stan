@@ -178,16 +178,29 @@ data {
   array[npriorq] real logqmean;        // mean of normal prior on markov log(q)
   array[npriorq] real<lower=0> logqsd; // sd of normal prior on log(q)
 
-  int<lower=0> nxuniq; // number of unique covariate effects
+  int<lower=0> nxuniq; // number of unique covariate effects on intensities
   int<lower=0> nx; // total number of covariates on the intensities including repeated constrained ones
   array[nqpars] int<lower=0> xstart; // starting index into X for each transition. 0 if no covariates on that transition 
   array[nqpars] int<lower=0> xend;   // ending index into X for each transition 
   array[nqpars] int<lower=0> nxq;    // number of covariates per transition
-  array[nx] int<lower=1,upper=nxuniq> consid; // index into loghr_uniq for each loghr
+  int<lower=0> ntafs;                        // number of covariate effects, including replicated user-constrained ones,
+  //                                          //   but excluding repeated multipliers on phase transition rates
+  array[ntafs] int<lower=1,upper=nxuniq> consid; // index into loghr_uniq for each loghr
+  array[nx]     int<lower=1,upper=ntafs> tafid; // index into logtaf for each loghr
 
-  matrix[ntlc,nx] X;              // all model matrices, column-binded together and keeping only rows corresponding to distinct (timelag, covariates)
-  array[nxuniq] real loghrmean;        // mean of normal prior on covariate effects
-  array[nxuniq] real<lower=0> loghrsd; // sd of normal prior on covariate effects
+  int<lower=0> nrra; // total number of covariates on RRs for competing exit states
+  array[nqpars] int<lower=0> nrraq;    // number of covariates on RR for competing exit states by transition, or 0 if transition is not of this kind
+  array[nqpars] int<lower=0> xrrastart; // starting index into X for RR on competing exit states in pastates models, or 0 if transition is not of this kind
+  array[nqpars] int<lower=0> xrraend;   // ending index
+  array[nqpars] int<lower=0> rrastart; // starting index into vector of RRs
+  array[nqpars] int<lower=0> rraend;   // ending index
+
+  matrix[ntlc,ntafs+nrra] X;              // all model matrices, column-binded together and keeping only rows corresponding to distinct (timelag, covariates)
+  array[nxuniq] real loghrmean;        // mean of normal prior on covariate effects on Markov states
+  array[nxuniq] real<lower=0> loghrsd; // sd 
+
+  array[nrra] real logrramean;        // prior mean for log RR for competing exit states in pastates models
+  array[nrra] real<lower=0> logrrasd; // sd 
 
   // Prior pseudo-data for sojourn distribution
   int<lower=0> nsoj;
@@ -246,6 +259,7 @@ parameters {
   array[nepars] real logoddse;  // log(ers/err), error rate log odds
   vector[nxuniq] loghr_uniq;    // log hazard ratios for covariates
   vector[noddsabs] logoddsabs;  // log odds of competing destinations from phase-type approximated states
+  vector[nrra] logrra;          // log RRs for covariate effects on relative risk of competing exit states
 } 
 
 
@@ -258,8 +272,14 @@ transformed parameters {
   array[K] vector[K] E = rep_array(rep_vector(0,K), K);    // full matrix of error probs
   array[nepars] real evec; // absolute error probs, for those modelled
 
-  vector[nx] loghr;     // log hazard ratios for covariates after replicating constrained ones 
-  for (i in 1:nx){  loghr[i] = loghr_uniq[consid[i]];  }
+  vector[ntafs] logtaf; // log HRs or TAFs, including only one TAF per phase-approx model
+  vector[nx] loghr;     // log hazard ratios or time acceleration factors for covariates after
+  //                    // replicating constrained ones and common multipliers on phase transition rates
+  for (i in 1:ntafs){  logtaf[i] = loghr_uniq[consid[i]];  }  // perhaps we could shortcut these two steps but lets see 
+  for (i in 1:nx){  loghr[i] = logtaf[tafid[i]];  }
+
+  // for (i in 1:nx){  loghr[i] = loghr_uniq[consid[i]];  }
+  // TODO effect on competing exit states
     
   // JUST FOR MISCLASSIFICATION MODELS
   if (nepars > 0){
@@ -363,13 +383,23 @@ transformed parameters {
   vector[nqpars] qtmp;
   array[ntlc] matrix[K,K] P;
 
+
   // abstract this block into a function?
   for (j in 1:ntlc){
+
+    // TODO pastates models.
+    // if i refers to a competing dest state, scale again by different covs
+    // might need a different object or at least index (say xcrstart[i]..)
+
     Q[j,,] = rep_matrix(0, K, K);
     for (i in 1:nqpars){
       qtmp[i] = logq[i];
-      if (nxq[i]>0)
+      if (nxq[i]>0){
 	qtmp[i] = qtmp[i] + X[j,xstart[i]:xend[i]] * loghr[xstart[i]:xend[i]];
+	if (nrraq[i] > 0){
+	  qtmp[i] = qtmp[i] + X[j,xrrastart[i]:xrraend[i]] * logrra[rrastart[i]:rraend[i]];
+	}
+      }
       Q[j,qrow[i],qcol[i]] = exp(qtmp[i]);
     }
     for (k in 1:K) {
@@ -467,6 +497,11 @@ model {
     if (nxuniq > 0){
       for (i in 1:nxuniq){
 	loghr_uniq[i] ~ normal(loghrmean[i], loghrsd[i]);
+      }
+    }
+    if (nrra > 0){
+      for (i in 1:nrra){
+	logrra[i] ~ normal(logrramean[i], logrrasd[i]);
       }
     }
     if (nepars > 0){

@@ -35,9 +35,9 @@ qvector <- function(draws, new_data=NULL, X=NULL, type="posterior", drop=FALSE){
     ncovvals <- nrow(X)
     logqnew <- rvar(array(dim=c(ndraws(logq), ncovvals, nqpars(draws))))
     for (i in 1:nqpars(draws)){
-      inds <- cm$xstart[i]:cm$xend[i]
+      inds <- cm$transdf$xstart[i]:cm$transdf$xend[i]
       logqnew[,i] <- logq[i]
-      if (cm$nxq[i] > 0)
+      if (cm$transdf$nxq[i] > 0)
         logqnew[,i] <- logqnew[,i] +
           X[,inds,drop=FALSE] %**% loghr[inds]  # %**% from posterior
     }
@@ -106,14 +106,17 @@ evector <- function(draws, new_data=NULL, type="posterior", drop=FALSE){
 }
 
 loghr_internal <- function(draws, type="posterior"){
+  V1 <- posterior <- NULL
   if (type=="mode" && !is_mode(draws)) return(NULL)
   td <- tidy_draws(if (type=="posterior") draws else get_mode_draws(draws))
+  cm <- attr(draws,"cmodel")
   loghr <- td |>
     gather_rvars(loghr[]) |>
     pull(".value") |>
     t() |>
     as.data.frame() |>
-    rename(posterior=V1)
+    rename(posterior=V1) |>
+    mutate(tafid = cm$hrdf$tafid)
   if (type=="mode")
     loghr <- loghr |> rename(mode=posterior) |> mutate(mode=as.numeric(draws_of(mode)))
   if (type=="posterior" && is_mode(draws))
@@ -134,6 +137,7 @@ phaseapprox_pars_internal <- function(draws, type="posterior", log=FALSE){
 }
 
 loabs_pars_internal <- function(draws, type="posterior", log=FALSE){
+  V1 <- posterior <- logoddsabs <- NULL
   if (!is_phaseapprox(draws)) return(NULL)
   if (type=="mode" && !is_mode(draws)) return(NULL)
   td <- tidy_draws(if (type=="posterior") draws else get_mode_draws(draws))
@@ -144,10 +148,22 @@ loabs_pars_internal <- function(draws, type="posterior", log=FALSE){
 }
 
 padest_pars_internal <- function(draws, type="posterior", log=FALSE){
+  padest <- V1 <- posterior <- NULL
   if (!is_phaseapprox(draws)) return(NULL)
   if (type=="mode" && !is_mode(draws)) return(NULL)
   td <- tidy_draws(if (type=="posterior") draws else get_mode_draws(draws))
   value <- td |> gather_rvars(padest[]) |> pull(".value") |>  t() |>
+    as.data.frame() |> rename(posterior=V1) |>  pull(posterior)
+  if (type=="mode") value <- as.numeric(draws_of(value))
+  value
+}
+
+logrra_internal <- function(draws, type="posterior", log=FALSE){
+  logrra <- rra <- V1 <- posterior <- NULL
+  if (!is_phaseapprox(draws)) return(NULL)
+  if (type=="mode" && !is_mode(draws)) return(NULL)
+  td <- tidy_draws(if (type=="posterior") draws else get_mode_draws(draws))
+  value <- td |> gather_rvars(logrra[]) |> pull(".value") |>  t() |>
     as.data.frame() |> rename(posterior=V1) |>  pull(posterior)
   if (type=="mode") value <- as.numeric(draws_of(value))
   value
@@ -206,7 +222,7 @@ qvec_to_mst <- function(qvec, qm){
 #'
 #' @noRd
 vecbycovs_to_df <- function(rvarmat, new_data, mode=FALSE){
-  covid <- vecid <- NULL
+  covid <- vecid <- value <- NULL
   if (is.null(rvarmat)) return(NULL)
   ncovvals <- dim(rvarmat)[1]
   nelts <- if (length(dim(rvarmat))==1) 1 else ncol(rvarmat)
@@ -312,7 +328,7 @@ check_new_data <- function(new_data, call=caller_env()){
 
 soj_prob_phase <- function(draws, t, state, new_data=NULL,
                            method = "analytic"){
-  fromobs <- ttype <- posterior <- covid <- NULL
+  from <- fromobs <- ttype <- posterior <- covid <- NULL
   qphase <- qdf(draws, new_data=new_data) |> filter(fromobs==state)
 
   arateg <- qphase |> filter(ttype=="abs") |> group_by(from, covid)
@@ -354,7 +370,7 @@ soj_prob_phase <- function(draws, t, state, new_data=NULL,
 }
 
 soj_prob_nonphase <- function(draws, t, state, new_data=NULL){
-  vecid <- NULL
+  vecid <- time <- NULL
   qv <- - qmatrix(draws, new_data=new_data, drop=FALSE)[, state, state] |> draws_of()
   qv_mode <- if (is_mode(draws)) - qmatrix(draws, new_data=new_data, drop=FALSE, type="mode")[, state, state] else NULL
   ntimes <- length(t)

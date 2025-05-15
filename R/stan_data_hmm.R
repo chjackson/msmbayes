@@ -77,10 +77,19 @@ make_stan_obsdata <- function(dat, qm=NULL, cm=NULL,
 
     nx = cm$nx,
     nxuniq = cm$nxuniq,
-    consid = cm$consid, 
-    nxq = as.array(cm$nxq),
-    xstart = as.array(cm$xstart),
-    xend = as.array(cm$xend),
+    ntafs = cm$ntafs, 
+    tafid = as.array(cm$hrdf$tafid),
+    consid = as.array(cm$tafdf$consid), 
+    nxq = as.array(cm$transdf$nxq),
+    xstart = as.array(cm$transdf$xstart),
+    xend = as.array(cm$transdf$xend),
+    nrra = cm$nrra,
+    nrraq = as.array(cm$transdf$nrraq),
+    xrrastart = as.array(cm$transdf$xrrastart),
+    xrraend = as.array(cm$transdf$xrraend),
+    rrastart = as.array(cm$transdf$rrastart),
+    rraend = as.array(cm$transdf$rraend),
+
     X = Xuniq
   )
   phaseapprox_data <- form_phaseapprox_standata(qm,pm,qmobs)

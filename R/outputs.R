@@ -299,18 +299,20 @@ mean_sojourn <- function(draws, new_data=NULL, states="obs"){
 #'
 #' @export
 loghr <- function(draws){
-  name <- posterior <- from <- to <- NULL
+  name <- posterior <- from <- to <- tafid <- NULL
   cm <- attr(draws,"cmodel")
   qm <- attr(draws,"qmodel")
   if (cm$nx==0)
     cli_abort("No covariates in the model")
-  loghr <- loghr_internal(draws) |>
-    mutate(from = cm$xfrom,
-           to = cm$xto,
-           name = cm$Xnames) |>
-    relocate(from, to, name, posterior) |>
-    relabel_phase_states(draws, space="observed")
-  as_msmbres(loghr)
+  res <- loghr_internal(draws) |>
+    mutate(from = cm$hrdf$from,
+           to = cm$hrdf$to,
+           name = cm$hrdf$names) |>
+    filter(!duplicated(tafid)) |>
+    select(-tafid) |>
+    relocate(from, to, name, posterior) #|>
+#    relabel_phase_states(draws, space="observed")
+  as_msmbres(res)
 }
 
 #' Hazard ratios for covariates on transition intensities
@@ -355,7 +357,8 @@ as_msmbres <- function(object){
 #' See [msm::totlos.msm()] for the theory behind the method used to
 #' calculate this.  The analytic formula is used, not numerical integration.
 #'
-#' @inheritParams qmatrix mean_sojourn
+#' @inheritParams qmatrix
+#' @inheritParams mean_sojourn
 #'
 #' @param t End point of the time interval over which to measure
 #'   length of stay in each state
@@ -374,7 +377,7 @@ as_msmbres <- function(object){
 #' @export
 totlos <- function(draws, t, new_data=NULL, fromt=0, pstart=NULL, discount=0,
                    states="obs"){
-  vecid <- NULL
+  vecid <- posterior <- state <- NULL
   nst <- nstates(draws)
   if (is.null(pstart)) pstart <- c(1, rep(0,nst-1))
   Qpost <- qmatrix(draws, new_data=new_data, drop=FALSE)
@@ -525,7 +528,18 @@ phaseapprox_pars <- function(draws, log=FALSE){
   res
 }
 
+##' Summarise posteriors for log odds of transitions from phase-type
+##' states
+##'
+##' Log odds of transition to a competing destination state, relative
+##' to baseline destination state.  Only applicable to phase-type
+##' approximation models, specified with \code{pastates}.
+##'
+##' @inheritParams qmatrix
+##' 
+##' @export
 loabs_pars <- function(draws){
+  dest_base <- oldfrom <- oldto <- state <- tostate <- NULL
   loa_post <- loabs_pars_internal(draws, type="posterior")
   loa_mode <- loabs_pars_internal(draws, type="mode")
   refs <- attr(draws, "qmodel")$pacrdata |> filter(dest_base)
@@ -541,21 +555,84 @@ loabs_pars <- function(draws){
   res |> arrange(state, tostate)
 }
 
-##' Probabilities of competing exit states in phase type models
+## This might be generalised to handle all next-state probabilities,
+## as pnext in msm (or could call them transition probabilities for
+## embedded discrete-time chain)
+
+##' Probabilities of competing exit destination states in phase type
+##' models
 ##'
-##' This might be generalised to handle all next-state probabilities,
-##' as pnext in msm
-##' (or could call them transition probabilities for embedded discrete-time chain)
+##' These are the inverse multinomial logit transforms of the
+##' log odds of transition, relative to the first potential exit state.
+##' 
+##' @inheritParams qmatrix
 ##'
+##' @return A dataframe with one row per probability, and colums for
+##'   (from) state, to-state, posterior distribution (as an `rvar`
+##'   object) and posterior mode (if the model was fitted by mode
+##'   optimisation).
+##'
+##' @export
 padest_pars <- function(draws){
+  state <- tostate <- NULL
   padest_post <- padest_pars_internal(draws, type="posterior")
   padest_mode <- padest_pars_internal(draws, type="mode")
   pacr <- attr(draws, "qmodel")$pacrdata
   res <- data.frame(
+    name = "padest",
     state = pacr$oldfrom,
     tostate = pacr$oldto,
     posterior = padest_post
   )
   if (!is.null(padest_mode)) res$mode <- padest_mode
   res |> arrange(state, tostate)
+}
+
+#' @name rradoc
+#' 
+#' @title Effects of covariates on competing exit transitions in phase type
+#' models
+#'
+#' @details Only applicable to phase-type approximation models,
+#' specified with \code{pastates}.
+#' 
+#' \code{logrra} gives the Linear effect of covariates on log relative
+#' risk of transition to a competing destination state, relative to
+#' baseline destination state.
+#'
+#' \code{rra} gives the exponential of the linear effect,
+#' interpretable as a hazard ratio.  See the semi-Markov models
+#' vignette and paper for the mathematical details.
+#'
+#' @inheritParams qmatrix
+#'
+#' @return A data frame containing samples from the posterior distribution.
+#' See \code{\link{qdf}} for notes on this format and how to summarise.
+#'
+#' @md
+
+##' @rdname rradoc
+##' @aliases logrra
+##' @export
+logrra <- function(draws){
+  state <- tostate <- NULL
+  pacr <- attr(draws, "cmodel")$rradf
+  res_post <- logrra_internal(draws, type="posterior")
+  res_mode <- logrra_internal(draws, type="mode")
+  res <- data.frame(
+    state = pacr$from, tostate=pacr$to, name=pacr$name,
+    posterior = res_post
+  )
+  if (!is.null(res_mode)) res$mode <- res_mode
+  res |> arrange(state, tostate)
+}
+
+##' @rdname rradoc
+##' @aliases rra
+##' @export
+rra <- function(draws){
+  res <- logrra(draws)
+  res$posterior <- exp(res$posterior)
+  if (!is.null(res$mode)) res$mode <- exp(res$mode)
+  res
 }

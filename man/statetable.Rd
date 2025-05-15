@@ -9,7 +9,9 @@ statetable(
   state = "state",
   subject = "subject",
   time = "time",
-  time_groups = 1
+  covariates = NULL,
+  time_groups = 1,
+  format = "wide"
 )
 }
 \arguments{
@@ -26,14 +28,21 @@ If omitted, this is assumed to be \code{"subject"}.}
 \item{time}{Character string naming the observation time variable in the data.
 If omitted, this is assumed to be \code{"time"}.}
 
+\item{covariates}{Vector of names of covariates to summarise counts by.}
+
 \item{time_groups}{Number of groups to summarise the time
 intervals by.  The transitions are categorised into groups
 according to equally-spaced quantiles of the time interval
 length.}
+
+\item{format}{\code{"long"} to return one row per \code{tostate}
+(a pure "tidy data" format) or \code{"wide"} to return one
+column per \code{tostate} (like \code{statetable.msm} in
+\pkg{msm}).}
 }
 \value{
-A data frame with columns \code{fromstate}, \code{tostate}, \code{timelag} and
-\code{n} (count of transitions)
+A data frame with columns \code{fromstate}, \code{timelag} and
+\code{n} (count of transitions), and column or columns for \code{tostate}.
 }
 \description{
 Tabulate observed transitions between states over successive observations, by

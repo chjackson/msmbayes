@@ -15,12 +15,31 @@
 #' and switching to observing a different person if a competing
 #' transition happens).  The same format as `logq` and `q` with two indices.
 #'
-#' `"loghr"`. Log hazard ratio.
-#' The covariate name is supplied alongside the
-#' transition indices, e.g. `"loghr(age,2,3)"` for the effect of `age`
-#' on the log hazard ratio of transitioning from state 2 to state 3.
-#' For factor covariates, this should include the level,
-#' e.g. `"loghr(sexMALE,2,3)"` for level `"MALE"` of factor `"sex"`.
+#' `"loghr"`. Covariate effect on intensities of transition from
+#' states given a Markov model. The covariate name is supplied
+#' alongside the transition indices, e.g. `"loghr(age,2,3)"` for the
+#' effect of `age` on the log hazard ratio of transitioning from state
+#' 2 to state 3.  For factor covariates, this should include the
+#' level, e.g. `"loghr(sexMALE,2,3)"` for level `"MALE"` of factor
+#' `"sex"`.
+#'
+#' `"loghrscale"`. Covariate effect on the sojourn time in states
+#' given a semi-Markov models with a phase-type approximation.  This
+#' is specified with only one index, indicating the state,
+#' e.g. `"loghr(age,2)"`.  Note this is interpreted as a log hazard
+#' ratio for times to transitions on the latent space, but for the
+#' sojourn time on the observable space, this is interpreted as a time
+#' acceleration factor, such that an coefficent of log(2) increases
+#' the risk of the next transition through halving the expected
+#' sojourn time.
+#'
+#' Covariate effects on competing transitions out of semi-Markov
+#' states are also specified with `loghr`.  For example,
+#' `"loghr(age,2,3)"` for the effect of `age` on the relative rate of
+#' transition from state 2 to state 3, relative to the rate of
+#' transition from state 2 to the first competing destination state.
+#' These parameters are not applicable to semi-Markov states with only
+#' one potential next destination state.
 #'
 #' `"hr"`. Hazard ratio.
 #'
@@ -54,7 +73,7 @@
 #'
 #'
 #'
-#' @param mean Prior mean.  This is only used for the parameters that have direct normal priors, that is `logq`, `loghr`, `logshape`, `logscale`, `loe`, `loa`.  That is, excluding `time`, `q` and `hr`, whose priors are defined by transformations of a normal distribution.
+#' @param mean Prior mean.  This is only used for the parameters that have direct normal priors, that is `logq`, `loghr`, `loghrscale`, `logshape`, `logscale`, `loe`, `loa`.  That is, excluding `time`, `q` and `hr`, whose priors are defined by transformations of a normal distribution.
 #'
 #' @param sd Prior standard deviation (only for parameters with direct normal priors)
 #'
@@ -169,6 +188,8 @@ transform_mlu <- function(par, mlu){
   "loghr" = c("loghr", "hr"),
   "logshape" = c("logshape"),
   "logscale" = c("logscale"),
+  "loghrscale" = c("loghrscale"),
+  "logrra" = c("logrra"),
   "loe" = c("loe"),
   "loa" = c("loa")
 )
@@ -188,11 +209,12 @@ transform_mlu <- function(par, mlu){
 msmprior_parse <- function(par){
   allow_spaces <- function(str){ paste0("[[:space:]]*",str,"[[:space:]]*") }
   name <- "([[:alnum:]]+)"
-  covname <- allow_spaces("([[:alnum:]]+)")
+  covname <- allow_spaces("([[:alnum:]\\:]+)") # TODO should we match any other characters in formulae e.g. ( ) for functions
   number <- allow_spaces("([[:digit:]]+)")
   re_2index <- glue("^{name}\\({number},{number}\\)$")
   re_1index <- glue("^{name}\\({number}\\)$")
   re_covindex <- glue("^{name}\\({covname},{number},{number}\\)$")
+  re_cov1index <- glue("^{name}\\({covname},{number}\\)$")
   re_cov <- glue("^{name}\\({covname}\\)$")
   re_noindex <- glue("^{allow_spaces(name)}(\\(\\))?$")
 
@@ -213,6 +235,10 @@ msmprior_parse <- function(par){
     if (res$name %in% .msmprior_pars[["logq"]]){
       extraneous_covname_error(res)
     }
+  } else if (grepl(re_cov1index, par)){
+    parsed <- stringr::str_match(par, re_cov1index)
+    res <- list(name=parsed[2], covname=parsed[3],
+                ind=as.numeric(parsed[4]))
   } else if (grepl(re_cov, par)){
     parsed <- stringr::str_match(par, re_cov)
     res <- list(name=parsed[2], covname=parsed[3], ind1="all_indices")
@@ -240,6 +266,8 @@ extraneous_covname_error <- function(res){
   ## currently must be normal priors, can't change family.
   logq = list(mean=-2, sd=2),
   loghr = list(mean=0, sd=10),
+  loghrscale = list(mean=0, sd=10),
+  logrra = list(mean=0, sd=10),
   logshape = list(mean=0, sd=0.5), # this gets truncated on the supported region in hmm.stan
   logscale = list(mean=2, sd=2), # log inverse of default prior for q, ie rate when shape is 1
   loe = list(mean=0, sd=1),
@@ -254,7 +282,8 @@ extraneous_covname_error <- function(res){
 #'
 #'
 #' @noRd
-process_priors <- function(priors, qm, cm, pm, em, qmobs){
+process_priors <- function(priors, qm, cm, pm, em, qmobs,
+                           call=caller_env()){
   if (identical(priors, "mle")){
     mle <- TRUE; priors <- NULL
   } else mle <- FALSE
@@ -269,28 +298,32 @@ process_priors <- function(priors, qm, cm, pm, em, qmobs){
   logscalesd <- rep(.default_priors$logscale$sd, pm$npastates) # ugh? separate function?
   loamean <- rep(.default_priors$loa$mean, qm$noddsabs)
   loasd <- rep(.default_priors$loa$sd, qm$noddsabs)
+  logrramean <- rep(.default_priors$logrra$mean, cm$nrra)
+  logrrasd <- rep(.default_priors$logrra$sd, cm$nrra)
   loemean <- rep(.default_priors$loe$mean, em$nepars)
   loesd <- rep(.default_priors$loe$sd, em$nepars)
-  loghr_user <- rep(FALSE, cm$nx)
+  loghr_user <- rep(FALSE, cm$ntafs)
 
   for (i in seq_along(priors)){
     prior <- priors[[i]]
     if (prior$par_base=="logq"){
-      qind <- get_prior_qindex(prior, qmobs, pm, markov_only=TRUE)
-      logqmean[qind] <- prior$mean # fIXME if npriorq<nqpars, qind should go up to npriorq
+      qind <- get_prior_qindex(prior, qmobs, qm, pm, markov_only=TRUE)
+      logqmean[qind] <- prior$mean
       logqsd[qind] <- prior$sd
     }
     else if (prior$par_base=="loghr"){
-      if (cm$nx==0)
-        cli_warn("Ignoring prior on {.var loghr}, as no covariates in the model")
-      else {
-        qind <- get_prior_qindex(prior, qmobs, pm, markov_only=FALSE)
-        bind <- get_prior_hrindex(prior, qmobs, cm, qind)
-        loghrmean[cm$consid[bind]] <- prior$mean
-        loghrsd[cm$consid[bind]] <- prior$sd
-        loghr_user[bind] <- TRUE
-        check_repeated_prior(bind, cm, loghr_user)
+      check_prior_loghr(prior, cm, pm, call=call)
+      if (cm$nx>0) {
+        tafind <- get_prior_hrindex(prior, qmobs, qm, cm, pm, call)
+        loghrmean[cm$tafdf$consid[tafind]] <- prior$mean
+        loghrsd[cm$tafdf$consid[tafind]] <- prior$sd
+        loghr_user[tafind] <- TRUE
+        check_repeated_prior(tafind, cm, loghr_user)
       }
+    } else if (prior$par_base=="loghrscale"){
+      phrind <- get_prior_pastate(prior, cm, pm, call)
+      loghrmean[phrind] <- prior$mean
+      loghrsd[phrind] <- prior$sd
     } else if (prior$par_base=="logshape"){
       ind <- get_prior_ssindex(prior, pm)
       logshapemean[ind] <- prior$mean; logshapesd[ind] <- prior$sd
@@ -304,6 +337,10 @@ process_priors <- function(priors, qm, cm, pm, em, qmobs){
       loemean[ind] <- prior$mean; loesd[ind] <- prior$sd
     } else if (prior$par_base=="loa"){
       loamean[prior$ind] <- prior$mean; loasd[prior$ind] <- prior$sd
+    } else if (prior$par_base=="logrra"){
+      ind <- get_prior_rraindex(prior, cm)
+      logrramean[ind] <- prior$mean
+      logrrasd[ind] <- prior$sd
     }
   }
   lb <- logshape_bounds(pm)
@@ -313,14 +350,17 @@ process_priors <- function(priors, qm, cm, pm, em, qmobs){
        logscalemean = as.array(logscalemean), logscalesd = as.array(logscalesd),
        logshapemin = as.array(lb$min), logshapemax = as.array(lb$max),
        loamean = as.array(loamean), loasd = as.array(loasd),
+       logrramean = as.array(logrramean), logrrasd = as.array(logrrasd),
        loemean = as.array(loemean), loesd = as.array(loesd),
        mle = mle)
 }
 
-check_repeated_prior <- function(bind, cm, loghr_user){
-  cids <- setdiff(which(loghr_user & (cm$consid == cm$consid[bind])), bind)
+check_repeated_prior <- function(tafind, cm, loghr_user){
+  cids <- setdiff(which(loghr_user &
+                        (cm$tafdf$consid == cm$tafdf$consid[tafind])), tafind)
   if (length(cids) > 0){
-    bad_eff <- sprintf("loghr(%s,%s,%s)",cm$Xnames[bind], cm$xfrom[bind], cm$xto[bind])
+    bad_eff <- sprintf("loghr(%s,%s,%s)",cm$tafdf$names[tafind],
+                       cm$tafdf$from[tafind], cm$tafdf$to[tafind])
     cli_warn("Ignoring redundant prior for constrained covariate effect{?s} {bad_eff}")
   }
 }
@@ -354,8 +394,12 @@ check_priors <- function(priors){
 }
 
 ##' Which in the set of transition intensities does a prior refer to
+##'
+##' prior should have $ind1 and $ind2 components
+##'
 ##' @noRd
-get_prior_qindex <- function(prior, qm, pm, markov_only=TRUE){
+get_prior_qindex <- function(prior, qmobs, qmlatent, pm, markov_only=TRUE){
+  qm <- if (pm$phasetype && !pm$phaseapprox) qmlatent else qmobs
   if (prior$ind1 == "all_indices")
     qind <- seq_len(qm$npriorq)
   else {
@@ -366,29 +410,78 @@ get_prior_qindex <- function(prior, qm, pm, markov_only=TRUE){
   if (length(qind)==0){
     if (prior$ind1 %in% pm$pastates)
       cli_abort(c("Prior supplied for intensity {prior$ind1}-{prior$ind2}, but state {prior$ind1} has a phase-type approximation distribution.",
-                  "A comparable prior should be placed on logshape[{prior$ind1}]"))
+                  "A comparable prior should be placed on logscale[{prior$ind1}]"))
     else
       cli_abort("Unknown prior parameter: transition {prior$ind1}-{prior$ind2} is not in the model")
   }
   qind
 }
 
+
+check_prior_loghr <- function(prior, cm, pm, call=caller_env()){
+  fromstate <- if (!is.null(prior$ind1)) prior$ind1 else prior$ind
+  if (!is.null(fromstate) && (fromstate %in% pm$pastates))
+    cli_abort(c("Prior supplied for {.var loghr} from state {fromstate}, but this state has a phase-type approximation.",
+                "Did you mean to use a prior for {.var loghrscale}?"), call=call)
+  if (cm$nx==0)
+    cli_warn("Ignoring prior on {.var loghr}, as no covariates in the model")
+}
+
+
 ##' Which in the set of covariate effect parameters does a prior refer to
+##' @param prior
+##' Should have components
+##' ind1, ind2: from and to observable state
+##' covname: covariate name
+##'
+##' @return index on the set 1:cm$nxuniq
 ##'
 ##' @noRd
-get_prior_hrindex <- function(prior, qm, cm, qind){
-  binds <- numeric()
-  for (i in seq_along(qind)) # qind may refer to one or all transitions
-    binds <- c(binds, cm$xstart[qind[i]]:cm$xend[qind[i]])
-  if (!is.null(prior$covname))
-    bind <- binds[cm$Xnames[binds] == prior$covname]
-  else bind <- binds # same prior for all covs on this transition
-  if (length(bind)==0){
-    trans <- paste0(qm$qrow[qind], "-", qm$qcol[qind])
-    cli_abort(c("Bad prior specification: covariate effect name {.var {prior$covname}} is not in the model for transition {trans}",
-                "Valid names include {.var {unique(cm$Xnames[binds])}}"))
+get_prior_hrindex <- function(prior, qmobs, qmlatent, cm, pm, call=caller_env()){
+  trans_allowed <- if (pm$phasetype && !pm$phaseapprox) qmlatent$qlab else qmobs$tr$qlab
+  ## check for pastates already done in check_prior_loghr
+  if (prior$ind1 == "all_indices")  ## just supplied covariate name, apply this to transitions from all Markov states
+    tind <- !(cm$tafdf$from %in% pm$pastates)
+  else  {
+    trans <- paste0(prior$ind1, "-", prior$ind2)
+    if (!(trans %in% trans_allowed))
+      cli_abort("Invalid prior specification for {.var loghr}: transition {trans} is not in the model", call=call)
+    tind <- (cm$tafdf$from == prior$ind1) & (cm$tafdf$to == prior$ind2)
   }
-  bind
+  covnames <- unique(cm$tafdf$name[tind])
+  if (is.null(prior$covname))  prior$covname <- covnames # same prior used for all effects on this transition
+  tafind <- which(tind  &  cm$tafdf$name %in% prior$covname)
+  if (length(tafind) == 0)
+    cli_abort(c("Bad prior specification: covariate effect name {.var {prior$covname}} is not in the model for transition {trans}",
+                "Valid names include {.var {covnames}}"), call=call)
+  tafind
+}
+
+##' @param prior   Should have components:
+##' ind: observable state: one of the "pastates"
+##' covname: covariate name
+##'
+##' @return index of unique covariate effect parameter that represents the
+##' time acceleration factor for this state/name.  index on the set 1:cm$nxuniq
+##'
+##' @noRd
+get_prior_pastate <- function(prior, cm, pm, call=caller_env()){
+  if (!is.null(prior$ind2))
+    cli_abort("prior for {.var loghrscale} should only have one state index",
+              call=call)
+  if (!(prior$ind %in% pm$pastates))
+    cli_abort(c("prior for {.var loghrscale} should refer to one of the states given a {.var pastates} model, {pm$pastates}",
+                "Found state {prior$ind}"), call=call)
+  cm$tafdf$consid[cm$tafdf$from==prior$ind &
+                  cm$tafdf$names==prior$covname]
+}
+
+get_prior_rraindex <- function(prior, cm){
+  ind <- which(cm$rradf$from==prior$ind1 & cm$rradf$to==prior$ind2)
+  if (length(ind)==0){
+    cli_abort("Unknown prior parameter {prior$par}: transition {prior$ind1}-{prior$ind2} is not a competing exit transition in a {.var pastates} model")
+  }
+  ind
 }
 
 ## Which in the set of misclassification error log odds does a prior refer to

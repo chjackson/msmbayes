@@ -23,7 +23,7 @@ msmbayes_form_internals <- function(data, state="state", time="time", subject="s
   check_data(data, state, time, subject,
              obstype=obstype, obstrue=obstrue,
              qm, censor_states, prior_sample=prior_sample, call=call)
-  cm <- form_covariates(covariates, data, constraint, qm, pm, qmobs)
+  cm <- form_covariates(covariates, data, constraint, qm, pm, qmobs, call=call)
   data <- clean_data(data, state, time, subject, 
                      X=cm$X, obstype=obstype, deathexact=deathexact,
                      obstrue=obstrue, censor_states=censor_states,
@@ -32,7 +32,7 @@ msmbayes_form_internals <- function(data, state="state", time="time", subject="s
   em$censor <- any(data$state==0) # use non-HMM lik if no censor codes in data
   em$hmm <- em$ne>0 || em$censor  #  and no misclassification
 
-  priors <- process_priors(priors, qm, cm, pm, em, qmobs)
+  priors <- process_priors(priors, qm, cm, pm, em, qmobs, call=call)
   soj_priordata <- form_soj_priordata(soj_priordata)
   list(qm=qm, pm=pm, cm=cm, em=em, qmobs=qmobs,
        data=data, priors=priors, soj_priordata=soj_priordata)
@@ -65,7 +65,7 @@ form_qmodel <- function(Q,Qfix=NULL){
     ttype="markov" # may be overwritten
   )
 
-  ## TODO
+  ## TODO clean up structure
 
   res <- list(
     Q = Q, K = nrow(Q),

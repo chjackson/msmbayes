@@ -68,14 +68,33 @@ intensities.  If doing this, then take care with potential lack of
 identifiability of effects from sparse data.
 
 In models with phase-type approximated states (specified with
-\code{pastates}), as in standard Markov models, the numbers inside \code{Q()}
-refer to the observed state space.  For such phase-type models, the
-covariate has an identical multiplicative effect on all rates of
-transition between phases for a given states.
+\code{pastates}), covariates are modelled through an accelerated failure
+time model.  The effect is a multiplier on the scale parameter of
+the sojourn distribution.  The covariate then has an identical
+multiplicative effect on all rates of transition between phases for
+a given state.  The left hand side of the formula should contain
+\code{scale} instad of \code{Q}.  For example, if state 1 has a phase type
+approximation, but state 2 is Markov, then we might supply
+covaroates covariates as:
+
+\code{covariates = list(scale(1) ~ age + sex,
+                        Q(2,1) ~ age)}
+
+In models with phase-type approximations and competing exit states,
+covariates on the relative risk of different exit states are
+specified with a formula with \code{rra} on the left hand side.  For
+example in a model where state 1 has a phase-type approximation,
+and the next state could be either 2 or 3, a linear model on the
+log relative risk of transition to 3 (relative to the baseline 2)
+might be specified as:
+
+\code{covariates = list(scale(1) ~ age + sex,
+                        rra(1,3) ~ x + time)}
 
 In phase-type models specified with \code{nphase}, or misclassification
-models (specified with \code{E}), the numbers in \code{Q()} refer to transition
-rates on the latent state space.}
+models (specified with \code{E}), covariates on transition intensities
+are specified with \code{Q()}, where the numbers inside \code{Q()} refer to
+the latent state space.}
 
 \item{pastates}{This indicates which states (if any) are given a
 Weibull or Gamma sojourn distribution approximated by a phase-type model

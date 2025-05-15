@@ -29,12 +29,31 @@ time to the next transition to state \eqn{s} for people in state \eqn{r}
 and switching to observing a different person if a competing
 transition happens).  The same format as \code{logq} and \code{q} with two indices.
 
-\code{"loghr"}. Log hazard ratio.
-The covariate name is supplied alongside the
-transition indices, e.g. \code{"loghr(age,2,3)"} for the effect of \code{age}
-on the log hazard ratio of transitioning from state 2 to state 3.
-For factor covariates, this should include the level,
-e.g. \code{"loghr(sexMALE,2,3)"} for level \code{"MALE"} of factor \code{"sex"}.
+\code{"loghr"}. Covariate effect on intensities of transition from
+states given a Markov model. The covariate name is supplied
+alongside the transition indices, e.g. \code{"loghr(age,2,3)"} for the
+effect of \code{age} on the log hazard ratio of transitioning from state
+2 to state 3.  For factor covariates, this should include the
+level, e.g. \code{"loghr(sexMALE,2,3)"} for level \code{"MALE"} of factor
+\code{"sex"}.
+
+\code{"loghrscale"}. Covariate effect on the sojourn time in states
+given a semi-Markov models with a phase-type approximation.  This
+is specified with only one index, indicating the state,
+e.g. \code{"loghr(age,2)"}.  Note this is interpreted as a log hazard
+ratio for times to transitions on the latent space, but for the
+sojourn time on the observable space, this is interpreted as a time
+acceleration factor, such that an coefficent of log(2) increases
+the risk of the next transition through halving the expected
+sojourn time.
+
+Covariate effects on competing transitions out of semi-Markov
+states are also specified with \code{loghr}.  For example,
+\code{"loghr(age,2,3)"} for the effect of \code{age} on the relative rate of
+transition from state 2 to state 3, relative to the rate of
+transition from state 2 to the first competing destination state.
+These parameters are not applicable to semi-Markov states with only
+one potential next destination state.
 
 \code{"hr"}. Hazard ratio.
 
@@ -65,7 +84,7 @@ the same prior will used for all transitions, or/and all
 covariates.  This can be done with or without the brackets, e.g.
 \code{"logq()"} or \code{"logq"} are both understood.}
 
-\item{mean}{Prior mean.  This is only used for the parameters that have direct normal priors, that is \code{logq}, \code{loghr}, \code{logshape}, \code{logscale}, \code{loe}, \code{loa}.  That is, excluding \code{time}, \code{q} and \code{hr}, whose priors are defined by transformations of a normal distribution.}
+\item{mean}{Prior mean.  This is only used for the parameters that have direct normal priors, that is \code{logq}, \code{loghr}, \code{loghrscale}, \code{logshape}, \code{logscale}, \code{loe}, \code{loa}.  That is, excluding \code{time}, \code{q} and \code{hr}, whose priors are defined by transformations of a normal distribution.}
 
 \item{sd}{Prior standard deviation (only for parameters with direct normal priors)}
 

@@ -383,13 +383,22 @@ form_phaseapprox_comprisk_data <- function(qm, pm){
 #' msmbayes output functions) to appropriate labels for states in
 #' phase-type models.
 #'
+#' @param space whether dat$from, dat$to are on observed or latent space on input
+#' 
+#' TIDYME
+#' Used in qdf, edf, pmatrixdf, mean_sojourn, loghr, totlos
+#' loghr uses space=observed.
+#'
+#' 
+#'
 #' @noRd
 relabel_phase_states <- function(dat, draws, wide=TRUE, space="latent"){
   pdat <- attr(draws, "pmodel")$pdat
   tdat <- attr(draws, "qmodel")$phasedata
   if (is_phaseapprox(draws) && (space=="observed")){
-    dat[["from"]] <- pdat$oldinds[dat[["from"]]]
-    dat[["to"]] <- pdat$oldinds[dat[["to"]]]
+# unsure we need this, dat$from, dat$to are already on the observed space as we need.  can't have log HRs on latent space in phaseapprox models
+#    dat[["from"]] <- pdat$oldinds[dat[["from"]]]
+#    dat[["to"]] <- pdat$oldinds[dat[["to"]]]
   } else if (is_phasetype(draws)){
     if (!is.null(dat[["state"]])){
       if (wide) {
@@ -401,8 +410,8 @@ relabel_phase_states <- function(dat, draws, wide=TRUE, space="latent"){
     if (!is.null(dat[["from"]])){
       if (wide) {
         dat[["fromobs"]] <- pdat$oldinds[dat[["from"]]]
-        dat[["toobs"]] <- pdat$oldinds[dat[["to"]]]
         dat[["fromphase"]] <- pdat$phaseinds[dat[["from"]]]
+        dat[["toobs"]] <- pdat$oldinds[dat[["to"]]]
         dat[["tophase"]] <- pdat$phaseinds[dat[["to"]]]
         dat[["ttype"]] <-
           tdat$ttype[match(paste(dat$from,dat$to), paste(tdat$qrow,tdat$qcol))]

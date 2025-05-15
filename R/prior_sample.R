@@ -52,12 +52,14 @@ msmbayes_prior_sample <- function(data, state="state", time="time", subject="sub
   res <- logq
 
   if (cm$nx > 0){
+    ## TODO ensure works with phaseapprox, repeated effects
+    ## designed to match Stan par names  
     loghr <- matrix(nrow=nsim, ncol=cm$nx)
     for (i in 1:cm$nx){
       loghr[,i] <- rnorm(nsim, priors$loghrmean[i], priors$loghrsd[i])
     }
     loghr <- as.data.frame(loghr)
-    names(loghr) <- sprintf("loghr[%s,%s,%s]", cm$Xnames, cm$xfrom, cm$xto)
+    names(loghr) <- sprintf("loghr[%s,%s,%s]", cm$hrdf$names, cm$hrdf$from, cm$hrdf$to)
     res <- cbind(res, loghr)
   }
   if (pm$phaseapprox){
