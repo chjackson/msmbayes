@@ -120,5 +120,6 @@ test_that("msmprior for all indices",{
 
   priors1 <- msmprior("logq", mean=-1, sd=2)
   priors2 <- msmprior("logq()", mean=-1, sd=2)
-  expect_equal(priors1, priors2)
+  nm <- setdiff(names(priors1), "username")
+  expect_equal(priors1[nm], priors2[nm])
 })

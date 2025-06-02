@@ -46,10 +46,15 @@ parse_constraint <- function(constraint, cm, qm, pm, qmlatent, call=caller_env()
   ## extra processing - need not be in this function
   cm$tafdf$class <- ifelse(cm$tafdf$from %in% pm$pastates, "scale", "q")
   cm$nxuniq <- if (nrow(cm$tafdf)==0) 0 else max(cm$tafdf$consid)
-  cm$hrdf$from_latent <- cm$hrdf$to_latent <- rep(NA, nrow(cm$hrdf))
-  for (i in unique(cm$hrdf$from)){
-    cm$hrdf$from_latent[cm$hrdf$from==i] <- qmlatent$phasedata$qrow[qmlatent$phasedata$oldfrom==i]
-    cm$hrdf$to_latent[cm$hrdf$from==i] <- qmlatent$phasedata$qcol[qmlatent$phasedata$oldfrom==i]
+  if (nrow(cm$hrdf) > 0){
+    cm$hrdf$lab <- paste0(cm$hrdf$from, "-", cm$hrdf$to)
+    cm$hrdf$from_latent <- cm$hrdf$to_latent <- rep(NA, nrow(cm$hrdf))
+    if (pm$phasetype){
+      pdat <- qmlatent$phasedata
+      trid <- match(cm$hrdf$lab, pdat$qlab)
+      cm$hrdf$from_latent <- pdat$qrow[trid]
+      cm$hrdf$to_latent <- pdat$qcol[trid]
+    }
   }
 
   cm

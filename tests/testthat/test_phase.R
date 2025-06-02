@@ -29,6 +29,7 @@ test_that("Covariates in phase-type model, print and summary",{
                                   msmprior("hr(sexmale,3,1)", lower=0.9, upper=1.1)),
                     fit_method="optimize")
   hr(draws)
+  summary(draws) # FIXME phase state IDs not relabelled in hr rows
 })
 
 test_that("Errors in E handled when misclassification on top of phase-type model",{

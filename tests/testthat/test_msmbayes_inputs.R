@@ -81,8 +81,8 @@ test_that("missing values",{
 #  options(warn=2)
 
   data_na <- data.frame(
-    state = c(1,1,2,1,2,2), time = c(1,2,3,NA,NA,3),
-    subject = c(1,1,1,2,2,2), cov1 = c(1,2,3,1,3,4))
+    state = c(1,1,2,1,2,2,2), time = c(1,2,3,NA,NA,3,4),
+    subject = c(1,1,1,2,2,2,2), cov1 = c(1,2,3,1,3,4,4))
   expect_warning(
     msmbayes(dat = data_na, state="state", time="time", subject="subject", Q=Q),
     "missing time")
@@ -106,7 +106,7 @@ test_that("missing values",{
     subject = c(1,1,1,2,2,2), cov1 = c(1,NA,3,1,3,4))
   expect_warning(
     msmbayes(dat = data_na, state="state", time="time", subject="subject", Q=infsimQ,
-             covariates = list(Q(1,2) ~ cov1)),
+             covariates = list(Q(1,2) ~ cov1), algorithm = "Fixed_param"),
     "missing covariate values")
 
   data_na_cov_last_obs <- data.frame(
