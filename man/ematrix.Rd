@@ -4,10 +4,15 @@
 \alias{ematrix}
 \title{Matrix of misclassification error probabilities from an msmbayes model}
 \usage{
-ematrix(draws)
+ematrix(draws, type = "posterior")
 }
 \arguments{
 \item{draws}{Object returned by \code{\link{msmbayes}}.}
+
+\item{type}{\code{"posterior"} to return \code{rvar} objects containing posterior samples.
+
+\code{"mode"} to return posterior modes (only applicable if model was fitted
+with posterior mode optimisation).}
 }
 \value{
 An array or matrix of \code{rvar} objects containing the

@@ -7,7 +7,6 @@
 \alias{infsim_modelc}
 \alias{infsim_modelp}
 \alias{infsim_modelpc}
-\alias{cav_misc}
 \title{Example fitted model objects used for testing msmbayes}
 \format{
 An object of class \code{msmbayes}, obtained by fitting a
@@ -21,9 +20,6 @@ intensities.
 \code{infsim_modelp} is a phase-type model.
 
 \code{infsim_modelpc} is a phase-type model with covariates.
-
-\code{cav_misc} is the misclassification model fitted to the CAV data from msm in the "Advanced multi-state models in msmbayes" vignette.
-intensities.
 }
 \source{
 Simulated
@@ -36,8 +32,6 @@ infsim_modelc
 infsim_modelp
 
 infsim_modelpc
-
-cav_misc
 }
 \description{
 Example fitted model objects used for testing msmbayes

@@ -15,16 +15,15 @@ soj_prob(draws, t, state, new_data = NULL, method = "analytic")
 
 \item{new_data}{Data frame with covariate values to predict for}
 
-\item{method}{If \code{"analytic"} then for \code{nphase} 5 or less, an
-analytic solution to the matrix exponential is employed in the
-calculation.  For \code{nphase} 6 or more, or if \code{method="mexp"} the
-matrix exponential is determined using numerical methods, via
-\code{expm::expm()}.}
+\item{method}{Only applicable to phase-type models. Method for computing
+the matrix exponential involved in the phase-type sojourn distribution.
+See \code{\link{pnphase}}.}
 }
 \value{
-A data frame with column \code{value} giving the probability of
-remaining in \code{state} by time \code{t} since state entry, as an \code{rvar}
-object. Other columns give the time and any covariate values.
+A data frame with column \code{posterior} giving the posterior
+distribution for the probability of remaining in \code{state} by time
+\code{t} since state entry, as an \code{rvar} object. Other columns give
+the time and any covariate values.
 
 See \code{\link{qdf}} for notes on the \code{rvar} format.
 }

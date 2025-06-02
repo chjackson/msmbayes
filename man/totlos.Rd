@@ -4,7 +4,15 @@
 \alias{totlos}
 \title{Total length of stay in each state over an interval}
 \usage{
-totlos(draws, t, new_data = NULL, fromt = 0, pstart = NULL, discount = 0)
+totlos(
+  draws,
+  t,
+  new_data = NULL,
+  fromt = 0,
+  pstart = NULL,
+  discount = 0,
+  states = "obs"
+)
 }
 \arguments{
 \item{draws}{Object returned by \code{\link{msmbayes}}.}
@@ -19,6 +27,15 @@ length of stay in each state}
 \item{pstart}{Vector giving distribution of states at time 0}
 
 \item{discount}{Discount rate in continuous time}
+
+\item{states}{If \code{states="obs"} then this describes mean sojourn times in
+the observable states.  For phase-type models this is not
+generally equal to the sum of the phase-specific mean sojourn
+times, because an individual may transition out of the state
+before progressing to the next phase.
+
+If \code{states="phase"} then for phase-type models, this describes mean sojourn times
+in the latent state space.}
 }
 \value{
 Data frame with one row for each state and covariate value,

@@ -15,57 +15,61 @@ msmprior(
 }
 \arguments{
 \item{par}{Character string indicating the model parameter to place
-the prior on
+the prior on.  This should start with one of the following:
 
-This should start with one of the following:
+\code{"logq"}.  Log transition intensity.  It should then two include indices
+indicating the transition, e.g. \code{"logq(2,3)"} for the log
+transition intensity from state 2 to state 3.
 
-\code{"logq"}.  Log transition intensity.
-
-\code{"q"}, Transition intensity.
+\code{"q"}, Transition intensity (in the same format)
 
 \code{"time"}. Defined as \code{1/q}.  This can be interpreted as the mean
 time to the next transition to state \eqn{s} for people in state \eqn{r}
 (from the point of view of someone observing one person at a time,
 and switching to observing a different person if a competing
-transition happens).
+transition happens).  The same format as \code{logq} and \code{q} with two indices.
 
-\code{"loghr"}. Log hazard ratio.
+\code{"loghr"}. Covariate effect on intensities of transition from
+states given a Markov model. The covariate name is supplied
+alongside the transition indices, e.g. \code{"loghr(age,2,3)"} for the
+effect of \code{age} on the log hazard ratio of transitioning from state
+2 to state 3.  For factor covariates, this should include the
+level, e.g. \code{"loghr(sexMALE,2,3)"} for level \code{"MALE"} of factor
+\code{"sex"}.
+
+\code{"loghrscale"}. Covariate effect on the sojourn time in states
+given a semi-Markov models with a phase-type approximation.  This
+is specified with only one index, indicating the state,
+e.g. \code{"loghr(age,2)"}.  Note this is interpreted as a log hazard
+ratio for times to transitions on the latent space, but for the
+sojourn time on the observable space, this is interpreted as a time
+acceleration factor, such that an coefficent of log(2) increases
+the risk of the next transition through halving the expected
+sojourn time.
+
+Covariate effects on competing transitions out of semi-Markov
+states are also specified with \code{loghr}.  For example,
+\code{"loghr(age,2,3)"} for the effect of \code{age} on the relative rate of
+transition from state 2 to state 3, relative to the rate of
+transition from state 2 to the first competing destination state.
+These parameters are not applicable to semi-Markov states with only
+one potential next destination state.
 
 \code{"hr"}. Hazard ratio.
 
 \code{"loe"} Log odds of error (relative to no misclassification).
-
-\code{"logshape"} \code{"logscale"} Log shape or scale parameter for the
-sojourn distribution in a phase-type approximation model.
-
-\code{"loa"}.  Log odds of transition to a destination state in a
-phase-type approximation model with competing destination states.
-
-Then for transition intensities, it should two include indices
-indicating the transition, e.g. \code{"logq(2,3)"} for the log
-transition intensity from state 2 to state 3.
-
-For covariate effects, the covariate name is supplied alongside the
-transition indices, e.g. \code{"loghr(age,2,3)"} for the effect of \code{age}
-on the log hazard ratio of transitioning from state 2 to state 3.
-
-For factor covariates, this should include the level,
-e.g. \code{"loghr(sexMALE,2,3)"} for level \code{"MALE"} of factor \code{"sex"}.
-
-The indices or the covariate name can be omitted to indicate that
-the same prior will used for all transitions, or/and all
-covariates.  This can be done with or without the brackets, e.g.
-\code{"logq()"} or \code{"logq"} are both understood.
-
-For error rates in misclassification models, for example,
 \code{"loe(1,2)"} indicates the log odds of misclassification in state 2
 for true state 1, relative to no misclassifiation.
 
-In phase-type approximation models, the index indicates the state,
+\code{"logshape"} \code{"logscale"} Log shape or scale parameter for the
+sojourn distribution in a phase-type approximation model.
+The index indicates the state,
 e.g. \code{logshape(2)} and \code{logscale(2)} indicate the log shape and
 scale parameter for the sojourn distribution in state 2.
 
-The parameters \code{"loa"} are only used in phase-type approximation
+\code{"loa"}.  Log odds of transition to a destination state in a
+phase-type approximation model with competing destination states.
+These parameters are only used in phase-type approximation
 models where there are multiple potential states that an individual
 could transition to immediately on leaving the state that has a
 phase-type approximation sojourn distribution.  These parameters
@@ -73,11 +77,16 @@ are defined with two indices.  For example, \code{loa(1,2)} is the log
 odds of transition to state 2 on leaving state 1.  The odds
 is the probability of transition to state 2 divided by the
 probability of transition to the first out of the set of potential
-destination states.}
+destination states.
 
-\item{mean}{Prior mean (only used for \code{logq} or \code{loghr})}
+The indices or the covariate name can be omitted to indicate that
+the same prior will used for all transitions, or/and all
+covariates.  This can be done with or without the brackets, e.g.
+\code{"logq()"} or \code{"logq"} are both understood.}
 
-\item{sd}{Prior standard deviation (only used for \code{logq} or \code{loghr})}
+\item{mean}{Prior mean.  This is only used for the parameters that have direct normal priors, that is \code{logq}, \code{loghr}, \code{loghrscale}, \code{logshape}, \code{logscale}, \code{loe}, \code{loa}.  That is, excluding \code{time}, \code{q} and \code{hr}, whose priors are defined by transformations of a normal distribution.}
+
+\item{sd}{Prior standard deviation (only for parameters with direct normal priors)}
 
 \item{median}{Prior median}
 

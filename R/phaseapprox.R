@@ -3,12 +3,8 @@
 
 ##' Determine parameters of a phase-type model that approximate a parametric shape-scale distribution
 ##'
-##' @details The approximation is determined by finding the best-approximating phase transition rates
-##' for a given shape parameter, repeating for a grid of shape parameters, then interpolating the results
-##' with a cubic spline.  Full code is in \code{data-raw/kl_pointwise.R} in the source package.
-##' See \code{\link{phase5approx}} for the pointwise optimal parameters.  The approximation is done
-##' for a scale parameter of 1, and generalised to other scales via the accelerated failure time
-##' property.
+##' @details The approximating phase-type distribution is one for which the first three moments are the same
+##' as those of the target distribution.   See the vignettes and paper for full details. 
 ##'
 ##' @param shape shape parameter.  This can be vectorised.
 ##'
@@ -16,7 +12,7 @@
 ##'
 ##' @param family parametric family approximated by the phase-type distribution: `"weibull"` or `"gamma"`
 ##'
-##' @param method Type of spline used to interpolate between the training points (pointwise optima) when deriving the function that best maps the shape to each phase-type parameter
+##' @param method TODO decide whether to keep the spline method.
 ##'
 ##' @param nphase Number of phases.
 ##'

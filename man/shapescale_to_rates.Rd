@@ -9,7 +9,7 @@ shapescale_to_rates(
   scale = 1,
   family = "weibull",
   canonical = FALSE,
-  method = "kl_hermite",
+  method = "moment",
   nphase = 5,
   list = FALSE,
   drop = TRUE
@@ -24,7 +24,7 @@ shapescale_to_rates(
 
 \item{canonical}{Return the phase-type parameters in canonical form (phase 1 sojourn rate, sojourn rate increments in subsequent states, absorption probabilities).  If \code{FALSE} then phase transition rates are returned.}
 
-\item{method}{Type of spline used to interpolate between the training points (pointwise optima) when deriving the function that best maps the shape to each phase-type parameter}
+\item{method}{TODO decide whether to keep the spline method.}
 
 \item{nphase}{Number of phases.}
 
@@ -38,13 +38,6 @@ If a vector is supplied for shape or scale, the returned object (or the list com
 Determine parameters of a phase-type model that approximate a parametric shape-scale distribution
 }
 \details{
-The approximation is determined by finding the best-approximating phase transition rates
-for a given shape parameter, repeating for a grid of shape parameters, then interpolating the results
-with a cubic spline.  Full code is in \code{data-raw/kl_pointwise.R} in the source package.
-See \code{\link{phase5approx}} for the pointwise optimal parameters.  The approximation is done
-for a scale parameter of 1, and generalised to other scales via the accelerated failure time
-property.
-
-This function is not currently as efficient as it could be, since the spline interpolation is not
-vectorised.
+The approximating phase-type distribution is one for which the first three moments are the same
+as those of the target distribution.   See the vignettes and paper for full details.
 }

@@ -9,7 +9,9 @@ statetable(
   state = "state",
   subject = "subject",
   time = "time",
-  time_groups = 1
+  covariates = NULL,
+  time_groups = 1,
+  format = "wide"
 )
 }
 \arguments{
@@ -26,22 +28,42 @@ If omitted, this is assumed to be \code{"subject"}.}
 \item{time}{Character string naming the observation time variable in the data.
 If omitted, this is assumed to be \code{"time"}.}
 
+\item{covariates}{Vector of names of covariates to summarise counts by.}
+
 \item{time_groups}{Number of groups to summarise the time
 intervals by.  The transitions are categorised into groups
 according to equally-spaced quantiles of the time interval
 length.}
+
+\item{format}{\code{"long"} to return one row per \code{tostate}
+(a pure "tidy data" format) or \code{"wide"} to return one
+column per \code{tostate} (like \code{statetable.msm} in
+\pkg{msm}).}
 }
 \value{
-A data frame with columns \code{fromstate}, \code{tostate}, \code{timelag} and
-\code{n} (count of transitions)
+A data frame with columns \code{fromstate}, \code{timelag} and
+\code{n} (count of transitions), and column or columns for \code{tostate}.
 }
 \description{
 Tabulate observed transitions between states over successive observations, by
 from-state, to-state and (optionally) time interval length.
 }
 \details{
-This is like the function statetable.msm in msm, except that it
+This is like the function \code{statetable.msm} in \pkg{msm}, except that it
 uses msmbayes syntax for specifying the data, it also summarises
 the length of the time intervals between successive observations,
 and returns a tidy data frame.
+
+\strong{Warning}: it is not appropriate to choose the transition structure
+(the \code{Q} argument to \code{msmbayes()}) on the basis of this summary.
+\code{statetable} counts transitions over a \emph{time interval}, whereas
+\code{Q} indicates which \emph{instantaneous} transitions are possible.
+The structures will not be the same.  For example, in a model with
+instananeous transitions from mild to moderate illness, and moderate
+to severe, we might observe transitions from mild to severe over
+an interval of 1 year (say), but the instantaneous transition from
+mild to severe is impossible.
+
+Note this is not fully tidy-friendly, as it will not work
+if \code{data} is grouped using dplyr.
 }

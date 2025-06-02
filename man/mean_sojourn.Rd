@@ -11,13 +11,13 @@ mean_sojourn(draws, new_data = NULL, states = "obs")
 
 \item{new_data}{Data frame with covariate values to predict for}
 
-\item{states}{If "obs" then this describes mean sojourn times in
+\item{states}{If \code{states="obs"} then this describes mean sojourn times in
 the observable states.  For phase-type models this is not
 generally equal to the sum of the phase-specific mean sojourn
 times, because an individual may transition out of the state
 before progressing to the next phase.
 
-If "phase" then for phase-type models, this describes mean sojourn times
+If \code{states="phase"} then for phase-type models, this describes mean sojourn times
 in the latent state space.}
 }
 \value{

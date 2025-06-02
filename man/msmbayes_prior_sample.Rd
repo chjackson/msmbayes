@@ -13,11 +13,13 @@ msmbayes_prior_sample(
   covariates = NULL,
   pastates = NULL,
   pafamily = "weibull",
-  paspline = "hermite",
+  pamethod = "moment",
   nphase = NULL,
   E = NULL,
   priors = NULL,
-  nsim = 1
+  nsim = 1,
+  expand_q = FALSE,
+  expand_hr = FALSE
 )
 }
 \arguments{
@@ -46,7 +48,9 @@ determined by Stan from the prior distributions, and the specific
 values supplied for positive entries of \code{Q} are disregarded.}
 
 \item{covariates}{Specification of covariates on transition intensities.
-This should be a list of formulae.  Each formula should have a
+This should be a list of formulae, or a single formula.
+
+If a list is supplied, each formula should have a
 left-hand side that looks like \code{Q(r,s)}, and a right hand side
 defining the regression model for the log of the transition intensity
 from state \eqn{r} to state \eqn{s}.
@@ -61,19 +65,41 @@ linear function of age and sex, and the log 2-1 transition intensity
 is a linear function of age.  You do not have to list all of the
 intensities here if some of them are not influenced by covariates.
 
-In standard Markov models and models with phase-type approximated
-states (specified with \code{pastates}), the numbers inside \code{Q()} refer
-to the observed state space.  For such phase-type models, the
-covariate has an identical multiplicative effect on all rates of
-transition between phases for a given states.
+If a single formula is supplied, this is assumed to apply to all
+intensities.  If doing this, then take care with potential lack of
+identifiability of effects from sparse data.
+
+In models with phase-type approximated states (specified with
+\code{pastates}), covariates are modelled through an accelerated failure
+time model.  The effect is a multiplier on the scale parameter of
+the sojourn distribution.  The covariate then has an identical
+multiplicative effect on all rates of transition between phases for
+a given state.  The left hand side of the formula should contain
+\code{scale} instad of \code{Q}.  For example, if state 1 has a phase type
+approximation, but state 2 is Markov, then we might supply
+covaroates covariates as:
+
+\code{covariates = list(scale(1) ~ age + sex,
+                        Q(2,1) ~ age)}
+
+In models with phase-type approximations and competing exit states,
+covariates on the relative risk of different exit states are
+specified with a formula with \code{rra} on the left hand side.  For
+example in a model where state 1 has a phase-type approximation,
+and the next state could be either 2 or 3, a linear model on the
+log relative risk of transition to 3 (relative to the baseline 2)
+might be specified as:
+
+\code{covariates = list(scale(1) ~ age + sex,
+                        rra(1,3) ~ x + time)}
 
 In phase-type models specified with \code{nphase}, or misclassification
-models (specified with \code{E}), the numbers in \code{Q()} refer to transition
-rates on the latent state space.}
+models (specified with \code{E}), covariates on transition intensities
+are specified with \code{Q()}, where the numbers inside \code{Q()} refer to
+the latent state space.}
 
 \item{pastates}{This indicates which states (if any) are given a
-Weibull or Gamma sojourn distribution approximated by a 5-phase
-model.
+Weibull or Gamma sojourn distribution approximated by a phase-type model
 Ignored if \code{nphase} is supplied.}
 
 \item{pafamily}{\code{"weibull"} or \code{"gamma"}, indicating the
@@ -81,12 +107,13 @@ approximated sojourn distribution in the phased state.  Either a
 vector of the same length as \code{pastates}, or just one to apply to
 all states.}
 
-\item{paspline}{\code{"linear"} or \code{"hermite"}. Advanced: spline
-used in constructing the approximations. May remove this argument
-if one of these turns out to be good enough.}
+\item{pamethod}{\verb{"moment", "kl_linear"} or
+\code{"kl_hermite"}. Advanced.  Method of constructing the
+approximations. May remove this argument if one of these turns
+out to be good enough.}
 
 \item{nphase}{Only required for models with phase-type sojourn
-distributions specified manually (not through \code{pastates}).
+distributions specified directly (not through \code{pastates}).
 \code{nphase} is a vector with one element per state, giving the
 number of phases per state.  This element is 1 for states that do
 not have phase-type sojourn distributions.}
@@ -106,15 +133,38 @@ is ignored.}
 the result of a call to \code{\link{msmprior}}.  Any parameters
 with priors not specified here are given default priors: normal
 with mean -2 and SD 2 for log intensities, normal with mean
-0 and SD 10 for log hazard ratios, or normal(0,1) for all others
-(log shape, log scale and log odds parameters in
-phase-type approximation and misclassification models).  See
-\code{\link{msmprior}} for more details.
+0 and SD 10 for log hazard ratios, normal(0,1) for log odds parameters
+in misclassification models.
+
+In phase-type approximation models, the default priors are normal
+with mean 2, SD 2 for scale parameters (i.e. the log inverse of the
+default prior for the rate), normal(0, SD=0.5) truncated on the
+supported region for log shape parameters, and normal(0,1) for log
+odds of transition (relative to first exit state) in structures
+with competing exit states.
+
+See \code{\link{msmprior}} for more details.
 
 If only one parameter is given a non-default prior, a single \code{msmprior}
-call can be supplied here instead of a list.}
+call can be supplied here instead of a list.
+
+Maximum likelihood estimation can be performed by setting
+\code{priors="mle"}, and using \code{fit_method="optimize"}.  This is
+equivalent to estimating the posterior mode with improper uniform
+priors on the unconstrained parameter space (i.e. positive
+parameters on the log scale).  Uncertainty is then quantified by
+sampling from the multivariate normal defined by the Hessian at the
+mode .  The sample can be summarised to produce confidence
+intervals, as in the \code{ci="normal"} method in the \code{msm} package.
+These are equivalent to credible intervals from a Laplace
+approximation to the posterior.}
 
 \item{nsim}{Number of samples to generate}
+
+\item{expand_q}{If \code{TRUE} then parameters for transition rates will refer to states on the latent space.}
+
+\item{expand_hr}{If \code{TRUE} then parameters for transition rates and log hazard ratios on these will refer to states on the latent space,
+and covariate effects on scale parameters are replicated to produce one hazard ratio for each transition on the corresponding space of phases.}
 }
 \value{
 A data frame with one column per model parameter (on a transformed scale, e.g. log intensities), and one row per sample.    The names are in the natural
@@ -126,8 +176,9 @@ returned by \code{msmbayes} if this model were to be fitted to data.
 These are less user-interpretable than the natural names.
 }
 \description{
-Called in the same way as msmbayes.  The data are required here to
-ensure we are simulating from a valid msmbayes model, but it is
-sufficient to supply an empty data frame with no rows, and columns
-named as if we were fitting a model with these priors.
+Called in the same way as \code{\link{msmbayes}}.  The data should
+still be supplied in this function, to ensure we are simulating
+from a valid \code{\link{msmbayes}} model, but it is sufficient to
+supply an empty data frame with no rows, and columns named as if
+we were fitting a model with the given priors.
 }
