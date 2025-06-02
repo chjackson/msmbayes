@@ -76,7 +76,9 @@ form_covariates <- function(covariates, data, constraint, qm, pm, qmobs, call=ca
     prevend <- prevrrend <- 0
     ncmodels <- length(covariates)
     from <- to <- ncovs <- ncovsrra <- numeric(ncmodels)
-    tafid <- xnames <- xfrom <- xto <- rranames <- rrafrom <- rrato <- NULL
+    tafid <- xnames <- xfrom <- xto <- rranames <- rrafrom <- rrato <- numeric()
+
+    ## WIP to tidy all this, though loop may be clearer
     for (i in seq_len(ncmodels)){
       res <- parse_msm_formula(covariates[[i]], data, qmobs, pm, qm, call=call)
       X[[i]] <- res$hhat$predictors
@@ -93,7 +95,7 @@ form_covariates <- function(covariates, data, constraint, qm, pm, qmobs, call=ca
         xstart[qind] <- prevend + 1
         xend[qind] <- prevend + ncovs[i]
         nxq[qind] <- ncovs[i]
-        tafid <- if (is.null(tafid)) 1:ncovs[i] else c(tafid, max(tafid) + 1:ncovs[i])
+        tafid <- if (length(tafid)==0) 1:ncovs[i] else c(tafid, max(tafid) + 1:ncovs[i])
         xnames <- c(xnames, colnames(X[[i]]))
         xfrom <- c(xfrom, rep(from[i], ncovs[i]))
         xto <- c(xto, rep(to[i], ncovs[i]))
@@ -101,11 +103,11 @@ form_covariates <- function(covariates, data, constraint, qm, pm, qmobs, call=ca
       else if (res$response=="scale"){
         to[i] <- NA
         ncovs[i] <- ncol(X[[i]])
-        ml <- if (is.null(tafid)) 1:ncovs[i] else max(tafid) + 1:ncovs[i]
+        ml <- if (length(tafid)==0) 1:ncovs[i] else max(tafid) + 1:ncovs[i]
         inds <- which(qm$phasedata$oldfrom==fromto[1])
         for (qind in inds){
           ## same covariate effect is applied to different rates on
-          ## the latent space for an observable state.   TODO could this be tidier - duplicated code, avoid loop?
+          ## the latent space for an observable state. 
           xstart[qind] <- prevend + 1
           xend[qind] <- prevend + ncovs[i]
           nxq[qind] <- ncovs[i]
@@ -157,7 +159,7 @@ form_covariates <- function(covariates, data, constraint, qm, pm, qmobs, call=ca
                )
   }
   ## build database $tafdf of time acceleration factors + transition HRs, including constraints info
-  cm <- parse_constraint(constraint, cm, qmobs, pm, call)
+  cm <- parse_constraint(constraint, cm, qmobs, pm, qm, call=call)
 
   if (ncol(cm$X) != cm$ntafs + cm$nrra) cli_abort("Internal error in form_covariates: report a bug")
   if (nrow(cm$transdf) != qm$nqpars) cli_abort("Internal error in form_covariates: report a bug")

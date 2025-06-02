@@ -254,6 +254,7 @@ msmprior_parse <- function(par){
   if (!(res$name %in% .msmprior_pars_df$name))
     cli_abort(c("Unrecognised parameter {.var {res$name}}",
                 "Allowed parameters are {.var {(.msmprior_pars_df$name)}}"))
+  res$username <- par
   res
 }
 
@@ -287,6 +288,7 @@ process_priors <- function(priors, qm, cm, pm, em, qmobs,
   if (identical(priors, "mle")){
     mle <- TRUE; priors <- NULL
   } else mle <- FALSE
+  
   priors <- check_priors(priors)
   logqmean <- rep(.default_priors$logq$mean, qm$npriorq)
   logqsd <- rep(.default_priors$logq$sd, qm$npriorq)
@@ -466,12 +468,17 @@ get_prior_hrindex <- function(prior, qmobs, qmlatent, cm, pm, call=caller_env())
 ##'
 ##' @noRd
 get_prior_pastate <- function(prior, cm, pm, call=caller_env()){
+  if (length(pm$pastates)==0)
+    cli_abort("Supplied a prior for {.var loghrscale}, but there are no states given a {.var pastates} model") # TESTME
   if (!is.null(prior$ind2))
     cli_abort("prior for {.var loghrscale} should only have one state index",
               call=call)
   if (!(prior$ind %in% pm$pastates))
     cli_abort(c("prior for {.var loghrscale} should refer to one of the states given a {.var pastates} model, {pm$pastates}",
                 "Found state {prior$ind}"), call=call)
+  else if (sum(cm$tafdf$from == prior$ind) == 0)
+    cli_abort("Supplied a prior {.str {prior$username}}, but there are no covariates defined on state {prior$ind}")
+  ## TESTME
   cm$tafdf$consid[cm$tafdf$from==prior$ind &
                   cm$tafdf$names==prior$covname]
 }
@@ -479,7 +486,11 @@ get_prior_pastate <- function(prior, cm, pm, call=caller_env()){
 get_prior_rraindex <- function(prior, cm){
   ind <- which(cm$rradf$from==prior$ind1 & cm$rradf$to==prior$ind2)
   if (length(ind)==0){
-    cli_abort("Unknown prior parameter {prior$par}: transition {prior$ind1}-{prior$ind2} is not a competing exit transition in a {.var pastates} model")
+    if (nrow(cm$rradf)==0) 
+      msg <- "the model does not include covariates on competing exit transitions in a {.var pastates} model"
+    else
+      msg <- "transition {prior$ind1}-{prior$ind2} is not a competing exit transition in a {.var pastates} model"
+    cli_abort(paste0("Unknown prior parameter {prior$par}:",msg))
   }
   ind
 }

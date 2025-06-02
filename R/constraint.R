@@ -5,17 +5,14 @@
 #' @return A modified copy of the covariates internals object \code{cm}, adding
 #' \code{nxuniq} (number of unique effects) and \code{tafdf} (database of
 #' effects, including \code{consid} indicating which are constrained).
-#' 
+#'
 #' @noRd
-parse_constraint <- function(constraint, cm, qm, pm, call=caller_env()){
+parse_constraint <- function(constraint, cm, qm, pm, qmlatent, call=caller_env()){
   if (is.null(constraint)){
     ## todo is this just hrdf without replicated tafid.
     ## if so should these have the same names . no xfrom is ids
     cm$tafdf <- cm$hrdf[!duplicated(cm$hrdf$tafid),c("names","from","to")]
     cm$tafdf$consid <- as.array(seq_len(cm$ntafs))
-#    cm$tafdf <- data.frame(consid = as.array(seq_len(cm$ntafs)),
-#                           from = rep(cm$cmodeldf$from, cm$cmodeldf$ncovs),
-#                           to = rep(cm$cmodeldf$to, cm$cmodeldf$ncovs)) # TESTME order
   } else {
     constraint <- check_constraint(constraint, cm, pm, call)
     xnames <- character()
@@ -45,7 +42,16 @@ parse_constraint <- function(constraint, cm, qm, pm, call=caller_env()){
     tafdf$consid <- match(tafdf$consid, unique(tafdf$consid))
     cm$tafdf <- tafdf
   }
+
+  ## extra processing - need not be in this function
+  cm$tafdf$class <- ifelse(cm$tafdf$from %in% pm$pastates, "scale", "q")
   cm$nxuniq <- if (nrow(cm$tafdf)==0) 0 else max(cm$tafdf$consid)
+  cm$hrdf$from_latent <- cm$hrdf$to_latent <- rep(NA, nrow(cm$hrdf))
+  for (i in unique(cm$hrdf$from)){
+    cm$hrdf$from_latent[cm$hrdf$from==i] <- qmlatent$phasedata$qrow[qmlatent$phasedata$oldfrom==i]
+    cm$hrdf$to_latent[cm$hrdf$from==i] <- qmlatent$phasedata$qcol[qmlatent$phasedata$oldfrom==i]
+  }
+
   cm
 }
 

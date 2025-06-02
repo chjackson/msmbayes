@@ -447,6 +447,7 @@ relabel_phase_states <- function(dat, draws, wide=TRUE, space="latent"){
 form_phasetrans <- function(qm, pm){
   tdat <- as.data.frame(qm[c("qrow","qcol")])  # TODO naming. better as truefrom?
   pdat <- pm$pdat
+  tdat$qlab <- sprintf("%s-%s", tdat$qrow, tdat$qcol)
   tdat$oldfrom <- pdat$oldinds[tdat$qrow] # better as obsfrom?
   tdat$oldto <- pdat$oldinds[tdat$qcol]
   tdat$oldlab <- paste(tdat$oldfrom, tdat$oldto, sep="-")

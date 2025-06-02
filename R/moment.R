@@ -21,7 +21,7 @@ gamma_nmo <- function(shape, scale){
 ##' Normalised moments of the Weibull distribution
 ##'
 ##' @noRd
-weibull_nmo <- function(shape, scale){
+weibull_nmo <- function(shape, scale=1){
   mean <- m1 <- scale*gamma(1 + 1/shape)
   var <- scale^2*(gamma(1 + 2/shape) - gamma(1 + 1/shape)^2)
   sd <- sqrt(var)
@@ -43,7 +43,7 @@ weibull_nmo <- function(shape, scale){
 ##' Note these depend on sdlog, not meanlog.  This is the "scale" parameter
 ##' in the framework of the Titman phase-type paper, because modifying it
 ##' scales the failure time.  This contrasts with the Gamma and Weibull
-##' where the normalised moments depend on the "shape" parameter. 
+##' where the normalised moments depend on the "shape" parameter.
 ##'
 ##' @noRd
 lnorm_nmo <- function(meanlog, sdlog){
@@ -117,10 +117,10 @@ erlang_exp_case1 <- function(m1, n2, n3, n, check=FALSE){
       sqrt(12*n2^2*(n + 1) + 16*n3*(n + 1) + n2*(n*(n3 - 15)*(n3 + 1) - 8*(n3 + 3)))
     ))
   ## note b=1 and any other NaN not handled.
-  ## reduction to exponential distribution handled outside
 
   a <- ((b*n2 - 2)*(n - 1)*b) / ((b - 1)*n)
-  p <- (b - 1)/a
+  p <- ifelse(b==1, 0, # reduction to exponential distribution
+              (b - 1)/a)
 
   ## equate m1 to mean of the phasetype = p*((n-1)/mu + 1/lam) + (1-p)*1/lam,
   ## m1 =  p*(n-1)/mu + 1/lam, hence...
@@ -169,7 +169,7 @@ n3_moment_bounds_scalar <- function(n2, n3, n){
       pn <- (n + 1)*(n2 - 2)/(3*n2*(n - 1)) * ( (-2*sqrt(n + 1)) / sqrt(4*(n+1) - 3*n*n2) - 1 )
       an <- (n2 - 2) / (pn*(1 - n2) + sqrt(pn^2 + (pn*n*(n2 - 2) / (n - 1))))
       ln <- ((3 + an)*(n - 1) + 2*an) / ((n - 1)*(1 + an*pn))  -  (2*an*(n + 1)) / (2*(n - 1) + an*pn*(n*an + 2*n - 2))
-      lower <- ln
+      lower <- ifelse(is.nan(pn), 0, ln)
     }
     else
       lower <- (n+1)/n*n2
@@ -202,7 +202,7 @@ in_case2_bounds <- function(n2, n3, n){
   (n2 > (n / (n-1))) & (n3 > uprev)
 }
 
-shape_to_rates_moment <- function(shape, scale, family, nphase){
+shape_to_rates_moment <- function(shape, scale=1, family, nphase){
   nmoment_fn <- sprintf("%s_nmo",family)
   nmoments <- do.call(nmoment_fn, list(shape=shape, scale=scale))
   ee <- erlang_exp_case1(nmoments[["m1"]], nmoments[["n2"]],
@@ -222,6 +222,14 @@ shape_to_rates_moment <- function(shape, scale, family, nphase){
 
 gamma_shape_ubound <- function(nphase){
   nphase
+}
+
+gamma_shape_in_bounds <- function(shape, nphase){
+  n2 <- (shape+1)/shape
+  n3 <- (shape+2)/shape
+  b <- n3_moment_bounds(n2, n3, nphase)
+  ifelse(shape==1, rep(TRUE,length(shape)),
+        (shape <= nphase) & (n3 >= b$lower) & (n3 <= b$upper))
 }
 
 #fn <- function(shape, n=5){
