@@ -9,10 +9,10 @@ qphaseapprox(
   qmatrix,
   pastates,
   shape,
-  scale = 1,
+  scale,
   family = "weibull",
-  method = "kl_hermite",
-  att = FALSE
+  spline = "linear",
+  att = TRUE
 )
 }
 \arguments{
@@ -27,18 +27,21 @@ sojourn distribution in the non-Markov state to get the transition
 rates from the phases to the destination state.}
 
 \item{pastates}{This indicates which states (if any) are given a
-Weibull or Gamma sojourn distribution approximated by a phase-type model
+Weibull or Gamma sojourn distribution approximated by a 5-phase
+model.
 Ignored if \code{nphase} is supplied.}
 
-\item{shape}{shape parameter.  This can be vectorised.}
+\item{shape}{shape parameter}
 
-\item{scale}{scale parameter.  This can be vectorised.}
+\item{scale}{scale parameter}
 
 \item{family}{parametric family approximated by the phase-type distribution: \code{"weibull"} or \code{"gamma"}}
 
-\item{method}{Type of spline used to interpolate between the training points (pointwise optima) when deriving the function that best maps the shape to each phase-type parameter}
+\item{spline}{Type of spline used to interpolate between the training points (pointwise optima) when deriving the function that best maps the shape to each phase-type parameter}
 
-\item{att}{keep attributes indicating progression and absorption states}
+\item{att}{keep attributes indicating progression and absorption states
+
+TODO do we really need these, they are messy.}
 }
 \value{
 Intensity matrix on the latent state space.

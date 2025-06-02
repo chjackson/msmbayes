@@ -17,7 +17,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">msmbayes</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.3</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.2</span>
       </span>
     </div>
 
@@ -96,9 +96,11 @@
 
 
 <dt id="arg-method">method<a class="anchor" aria-label="anchor" href="#arg-method"></a></dt>
-<dd><p>Only applicable to phase-type models. Method for computing
-the matrix exponential involved in the phase-type sojourn distribution.
-See <code><a href="nphase.html">pnphase</a></code>.</p></dd>
+<dd><p>If <code>"analytic"</code> then for <code>nphase</code> 5 or less, an
+analytic solution to the matrix exponential is employed in the
+calculation.  For <code>nphase</code> 6 or more, or if <code>method="mexp"</code> the
+matrix exponential is determined using numerical methods, via
+<code><a href="https://rdrr.io/pkg/expm/man/expm.html" class="external-link">expm::expm()</a></code>.</p></dd>
 
 </dl></div>
     <div id="value">

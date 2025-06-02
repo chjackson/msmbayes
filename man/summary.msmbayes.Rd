@@ -4,59 +4,36 @@
 \alias{summary.msmbayes}
 \title{Summarise basic parameter estimates from an msmbayes model}
 \usage{
-\method{summary}{msmbayes}(object, pars = NULL, ...)
+\method{summary}{msmbayes}(object, log = FALSE, time = FALSE, ...)
 }
 \arguments{
 \item{object}{Object returned by \code{\link{msmbayes}}.}
 
-\item{pars}{Character string indicating the parameters to include in the summary.  This can include:
+\item{log}{Present log transition intensities and log hazard ratios,
+rather than transition intensities and hazard ratios.}
 
-\code{q}: transition intensities
+\item{time}{Present inverse transition intensities (i.e. mean times to events)}
 
-\code{logq}: log transition intensities
-
-\code{time}: inverse transition intensities (mean time to event without competing risks)
-
-\code{mst}: mean sojourn times
-
-\code{shape}, \code{scale}: shape and/or scale for Weibull/Gamma phase-type approximations
-
-\code{logshape},\code{logscale} corresponding log shape or scale
-
-\code{hr}: hazard ratios on transition intensities, including effects on
-scale parameters in phase-type approximation models.
-
-\code{loghr}: log hazard ratios
-
-\code{e}: misclassification probabilities
-
-This defaults to whichever of \code{c("q","mst","hr","shape","scale","e")} are included in the model.}
-
-\item{...}{Further arguments passed to both \code{\link{qdf}},
-\code{\link{hr}}, \code{\link{loghr}} and \code{\link{edf}}.}
+\item{...}{Further arguments passed to both \code{\link{qdf}} and \code{\link{loghr}}.}
 }
 \value{
 A data frame with one row for each basic model parameter,
 plus rows for the mean sojourn times.  The posterior distribution
-for the parameter is encoded in the column \code{posterior}, which
+for the parameter is encoded in the column \code{value}, which
 has the \code{rvar} data type defined by the \pkg{posterior
   package}.  This distribution can be summarised in any way by
 calling \code{summary} again on the data frame (see the
 examples).
+
+A string summarising a sample from the prior distribution, as a
+median and 95\% equal-tailed credible interval, is given in the
+\code{prior} column.
 
 Transition intensities, or transformations of transition
 intensities, are those for covariate values of zero.
 
 Remaining parameters (in non-HMMs) are log hazard ratios for
 covariate effects.
-
-The columns \code{prior_string} and \code{prior_rvar} summarise the
-corresponding prior distribution in two different ways.
-\code{prior_rvar} is a quasi-random sample from the prior in the \code{rvar}
-data type, and is printed as mean and standard deviation.  This
-sample can then be used to produce any summary or plot of the
-prior.  The string \code{prior_string} is a summary of this sample,
-showing the median and 95\% equal tailed credible interval.
 }
 \description{
 Summarise basic parameter estimates from an msmbayes model

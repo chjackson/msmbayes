@@ -20,7 +20,7 @@ named as if we were fitting a model with these priors."><!-- mathjax --><script 
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">msmbayes</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.3</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.2</span>
       </span>
     </div>
 
@@ -87,7 +87,7 @@ named as if we were fitting a model with these priors.</p>
 <span>  covariates <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  pastates <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  pafamily <span class="op">=</span> <span class="st">"weibull"</span>,</span>
-<span>  pamethod <span class="op">=</span> <span class="st">"moment"</span>,</span>
+<span>  paspline <span class="op">=</span> <span class="st">"hermite"</span>,</span>
 <span>  nphase <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  E <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  priors <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -145,9 +145,8 @@ from state \(r\) to state \(s\).</p>
 linear function of age and sex, and the log 2-1 transition intensity
 is a linear function of age.  You do not have to list all of the
 intensities here if some of them are not influenced by covariates.</p>
-<p>In models with phase-type approximated
-states (specified with <code>pastates</code>), as in standard Markov models, the
-numbers inside <code>Q()</code> refer
+<p>In standard Markov models and models with phase-type approximated
+states (specified with <code>pastates</code>), the numbers inside <code>Q()</code> refer
 to the observed state space.  For such phase-type models, the
 covariate has an identical multiplicative effect on all rates of
 transition between phases for a given states.</p>
@@ -158,7 +157,8 @@ rates on the latent state space.</p></dd>
 
 <dt id="arg-pastates">pastates<a class="anchor" aria-label="anchor" href="#arg-pastates"></a></dt>
 <dd><p>This indicates which states (if any) are given a
-Weibull or Gamma sojourn distribution approximated by a phase-type model
+Weibull or Gamma sojourn distribution approximated by a 5-phase
+model.
 Ignored if <code>nphase</code> is supplied.</p></dd>
 
 
@@ -169,16 +169,15 @@ vector of the same length as <code>pastates</code>, or just one to apply to
 all states.</p></dd>
 
 
-<dt id="arg-pamethod">pamethod<a class="anchor" aria-label="anchor" href="#arg-pamethod"></a></dt>
-<dd><p><code>"moment", "kl_linear"</code> or
-<code>"kl_hermite"</code>. Advanced.  Method of constructing the
-approximations. May remove this argument if one of these turns
-out to be good enough.</p></dd>
+<dt id="arg-paspline">paspline<a class="anchor" aria-label="anchor" href="#arg-paspline"></a></dt>
+<dd><p><code>"linear"</code> or <code>"hermite"</code>. Advanced: spline
+used in constructing the approximations. May remove this argument
+if one of these turns out to be good enough.</p></dd>
 
 
 <dt id="arg-nphase">nphase<a class="anchor" aria-label="anchor" href="#arg-nphase"></a></dt>
 <dd><p>Only required for models with phase-type sojourn
-distributions specified directly (not through <code>pastates</code>).
+distributions specified manually (not through <code>pastates</code>).
 <code>nphase</code> is a vector with one element per state, giving the
 number of phases per state.  This element is 1 for states that do
 not have phase-type sojourn distributions.</p></dd>

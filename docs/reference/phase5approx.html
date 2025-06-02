@@ -17,7 +17,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">msmbayes</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.3</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.2</span>
       </span>
     </div>
 
@@ -72,12 +72,12 @@
     </div>
 
     <div id="ref-usage">
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">phase5approx</span><span class="op">(</span>family <span class="op">=</span> <span class="st">"weibull"</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">phase5approx</span><span class="op">(</span><span class="va">family</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div id="source">
     <h2>Source</h2>
-    <p>Code in <code>data-raw/kl_pointwise.R</code> in the source package.</p>
+    <p>Code in kl_pointwise.R to provide...</p>
     </div>
     <div id="arguments">
     <h2>Arguments</h2>
@@ -89,11 +89,12 @@
 </dl></div>
     <div id="value">
     <h2>Value</h2>
-    <p>A list with components:</p>
-<p><code>traindat</code>: data frame of training data, giving the optimal
-phase-type parameters for each of a grid of shape parameters.</p>
-<p><code>traindat_grad</code> assumed gradient values at the training points,
-for Hermite spline interpolation</p>
+    <p><code>traindat</code>: data frame of training data giving the optimal
+phase-type parameters for each of a grid of shape parameters
+TODO rename a to shape</p>
+<p>Do we need anything else?  gradient?</p>
+<p>smods is redundant surely</p>
+<p>TODO document further, work in progress.</p>
     </div>
 
   </div>

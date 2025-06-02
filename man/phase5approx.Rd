@@ -4,22 +4,24 @@
 \alias{phase5approx}
 \title{Training data to construct phase-type approximations of standard survival distributions}
 \source{
-Code in \code{data-raw/kl_pointwise.R} in the source package.
+Code in kl_pointwise.R to provide...
 }
 \usage{
-phase5approx(family = "weibull")
+phase5approx(family)
 }
 \arguments{
 \item{family}{parametric family approximated by the phase-type distribution: \code{"weibull"} or \code{"gamma"}}
 }
 \value{
-A list with components:
+\code{traindat}: data frame of training data giving the optimal
+phase-type parameters for each of a grid of shape parameters
+TODO rename a to shape
 
-\code{traindat}: data frame of training data, giving the optimal
-phase-type parameters for each of a grid of shape parameters.
+Do we need anything else?  gradient?
 
-\code{traindat_grad} assumed gradient values at the training points,
-for Hermite spline interpolation
+smods is redundant surely
+
+TODO document further, work in progress.
 }
 \description{
 Only 5-phase approximations are included.

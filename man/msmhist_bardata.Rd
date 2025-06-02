@@ -7,9 +7,9 @@ plot in \code{msmhist}}
 \usage{
 msmhist_bardata(
   data,
-  state = "state",
-  time = "time",
-  subject = "subject",
+  state,
+  time,
+  subject,
   nbins,
   absorbing = NULL,
   censtimes = NULL

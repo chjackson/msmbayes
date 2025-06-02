@@ -4,7 +4,7 @@
 \alias{qmatrix}
 \title{Transition intensity matrix from an msmbayes model}
 \usage{
-qmatrix(draws, new_data = NULL, X = NULL, drop = TRUE, type = "posterior")
+qmatrix(draws, new_data = NULL, X = NULL, drop = TRUE)
 }
 \arguments{
 \item{draws}{Object returned by \code{\link{msmbayes}}.}
@@ -20,14 +20,9 @@ in turn.}
 \code{new_data}. Then if \code{drop=TRUE} this returns a
 \code{nstates} x \code{nstates} matrix, or if \code{drop=FALSE}
 this returns a 3D array with first dimension \code{ncovs=1}.}
-
-\item{type}{\code{"posterior"} to return \code{rvar} objects containing posterior samples.
-
-\code{"mode"} to return posterior modes (only applicable if model was fitted
-with posterior mode optimisation).}
 }
 \value{
-An array or matrix of \code{rvar} objects or numbers, representing the
+An array or matrix of \code{rvar} objects containing the
 transition intensity matrix for each new prediction data point
 }
 \description{

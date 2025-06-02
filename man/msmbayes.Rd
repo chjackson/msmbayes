@@ -13,20 +13,13 @@ msmbayes(
   covariates = NULL,
   pastates = NULL,
   pafamily = "weibull",
-  pamethod = "moment",
-  panphase = NULL,
+  paspline = "hermite",
   E = NULL,
   Efix = NULL,
-  obstype = NULL,
-  deathexact = FALSE,
-  obstrue = NULL,
-  censor_states = NULL,
-  constraint = NULL,
   nphase = NULL,
   priors = NULL,
-  prob_initstate = NULL,
   soj_priordata = NULL,
-  fit_method = NULL,
+  fit_method = "sample",
   keep_data = FALSE,
   ...
 )
@@ -57,9 +50,7 @@ determined by Stan from the prior distributions, and the specific
 values supplied for positive entries of \code{Q} are disregarded.}
 
 \item{covariates}{Specification of covariates on transition intensities.
-This should be a list of formulae, or a single formula.
-
-If a list is supplied, each formula should have a
+This should be a list of formulae.  Each formula should have a
 left-hand side that looks like \code{Q(r,s)}, and a right hand side
 defining the regression model for the log of the transition intensity
 from state \eqn{r} to state \eqn{s}.
@@ -74,41 +65,19 @@ linear function of age and sex, and the log 2-1 transition intensity
 is a linear function of age.  You do not have to list all of the
 intensities here if some of them are not influenced by covariates.
 
-If a single formula is supplied, this is assumed to apply to all
-intensities.  If doing this, then take care with potential lack of
-identifiability of effects from sparse data.
-
-In models with phase-type approximated states (specified with
-\code{pastates}), covariates are modelled through an accelerated failure
-time model.  The effect is a multiplier on the scale parameter of
-the sojourn distribution.  The covariate then has an identical
-multiplicative effect on all rates of transition between phases for
-a given state.  The left hand side of the formula should contain
-\code{scale} instad of \code{Q}.  For example, if state 1 has a phase type
-approximation, but state 2 is Markov, then we might supply
-covaroates covariates as:
-
-\code{covariates = list(scale(1) ~ age + sex,
-                        Q(2,1) ~ age)}
-
-In models with phase-type approximations and competing exit states,
-covariates on the relative risk of different exit states are
-specified with a formula with \code{rra} on the left hand side.  For
-example in a model where state 1 has a phase-type approximation,
-and the next state could be either 2 or 3, a linear model on the
-log relative risk of transition to 3 (relative to the baseline 2)
-might be specified as:
-
-\code{covariates = list(scale(1) ~ age + sex,
-                        rra(1,3) ~ x + time)}
+In standard Markov models and models with phase-type approximated
+states (specified with \code{pastates}), the numbers inside \code{Q()} refer
+to the observed state space.  For such phase-type models, the
+covariate has an identical multiplicative effect on all rates of
+transition between phases for a given states.
 
 In phase-type models specified with \code{nphase}, or misclassification
-models (specified with \code{E}), covariates on transition intensities
-are specified with \code{Q()}, where the numbers inside \code{Q()} refer to
-the latent state space.}
+models (specified with \code{E}), the numbers in \code{Q()} refer to transition
+rates on the latent state space.}
 
 \item{pastates}{This indicates which states (if any) are given a
-Weibull or Gamma sojourn distribution approximated by a phase-type model
+Weibull or Gamma sojourn distribution approximated by a 5-phase
+model.
 Ignored if \code{nphase} is supplied.}
 
 \item{pafamily}{\code{"weibull"} or \code{"gamma"}, indicating the
@@ -116,16 +85,9 @@ approximated sojourn distribution in the phased state.  Either a
 vector of the same length as \code{pastates}, or just one to apply to
 all states.}
 
-\item{pamethod}{\verb{"moment", "kl_linear"} or
-\code{"kl_hermite"}. Advanced.  Method of constructing the
-approximations. May remove this argument if one of these turns
-out to be good enough.}
-
-\item{panphase}{Number of phases to use for each state given a
-phase-type Gamma or Weibull approximation.  Vector of same length
-as \code{pastates}. More phases allow a wider range of shape parameters.
-Only applicable for \code{pamethod="moment"}.  For the spline-based
-methods, 5 phases are always used.}
+\item{paspline}{\code{"linear"} or \code{"hermite"}. Advanced: spline
+used in constructing the approximations. May remove this argument
+if one of these turns out to be good enough.}
 
 \item{E}{By default, \code{msmbayes} fits a (non-hidden) Markov model.
 If \code{E} is supplied, then a Markov model with misclassification is
@@ -144,85 +106,13 @@ intermittently observed.  Instead of estimating them, a Markov
 model with misclassification can be specified by supplying
 assumed misclassification probabilities in the \code{Efix}
 argument.  This is a matrix with same dimensions as E.  Any
-non-zero entries of \code{Efix} indicate the fixed
+non-zero entries of \code{Efix} are assumed to indicate the fixed
 known value for the corresponding misclassification probability.
-The \eqn{(r,s)} entry of \code{Efix} is 0 for any error probabilities
+The r,s entry of \code{Efix} is 0 for any error probabilities
 that are estimated from the data or not permitted.}
 
-\item{obstype}{Character string, giving a variable in the data
-which defines what a "row of the data" means.  The variable
-must contain only the following values, which may be different
-in different rows:
-
-\code{1}: Intermittent observation. The state is unknown between the
-previous observation and the current observation (other than any
-knowledge implied by the structure \code{Q} of permitted transitions).
-
-\code{2}: Exact transition times. The state is constant at the
-previous observed value between the previous and current times in
-the data, and the transition to the current state is made exactly
-at the current time.
-
-\code{3}: "Exact death times". the transition to the current state is
-made exactly at the current time, but the state in the period
-from the previous observation to the instant before the
-transition is unknown.  Typical (but not necessary) for
-observations of death in epidemiological studies.
-
-This is the same feature as in the \code{msm} package.  If omitted,
-then all observations are assumed to be intermittent, with
-\code{obstype} 1.}
-
-\item{deathexact}{Set to \code{TRUE} if death times are observed with
-the \verb{obstype 3} scheme.  This is a shortcut for including an
-\code{obstype} variable with 3 in the positions with the absorbing
-state, and 1 elsewhere.  If there are multiple absorbing states,
-then this is taken to only apply to the last of them in the
-state space - use an \code{obstype} variable if you want it to apply
-to all absorbing states.}
-
-\item{obstrue}{Only applicable to models with misclassification.  A
-character string indicating a variable in the data whose value is
-1 if the true state is known to equal the value in "state", and 0
-otherwise.}
-
-\item{censor_states}{A named list indicating the codes used for
-"censored" states.  This is used when there are observations that
-are known to be one of a subset of states, but it is not known
-which.  The names of the list indicate codes that may appear in
-the \code{"state"} variable.  The values of the corresponding component
-indicate the subset which is represented by the code.  For
-example
-
-\code{censor_states = list("99" = c(2,3), "999" = c(3,4))}
-
-means that a code of 99 in the \code{"state"} variable indicates
-"state is either 2 or 3 at this time", and a code of 999
-indicates "state is either 3 or 4".
-
-Note the names of the list must be quoted strings that are
-interpretable as integers, since the \code{"state"} variable must be
-an integer.
-
-In misclassification models, the subset refers to values of the
-true state if \code{obstrue} is 1, or the observed state if \code{obstrue}
-is 0.}
-
-\item{constraint}{Constraints that a covariate has an equal effect
-on a particular set of transition intensities.  A list with one
-component for each covariate that has constraints.  Each
-component is a list of sets (or a single set) of intensities
-where the effect of that covariate is equal.  For example, to
-constrain the effect of age to be equal for transitions 1-2 and
-2-3, and also equal for transitions 1-4 and 2-4, and the effect
-of sexMALE to be equal for transitions 1-2 and 2-3, specify
-
-\code{constraint = list(age = list(c("1-2","2-3"), c("1-4","2-4")), sex = list(c("1-2","2-3")))}
-
-This is the same feature as in \code{msm}, but with an easier interface.}
-
 \item{nphase}{Only required for models with phase-type sojourn
-distributions specified directly (not through \code{pastates}).
+distributions specified manually (not through \code{pastates}).
 \code{nphase} is a vector with one element per state, giving the
 number of phases per state.  This element is 1 for states that do
 not have phase-type sojourn distributions.}
@@ -231,61 +121,24 @@ not have phase-type sojourn distributions.}
 the result of a call to \code{\link{msmprior}}.  Any parameters
 with priors not specified here are given default priors: normal
 with mean -2 and SD 2 for log intensities, normal with mean
-0 and SD 10 for log hazard ratios, normal(0,1) for log odds parameters
-in misclassification models.
-
-In phase-type approximation models, the default priors are normal
-with mean 2, SD 2 for scale parameters (i.e. the log inverse of the
-default prior for the rate), normal(0, SD=0.5) truncated on the
-supported region for log shape parameters, and normal(0,1) for log
-odds of transition (relative to first exit state) in structures
-with competing exit states.
-
-See \code{\link{msmprior}} for more details.
+0 and SD 10 for log hazard ratios, or normal(0,1) for all others
+(log shape, log scale and log odds parameters in
+phase-type approximation and misclassification models).  See
+\code{\link{msmprior}} for more details.
 
 If only one parameter is given a non-default prior, a single \code{msmprior}
-call can be supplied here instead of a list.
-
-Maximum likelihood estimation can be performed by setting
-\code{priors="mle"}, and using \code{fit_method="optimize"}.  This is
-equivalent to estimating the posterior mode with improper uniform
-priors on the unconstrained parameter space (i.e. positive
-parameters on the log scale).  Uncertainty is then quantified by
-sampling from the multivariate normal defined by the Hessian at the
-mode .  The sample can be summarised to produce confidence
-intervals, as in the \code{ci="normal"} method in the \code{msm} package.
-These are equivalent to credible intervals from a Laplace
-approximation to the posterior.}
-
-\item{prob_initstate}{Probabilities of true states at a person's first
-observation time in a misclassification or model.  If supplied,
-this should be a matrix with a row for each individual subject,
-and a column for each true state, or a vector with one element
-for each state that is assumed to apply to all individuals.
-
-If not supplied, every person is assumed to be in state 1 with
-probability 1 in misclassification models, or phase 1 of the
-observed state with probability 1 in phase-type models.  Note
-no warning is currently given if the first observed state would
-be impossible if the person was really in state 1.
-
-This applies to both misclassification models, and phase-type
-models where a person's first observed state is phased.  If the
-first observed state is not phased or misclassified, then this is
-ignored.}
+call can be supplied here instead of a list.}
 
 \item{soj_priordata}{Synthetic data that represents prior information
-about the mean sojourn times.  Experimental, undocumented feature.}
+about the mean sojourn time.  Experimental, undocumented feature.}
 
 \item{fit_method}{Quoted string specifying the algorithm to fit the
-model.  \code{"sample"} uses NUTS/HMC MCMC, via
-\code{\link[rstan:stanmodel-method-sampling]{rstan::sampling()}}.  This is the default unless \code{priors="mle"}.
-Alternatives are
+model.  The default \code{"sample"} uses NUTS/HMC MCMC, via
+\code{\link[rstan:stanmodel-method-sampling]{rstan::sampling()}}.  Alternatives are
 
 \code{"optimize"} to use posterior mode optimization (with respect
 to parameters on the log scale) followed by Laplace approximation
-around the mode (via \code{\link[rstan:stanmodel-method-optimizing]{rstan::optimizing()}}). This is the default
-if \code{priors="mle"}.
+around the mode (via \code{\link[rstan:stanmodel-method-optimizing]{rstan::optimizing()}}).
 
 \code{"variational"} to use variational Bayes (via \code{\link[rstan:stanmodel-method-vb]{rstan::vb()}}).
 
@@ -301,12 +154,7 @@ the place where \code{msmbayes} is installed.}
 object.  \code{FALSE} by default.}
 
 \item{...}{Other arguments to be passed to the function from
-\code{rstan} or \code{cmdstanr} that fits the model.  Note that initial
-values are determined by sampling from the prior (after
-dividing the prior SD 5), not using
-Stan's default, but this can be overridden here (currently
-not documented - this needs knowledge of the Stan variable names
-and formats)}
+\code{rstan} or \code{cmdstanr} that fits the model.}
 }
 \value{
 A data frame in the \code{draws} format of the
