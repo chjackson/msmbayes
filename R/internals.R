@@ -23,7 +23,7 @@ msmbayes_form_internals <- function(data, state="state", time="time", subject="s
   check_data(data, state, time, subject,
              obstype=obstype, obstrue=obstrue,
              qm, censor_states, prior_sample=prior_sample, call=call)
-  cm <- form_covariates(covariates, data, constraint, qm, pm, qmobs, call=call)
+  cm <- form_covariates(covariates, data, constraint, qm, pm, em, qmobs, call=call)
   data <- clean_data(data, state, time, subject, 
                      X=cm$X, obstype=obstype, deathexact=deathexact,
                      obstrue=obstrue, censor_states=censor_states,

@@ -53,19 +53,34 @@ test_that("phase type approximations: error handling in prior specification",{
   )
 })
 
+set.seed(1)
+infsim_sub <- infsim[sort(sample(1:nrow(infsim),1000)),]
+
 test_that("phase-type approximations with covariates: tight priors reduce to smaller model",{
   skip_on_cran()
-  set.seed(1)
   priors <- list(msmprior("loghrscale(sexmale,2)", 0, 0.01))
-  fitc <- msmbayes(state="statep", time="months", data=infsim,
-                  Q=Q, fit_method="optimize", pastates = 2, priors=priors,
-                  covariates = list(scale(2) ~ sex), seed=1)
+  fitc <- msmbayes(state="statep", time="months", data=infsim_sub,
+                   Q=Q, fit_method="optimize", pastates = 2, priors=priors,
+                   covariates = list(scale(2) ~ sex), seed=1)
   expect_equal(med_rvar(loghr(fitc) |> pull(posterior)), 0, tolerance=0.01)
-  fit <- msmbayes(state="statep", time="months", data=infsim,
-                   Q=Q, fit_method="optimize", pastates = 2, seed=1)
+
+  fit <- msmbayes(state="statep", time="months", data=infsim_sub,
+                  Q=Q, fit_method="optimize", pastates = 2, seed=1)
   expect_equal(med_rvar(phaseapprox_pars(fitc) |> filter(name=="scale")),
                med_rvar(phaseapprox_pars(fit) |> filter(name=="scale")),
                tolerance=0.01)
+})
+
+## TODO TEST WITH DIFFERENT COVS ON DIFFERENT STATES
+
+test_that("phase-type approximations with covariates on Markov and non-Markov states: tight priors reduce to smaller model",{
+  skip_on_cran()
+  priors <- list(msmprior("loghrscale(sexmale,2)", 0, 0.01),
+                 msmprior("loghr(age10,1,2)", 0, 0.01))
+  fitc <- msmbayes(state="statep", time="months", data=infsim_sub,
+                   Q=Q, fit_method="optimize", pastates = 2, priors=priors,
+                   covariates = list(Q(1,2) ~ age10, scale(2) ~ sex), seed=1)
+  expect_equal(med_rvar(loghr(fitc) |> pull(posterior)), c(0,0), tolerance=0.01)
 })
 
 Qid <- rbind(c(0, 1, 1),
@@ -106,7 +121,6 @@ test_that("phase-type approximations with multiple exit states: transition probs
 
   ## TODO show prior in summary, transformed from logoddsabs
 })
-
 
 test_that("phase type approximations: error handling",{
   expect_error(msmbayes(data=infsim, state="statep", time="months",
@@ -171,7 +185,9 @@ test_that("phase-type approximations with covariates: error handling",{
 test_that("phase-type approximations with multiple exit states and covariates: tight priors reduce to smaller model",{
   priors <- list(msmprior("loa(1)", mean=0, sd=0.3),
                  msmprior("logshape(1)", mean=log(1), sd=0.01),
-                 msmprior("logscale(1)", mean=log(1), sd=0.01)
+                 msmprior("logscale(1)", mean=log(1), sd=0.01),
+                 msmprior("loghrscale(x, 1)", mean=0, sd=0.01),
+                 msmprior("loghrscale(time, 1)", mean=0, sd=0.01)
                  )
 
   mrr <- msmbayes(dat, state="obs_state", Q=Qid, pastates=1,
@@ -179,13 +195,19 @@ test_that("phase-type approximations with multiple exit states and covariates: t
                            list(msmprior("logrra(x, 1, 3)", mean=0, sd=0.01),
                                 msmprior("logrra(time, 1, 3)", mean=0, sd=0.01))),
                   fit_method="optimize",
-                  covariates=list(scale(1) ~ x + time, rra(1,3) ~ x + time))
+                  covariates=list(scale(1) ~ x + time,
+                                  rra(1,3) ~ x + time))
+  expect_equal(med_rvar(logrra(mrr)), c(0,0), tolerance=0.1)
+
   mbase <- msmbayes(dat, state="obs_state", Q=Qid, pastates=1,
                     priors=priors, fit_method="optimize",
                     covariates=list(scale(1) ~ x + time))
-  expect_equal(med_rvar(loghr(mrr)), med_rvar(loghr(mbase)), tolerance=0.1)
+
+  expect_equal(loghr(mrr)$mode[1], loghr(mbase)$mode[1], tolerance=0.1)
+  expect_true(isTRUE(all.equal(loghr(mrr)$mode[2], loghr(mbase)$mode[2], tolerance=0.1, scale=1)))
 
   # TODO priors in summary outputs for rra pars
+  summary(mrr, pars="rra")
   expect_true(is.numeric(summary(mrr, pars = c("shape","scale","rra"))$mode))
   expect_true(is.numeric(logrra(mrr)$mode))
   expect_true(is.numeric(rra(mrr)$mode))

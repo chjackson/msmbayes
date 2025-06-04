@@ -310,8 +310,8 @@ loghr <- function(draws){
            name = cm$hrdf$names) |>
     filter(!duplicated(tafid)) |>
     select(-tafid) |>
-    relocate(from, to, name, posterior) #|>
-#    relabel_phase_states(draws, space="observed")
+    relocate(from, to, name, posterior) |>
+    relabel_phase_states(draws, space="observed")
   as_msmbres(res)
 }
 
@@ -624,7 +624,8 @@ logrra <- function(draws){
     posterior = res_post
   )
   if (!is.null(res_mode)) res$mode <- res_mode
-  res |> arrange(state, tostate)
+  res |> arrange(state, tostate) |> as_msmbres()
+
 }
 
 ##' @rdname rradoc
@@ -634,5 +635,5 @@ rra <- function(draws){
   res <- logrra(draws)
   res$posterior <- exp(res$posterior)
   if (!is.null(res$mode)) res$mode <- exp(res$mode)
-  res
+  res |> as_msmbres()
 }

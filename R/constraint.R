@@ -7,13 +7,8 @@
 #' effects, including \code{consid} indicating which are constrained).
 #'
 #' @noRd
-parse_constraint <- function(constraint, cm, qm, pm, qmlatent, call=caller_env()){
-  if (is.null(constraint)){
-    ## todo is this just hrdf without replicated tafid.
-    ## if so should these have the same names . no xfrom is ids
-    cm$tafdf <- cm$hrdf[!duplicated(cm$hrdf$tafid),c("names","from","to")]
-    cm$tafdf$consid <- as.array(seq_len(cm$ntafs))
-  } else {
+cm_form_consdf <- function(constraint, cm, qm, pm, qmlatent, call=caller_env()){
+  if (!is.null(constraint)){
     constraint <- check_constraint(constraint, cm, pm, call)
     xnames <- character()
     fromstate <- tostate <- consid <- numeric()
@@ -27,36 +22,34 @@ parse_constraint <- function(constraint, cm, qm, pm, qmlatent, call=caller_env()
         ci <- ci + 1
       }
     } # end up with consid like 1,1,1,1,2,2,2,3,3 indicating unique parameters among those given constraints
-    consdf <- data.frame(names = xnames, from=fromstate, to=tostate, consid=consid,
+    cm$consdf <- data.frame(names = xnames, from=fromstate, to=tostate, consid=consid,
                          labs = sprintf("%s-%s",fromstate,tostate))
-    check_constraint_transitions(consdf, qm, pm, call)
-    nconstr <- if (nrow(consdf)==0) 0 else max(consdf$consid)
+    cm$nxuniq <- max(cm$consdf$consid)
+    check_constraint_transitions(cm$consdf, qm, pm, call)
+  }
+  cm
+}
 
-    ## database including time acceleration factors in phasetype states, as well as transition HRs in Markov models.
-    ## constraints on Markov transitions replicated, but including only one TAF per phasetype state
+## Database including time acceleration factors in phasetype states, as well as transition HRs in Markov models.
+## consid maps each parameter to unique parameter under constraints
+## Constraints on Markov transitions replicated, but including only one TAF per phasetype state
+cm_form_tafdf <- function(cm, pm){
+  if (is.null(cm$consdf)){
+    tafdf <- cm$hrdf[!duplicated(cm$hrdf$tafid),c("names","from","to")]
+    tafdf$consid <- as.array(seq_len(nrow(tafdf)))
+  } else {
     tafdf <- cm$hrdf |>
-      left_join(consdf, by=c("names","from","to")) |>
+      left_join(cm$consdf, by=c("names","from","to")) |>
       filter(!duplicated(.data$tafid))
+    nconstr <- if (nrow(cm$consdf)==0) 0 else max(cm$consdf$consid)
     tafdf$consid[is.na(tafdf$consid)] <- seq_len(sum(is.na(tafdf$consid))) + nconstr
 
     tafdf$consid <- match(tafdf$consid, unique(tafdf$consid))
-    cm$tafdf <- tafdf
   }
-
-  ## extra processing - need not be in this function
-  cm$tafdf$class <- ifelse(cm$tafdf$from %in% pm$pastates, "scale", "q")
+  tafdf$response <- ifelse(tafdf$from %in% pm$pastates, "scale", "Q")
+  cm$tafdf <- tafdf
   cm$nxuniq <- if (nrow(cm$tafdf)==0) 0 else max(cm$tafdf$consid)
-  if (nrow(cm$hrdf) > 0){
-    cm$hrdf$lab <- paste0(cm$hrdf$from, "-", cm$hrdf$to)
-    cm$hrdf$from_latent <- cm$hrdf$to_latent <- rep(NA, nrow(cm$hrdf))
-    if (pm$phasetype){
-      pdat <- qmlatent$phasedata
-      trid <- match(cm$hrdf$lab, pdat$qlab)
-      cm$hrdf$from_latent <- pdat$qrow[trid]
-      cm$hrdf$to_latent <- pdat$qcol[trid]
-    }
-  }
-
+  cm$ntafs <- nrow(cm$tafdf)
   cm
 }
 
@@ -64,7 +57,7 @@ check_constraint <- function(constraint, cm, pm, call=caller_env()){
   if (!is.list(constraint))
     cli_abort("{.var constraint} should be a list", call=call)
   nc <- names(constraint)
-  badnames <- which(!(nc %in% names(cm$X)))
+  badnames <- which(!(nc %in% colnames(cm$X)))
   if (length(badnames) > 0){
     cli_abort(c("names of {.var constraint} should be one of the covariate names: {unique(names(cm$X))}",
                 "found {nc[badnames]}"), call=call)

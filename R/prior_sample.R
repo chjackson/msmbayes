@@ -74,11 +74,11 @@ msmbayes_prior_sample <- function(data, state="state", time="time", subject="sub
     if (expand_hr){ # return different parameters for each latent transition AND constraint
       loghr <- loghr[,cm$hrdf$tafid]
       ## TESTME with multiple, unbalanced covs
-      names(loghr) <- sprintf("loghr[%s,%s,%s]", cm$hrdf$names, cm$hrdf$from_latent, cm$hrdf$to_latent)
+      names(loghr) <- sprintf("loghr[%s,%s,%s]", cm$hrdf$names, cm$hrdf$from, cm$hrdf$to)
     } else {
       tudf <- cm$tafdf[!duplicated(cm$tafdf$consid),]
-      pname <- ifelse(tudf$class=="scale", "loghrscale", "loghr")
-      ind3 <- ifelse(tudf$class=="scale", "", paste0(",",tudf$to))
+      pname <- ifelse(tudf$response=="scale", "loghrscale", "loghr")
+      ind3 <- ifelse(tudf$response=="scale", "", paste0(",",tudf$to))
       names(loghr) <- sprintf("%s[%s,%s%s]", pname, tudf$names, tudf$from, ind3)
     }
 

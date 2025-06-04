@@ -21,15 +21,16 @@ test_that("Misclassification on top of phase-type model changes results",{
                 med_rvar(qmatrix(drawse)["1","2p1"]))
 })
 
-test_that("Covariates in phase-type model, print and summary",{
+test_that("Covariates in phase-type model, prior reduction, print and summary",{
   draws <- msmbayes(infsim2, state="state", time="months", subject="subject",
                     Q=Q, nphase=c(1,2),
                     covariates = list(Q(2,1)~sex, Q(3,1)~sex),
-                    priors = list(msmprior("hr(sexmale,2,1)", lower=0.9, upper=1.1),
-                                  msmprior("hr(sexmale,3,1)", lower=0.9, upper=1.1)),
+                    priors = list(msmprior("hr(sexmale,2,1)", lower=0.99, upper=1.01),
+                                  msmprior("hr(sexmale,3,1)", lower=0.99, upper=1.01)),
                     fit_method="optimize")
+  expect_equal(loghr(draws)$mode, c(0, 0), tolerance=0.01)
   hr(draws)
-  summary(draws) # FIXME phase state IDs not relabelled in hr rows
+  summary(draws)
 })
 
 test_that("Errors in E handled when misclassification on top of phase-type model",{

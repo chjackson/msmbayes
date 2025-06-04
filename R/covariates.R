@@ -1,49 +1,59 @@
-#' Parse the covariates argument to msmbayes
+#' Parse the `covariates` argument to msmbayes
 #'
 #' @inheritParams msmbayes
 #'
-#' @param Original model (for validation of newdata)
-#'
 #' @return A list with components:
 #'
-#' \code{nx} Total number of covariate effects in the model, with
-#' effects on scale parameters in pastates models counted multiple
-#' times per state: once for each intensity they affect.
-#'
-#' \code{ntafs} Total number of covariate effects in the model, with
-#' effects on scale parameters in pastates models counted only once
-#' for each state.
+#' \code{cmodeldf} Data frame with \code{ncmodels} rows giving number of
+#' covariate effects \code{ncovs}, and corresponding transition
+#' (\code{from}, \code{to}) for each covariate formula supplied by the
+#' user.  \code{to} is undefined for effects on scale parameters in
+#' phase-type models.  The sum of \code{ncovs} is \code{ntafs}.
 #'
 #' \code{ncmodels} Number of covariate models, that is the number of
 #' formulae supplied by the user with covariates in.  Undefined behaviour
 #' if a ~1 formula is supplied.
 #'
-#' \code{blueprint} List of objects of same length as the
-#' \code{covariates} list.  Each component is the \code{blueprint}
-#' object produced by \code{hardhat::mold}.
-#'
-#' \code{X} Matrix with \code{ntafs} columns and the same number of rows
-#' as \code{dat} (the data supplied to \code{msmbayes}).
-#'
 #' \code{transdf} Data frame with \code{qm$nqpars} rows (number of
 #' intensities on the true/latent space) and the following columns:
-#'
+#' 
 #' * \code{nxq} Vector giving number of covariate effects on each
 #' permitted intensity.
 #'
 #' * \code{xstart},\code{xend}. Start and end index defining the block
-#' of columns of X that form the design matrix of covariates
+#' of columns of \code{X} that form the design matrix of covariates
 #' (excluding intercepts) for each transition intensity.
 #'
 #' \code{hrdf} Data frame with \code{nx} rows, and columns
-#' \code{names} (covariate names), \code{from} (from state) \code{to}
-#' (to state).
 #'
-#' \code{cmodeldf} Data frame with \code{ncmodels} giving number of
-#' covariate effects \code{ncovs}, and corresponding transition
-#' (\code{from}, \code{to}) for each covariate formula supplied by the
-#' user.  \code{to} is undefined for effects on scale parameters in
-#' phase-type models.  The sum of \code{ncovs} is \code{ntafs}.
+#' * \code{names} (covariate names),
+#'
+#' * \code{from} \code{to}: on Markov state space (latent space in HMMs)
+#'
+#' * \code{fromobs} \code{toobs}: on observable state space
+#'
+#' * \code{fromuser} \code{touser}: states supplied in user's formulae:
+#' observable space except for \code{nphase} phase-type models.
+#'
+#' \code{nx} Total number of covariate effects in the model, with
+#' effects on scale parameters in pastates models counted multiple
+#' times per state: once for each intensity they affect.
+#'
+#' \code{rradf}, \code{nrra}: similar information for relative risk
+#' parameters for semi-Markov competing risks
+#'
+#' \code{X} Matrix with \code{ntafs} columns and the same number of rows
+#' as \code{dat} (the data supplied to \code{msmbayes}).
+#'
+#' \code{blueprint} List of objects of same length as the
+#' \code{covariates} list.  Each component is the \code{blueprint}
+#' object produced by \code{hardhat::mold}.
+#'
+#' \code{consdf} Information about constraints on hazard ratios.
+#'
+#' \code{ntafs} Total number of covariate effects in the model, with
+#' effects on scale parameters in pastates models counted only once
+#' for each state.
 #'
 #' \code{tafdf} Data frame with \code{ntafs} rows, one for each
 #' covariate effect.  Includes repeated rows for each effect that is
@@ -53,124 +63,158 @@
 #' as in \code{hrdf}.
 #'
 #' @noRd
-form_covariates <- function(covariates, data, constraint, qm, pm, qmobs, call=caller_env()){
-  nxq <- xstart <- xend <- nrraq <- xrrastart <- xrraend <- rrastart <- rraend <- rep(0, qm$nqpars)
-  xlevs <- covnames <- vector(mode="list", length=qmobs$nqpars)
-  if (inherits(covariates,"formula")){
+form_covariates <- function(covariates, data, constraint, qm, pm, em, qmobs,
+                             call=caller_env()){
+
+  ##
+  if (inherits(covariates,"formula"))
     covariates <- cov_formula_to_list(covariates, qmobs)
-  }
-  if (is.null(covariates)){
-    cm <- list(nx=0, ntafs=0, nrra=0, ncmodels=0,
-               X=matrix(0, nrow=nrow(data), ncol=0),
-               transdf = data.frame(nxq=nxq, xstart=xstart, xend=xend,
-                                    nrraq=nrraq, xrrastart=xrrastart, xrraend=xrraend, rrastart=rrastart, rraend=rraend),
-               hrdf = data.frame(names=character(), from=numeric(), to=numeric(), tafid=numeric()),
-               rradf = data.frame(names=character(), from=numeric(), to=numeric()),
-               cmodeldf = data.frame(from=numeric(), to=numeric(), ncovs=numeric(), ncovsrra=numeric())
-               )
-  }
-  else if (!is.list(covariates))
+  if (is.null(covariates))
+    cm <- cm_no_covariates(data, qm)
+  else if (!is.list(covariates) || (length(covariates)==0))
     cli_abort("{.var covariates} must be a list of formulae or a single formula", call=call)
   else {
-    X <- bp <- vector("list", length(covariates))
-    prevend <- prevrrend <- 0
     ncmodels <- length(covariates)
-    from <- to <- ncovs <- ncovsrra <- numeric(ncmodels)
-    tafid <- xnames <- xfrom <- xto <- rranames <- rrafrom <- rrato <- numeric()
-
-    ## WIP to tidy all this, though loop may be clearer
-    for (i in seq_len(ncmodels)){
-      res <- parse_msm_formula(covariates[[i]], data, qmobs, pm, qm, call=call)
-      X[[i]] <- res$hhat$predictors
-      fromto <- res$fromto
-      bp[[i]] <- res$hhat$blueprint
-      from[i] <- fromto[1]
-      if (res$response=="Q"){
-        ncovs[i] <- ncol(X[[i]])
-        to[i] <- fromto[2]
-        if (pm$phaseapprox)
-          qind <- which(qm$phasedata$oldfrom==fromto[1] & qm$phasedata$oldto==fromto[2])
-        else
-          qind <- which(qm$qrow==fromto[1] & qm$qcol==fromto[2])
-        xstart[qind] <- prevend + 1
-        xend[qind] <- prevend + ncovs[i]
-        nxq[qind] <- ncovs[i]
-        tafid <- if (length(tafid)==0) 1:ncovs[i] else c(tafid, max(tafid) + 1:ncovs[i])
-        xnames <- c(xnames, colnames(X[[i]]))
-        xfrom <- c(xfrom, rep(from[i], ncovs[i]))
-        xto <- c(xto, rep(to[i], ncovs[i]))
-      }
-      else if (res$response=="scale"){
-        to[i] <- NA
-        ncovs[i] <- ncol(X[[i]])
-        ml <- if (length(tafid)==0) 1:ncovs[i] else max(tafid) + 1:ncovs[i]
-        inds <- which(qm$phasedata$oldfrom==fromto[1])
-        for (qind in inds){
-          ## same covariate effect is applied to different rates on
-          ## the latent space for an observable state. 
-          xstart[qind] <- prevend + 1
-          xend[qind] <- prevend + ncovs[i]
-          nxq[qind] <- ncovs[i]
-          tafid <- c(tafid, ml)
-          xnames <- c(xnames, colnames(X[[i]]))
-          xfrom <- c(xfrom, rep(from[i], ncovs[i]))
-          xto <- c(xto, rep(to[i], ncovs[i]))
-        }
-      }
-      else if (res$response=="rra"){
-        to[i] <- fromto[2]
-        ncovsrra[i] <- ncol(X[[i]])
-        qind <- which(qm$phasedata$oldfrom==fromto[1] & qm$phasedata$oldto==fromto[2])
-        xrrastart[qind] <- prevend + 1
-        xrraend[qind] <- prevend + ncovsrra[i]
-        rrastart[qind] <- prevrrend + 1
-        rraend[qind] <- prevrrend + ncovsrra[i]
-        nrraq[qind] <- ncovsrra[i]
-        rranames <- c(rranames, colnames(X[[i]]))
-        rrafrom <- c(rrafrom, rep(from[i], ncovsrra[i]))
-        rrato <- c(rrato, rep(to[i], ncovsrra[i]))
-        prevrrend <- prevend + ncol(X[[i]])
-      }
-      prevend <- prevend + ncol(X[[i]])
-    }
+    mod_all <- vector(ncmodels, mode="list")
     ## no check if specify same transition more than once
     ## also no check for ~ 1 formulae
-    cm <- list(nx = sum(nxq), # or could name nhr, nhrq?
-               ntafs = sum(ncovs),
-               nrra = sum(ncovsrra),
-               ncmodels = ncmodels,
-               blueprint = bp,
-               X = do.call("cbind", X),
+    for (i in 1:ncmodels){
+      pform <- parse_msm_formula(covariates[[i]], data, qmobs, pm, qm, call=call)
+      mod_all[[i]] <- process_covmodel(pform, qm, pm, em)
+    }
+
+    ## Separate out models on intensities, semi-Markov scale parameters, and semi-Markov next-state RRs
+    mods_with_response <- function(mods, responses){
+      mods[sapply(mods, function(x)isTRUE(x$response %in% responses))]
+    }
+    mod_Q <- mods_with_response(mod_all, "Q")
+    mod_scale <- mods_with_response(mod_all, "scale")
+    mod_Qs <- mods_with_response(mod_all, c("Q","scale"))
+    mod_rra <- mods_with_response(mod_all, "rra")
+
+    cmodeldf <- data.frame(
+      response = sapply(mod_all, function(x)x$response),
+      from = sapply(mod_all, function(x)x$fromuser),
+      to = sapply(mod_all, function(x)x$touser),
+      ncovs = sapply(mod_all, function(x)x$ncovs)
+    )
+
+    ## Matrix of covariate values for Stan
+    Xq <- do.call("cbind", lapply(mod_Q, function(x)x$X))
+    Xscale <- do.call("cbind", lapply(mod_scale, function(x)x$X))
+    Xrra <- do.call("cbind", lapply(mod_rra, function(x)x$X))
+    X <- as.data.frame(cbind(Xq, Xscale, Xrra))
+
+    ## Number of covariates on each intensity, and their indices in X...
+    nxq <- xend <- xstart <- nrraq <- xrraend <- xrrastart <-
+      rraend <- rrastart <- numeric(qm$nqpars)
+
+    ## ...determine these for Markov states...
+    if (length(mod_Q) > 0){
+      qind <- sapply(mod_Q, function(x)x$qind)
+      nxq[qind] <- sapply(mod_Q, function(x)x$ncovs)
+      xend[qind] <- cumsum(nxq[qind])
+      xstart[qind] <- cumsum(c(0,nxq[qind][-length(nxq[qind])])) + 1
+    }
+
+    ## ...and for semi-Markov scale parameters (duplicated over intensities)
+    qinds <- lapply(mod_scale, function(x)x$qind) # one vector per model
+    nxq1 <- sapply(mod_scale, function(x)x$ncovs) # one scalar per model
+    for (i in seq_along(qinds)){
+      qi <- qinds[[i]]
+      nxq[qi] <- rep(nxq1[i], length(qi))
+      xend[qi] <- NCOL(Xq) + cumsum(nxq1[i])
+      xstart[qi] <- NCOL(Xq) + cumsum(c(0,nxq1[i][-length(nxq1[i])])) + 1
+    }
+
+    ## ...For semi-Markov next-state relative risk parameters
+    if (length(mod_rra) > 0){
+      qindr <- sapply(mod_rra, function(x)x$qind)
+      nxr1 <- sapply(mod_rra, function(x)x$ncovs)
+      nrraq[qindr] <- nxr1
+      rrastart[qindr] <- cumsum(c(0,nxr1[-length(nxr1)])) + 1
+      rraend[qindr] <- cumsum(nxr1)
+      xrrastart[qindr] <- rrastart[qindr] + NCOL(Xq) + NCOL(Xscale)
+      xrraend[qindr]   <- rraend[qindr]   + NCOL(Xq) + NCOL(Xscale)
+    }
+
+    ## Table with one row per allowed latent transition, giving covariate model for this
+    transdf <- data.frame(nxq=nxq, xstart=xstart, xend=xend,
+                          nrraq=nrraq, xrrastart=xrrastart, xrraend=xrraend,
+                          rrastart=rrastart, rraend=rraend)
+
+    ## Table with one row per covariate effect on Q, excluding semi-Markov scale parameters
+    hrdf_q <- data.frame(
+      names = do.call("c", lapply(mod_Q, function(x)x$xnames)),
+      from =  do.call("c", lapply(mod_Q, function(x)rep(x$from, x$ncovs))),
+      to =  do.call("c", lapply(mod_Q, function(x)rep(x$to, x$ncovs))),
+      fromobs =  do.call("c", lapply(mod_Q, function(x)rep(x$fromobs, x$ncovs))),
+      toobs =  do.call("c", lapply(mod_Q, function(x)rep(x$toobs, x$ncovs)))
+    )
+    hrdf_q$tafid <- seq_len(nrow(hrdf_q))
+    hrdf_q$response <- rep("Q", nrow(hrdf_q))
+
+    ## Table with one row per covariate effect on latent
+    ## intensities for semi-Markov scale parameters, replicated for
+    ## each intensity with a common scale
+    nqi <- lengths(qinds) # number of replicated scale parameters per model (state)
+    nxq1 # number of covariates per model
+    hrdf_s <- data.frame( # TESTME CHECK ORDERING WITH MULTIPLE COVS, DIFF ON EACH STATE
+      names = do.call("c",   lapply(mod_scale, function(x)rep(x$xnames, each=nqi))),
+      from = do.call("c",    lapply(mod_scale, function(x)rep(x$from, length(x$xnames)))),
+      to = do.call("c",      lapply(mod_scale, function(x)rep(x$to, length(x$xnames)))),
+      fromobs = do.call("c", lapply(mod_scale, function(x)rep(rep(x$fromobs, x$ncovs), nqi))),
+      toobs = do.call("c",   lapply(mod_scale, function(x)rep(rep(x$toobs, x$ncovs), nqi))),
+      tafid = nrow(hrdf_q) + (if(length(nxq1)==0) integer() else rep(sequence(nxq1), each=nqi)),
+      response = rep("scale", sum(nqi))
+    )
+
+    hrdf <- rbind(hrdf_q, hrdf_s)
+
+    ## Table with one row per covariate effect on next-state RRs in semi-Markov models
+    rradf <- data.frame(
+      names = do.call("c", lapply(mod_rra, function(x)x$xnames)),
+      from = do.call("c", lapply(mod_rra, function(x)rep(x$from, x$ncovs))),
+      to = do.call("c", lapply(mod_rra, function(x)rep(x$to, x$ncovs)))
+    )
+
+    cm <- list(cmodeldf = cmodeldf, ncmodels=ncmodels,
+               transdf = transdf,
+               hrdf = hrdf,         nx = nrow(hrdf),
+               rradf = rradf,       nrra = nrow(rradf),
+               X = X,
                covnames_orig = unique(unlist(lapply(covariates, all.vars))),
-
-               ## database of transitions (on true/latent space)
-               transdf = data.frame(nxq=nxq, xstart=xstart, xend=xend,
-                                    nrraq=nrraq,
-                                    xrrastart=xrrastart, xrraend=xrraend, rrastart=rrastart, rraend=rraend), # nqpars rows
-
-               ## database of hazard ratio parameters, matching loghr in Stan. constraints and phase pars replicated.
-               hrdf = data.frame(names=xnames, from=xfrom, to=xto, tafid=tafid),  # nx rows
-
-               ## database of effects on competing exit risks in phase-type approx models
-               rradf = data.frame(names=rranames, from=rrafrom, to=rrato),
-
-               ## database of covariate models, including repeated constraints, excluding repeated phase, excluding multiple covariates
-               cmodeldf = data.frame(from=from, to=to, ncovs=ncovs, ncovsrra=ncovsrra)
+               blueprint = lapply(mod_all, function(x)x$blueprint)
                )
   }
-  ## build database $tafdf of time acceleration factors + transition HRs, including constraints info
-  cm <- parse_constraint(constraint, cm, qmobs, pm, qm, call=call)
 
-  if (ncol(cm$X) != cm$ntafs + cm$nrra) cli_abort("Internal error in form_covariates: report a bug")
-  if (nrow(cm$transdf) != qm$nqpars) cli_abort("Internal error in form_covariates: report a bug")
-  if (nrow(cm$hrdf) != cm$nx) cli_abort("Internal error in form_covariates: report a bug")
-  if (nrow(cm$cmodeldf) != cm$ncmodels) cli_abort("Internal error in form_covariates: report a bug")
-  if (nrow(cm$tafdf) != cm$ntafs) cli_abort("Internal error in form_covariates. Report a bug.")
-  if (nrow(cm$rradf) != cm$nrra) cli_abort("Internal error in form_covariates. Report a bug.")
+  cm <- cm_form_consdf(constraint, cm, qmobs, pm, qm, call=call)
+  cm <- cm_form_tafdf(cm, pm)
+
+  if (cm$nx != sum(cm$transdf$nxq)) cli_abort("Internal error in form_covariates: report a bug")
+  if (cm$nrra != sum(cm$cmodeldf$ncovs[cm$cmodeldf$response=="rra"]))
+    cli_abort("Internal error in form_covariates: report a bug")
+
   cm
 }
 
 
+
+cm_no_covariates <- function(data, qm){
+  nxq <- xstart <- xend <- nrraq <- xrrastart <- xrraend <-
+    rrastart <- rraend <- rep(0, qm$nqpars)
+  list(
+    cmodeldf = data.frame(from=numeric(), to=numeric(), ncovs=numeric(), ncovsrra=numeric()), ncmodels=0,
+    transdf = data.frame(nxq=nxq, xstart=xstart, xend=xend,
+                         nrraq=nrraq, xrrastart=xrrastart, xrraend=xrraend,
+                         rrastart=rrastart, rraend=rraend),
+    hrdf = data.frame(names=character(), from=numeric(), to=numeric(), tafid=numeric()), nx = 0,
+    rradf = data.frame(names=character(), from=numeric(), to=numeric()), nrra=0,
+    ntafs = 0,
+    X = matrix(0, nrow=nrow(data), ncol=0),
+    covnames_orig = NULL
+  )
+}
 #' @inheritParams msmbayes
 #'
 #' @param form Formula of the form Q(fromstate,tostate) ~ cov1 + cov2 + ...
@@ -256,10 +300,70 @@ parse_msm_formula_rhs <- function(form, data, call=caller_env()){
 }
 ## see https://hardhat.tidymodels.org/reference/default_formula_blueprint.html
 ## work around its behaviour of including baseline factor level in the design matrix
-## TESTME with prediction
+## TODO test with prediction
 
 cov_formula_to_list <- function(covariates, qm){
   rhs <- as.character(covariates[2])
   forms <- sprintf("Q(%s,%s) ~ %s", qm$tr$from, qm$tr$to, rhs)
   lapply(as.list(forms), as.formula)
+}
+
+##' @param pform parsed formula, output of parse_msm_formula
+##'
+##' On entry, (from, to) is as specified by user
+##' * for simple markov or phaseapprox models, observable states
+##' * for nphase models: latent states
+##'
+##' @return list of information from that formula
+##'
+##' from, to: Markov state (latent state in HMMS)
+##' fromobs, toobs: observable state
+##'
+##' @noRd
+process_covmodel <- function(pform, qm, pm, em){
+  response <- pform$response
+  X <- as.matrix(pform$hhat$predictors)
+  bp <- pform$hhat$blueprint
+  fromuser <- pform$fromto[1]
+  touser <- pform$fromto[2]
+  ncovs <- ncol(X)
+  user_space <- if (pm$phasetype && !pm$phaseapprox) "latent" else "obs"
+  qind <- get_qindex(response, pform$fromto, qm, pm)
+  pdat <- qm$phasedata
+  if (response=="scale"){
+    fromobs <- fromuser; toobs <- NA
+    from <- pdat$qrow[pdat$oldfrom==fromobs] # from latent state
+    to <- pdat$qcol[pdat$oldfrom==fromobs]
+  }
+  else if (user_space=="latent"){
+    from <- fromuser; to <- touser; labuser <- paste0(fromuser, "-", touser)
+    fromobs <- pdat$oldfrom[match(labuser, pdat$qlab)]
+    toobs <-   pdat$oldto[match(labuser, pdat$qlab)]
+  } else {
+    toobs <- pform$fromto[2]
+    from <- fromobs <- fromuser; to <- toobs <- touser
+  }
+  list(response=response, X=X, blueprint=bp, from=from, to=to,
+       fromobs = fromobs, toobs = toobs, fromuser=fromuser, touser=touser,
+       ncovs=ncovs, xnames=colnames(X), qind=qind)
+}
+
+##' @param response Q, rra or scale
+##' @param fromto (from, to) pair as specified by user as e.g. Q(from,to) ~ age
+##' @return index into database of transition rates on true space
+##' @noRd
+get_qindex <- function(response, fromto, qm, pm){
+  if (response %in% c("Q","rra")){
+    ## single number
+    if (pm$phaseapprox)
+      qind <- which(qm$phasedata$oldfrom==fromto[1] &
+                    qm$phasedata$oldto==fromto[2])
+    else
+      qind <- which(qm$qrow==fromto[1] & qm$qcol==fromto[2])
+  }
+  if (response=="scale"){
+    ## vector indicating intensities that this scale affects
+    qind <- which(qm$phasedata$oldfrom==fromto[1])
+  }
+  qind
 }

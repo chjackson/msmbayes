@@ -52,7 +52,7 @@ rvar_to_quantile_string <- function(rvar){
 #' @return A tidy data frame.
 #'
 #' Other derived parameters (e.g.  misclassification probs, log
-#' transition odds, easily addable when needed) 
+#' transition odds, easily addable when needed)
 #'
 #' @noRd
 prior_db <- function(priors, qm, cm, pm, qmobs, em){
@@ -108,10 +108,11 @@ prior_mst_db <- function(priors, qm, pm, qdb){
 prior_loghr_db <- function(priors, cm){
   if (cm$nx==0) return(NULL)
   prior <- name <- xname <- NULL
+  cmdf <- cm$cmodeldf[cm$cmodeldf$response %in% c("Q","scale"),]
   data.frame(
     xname = cm$tafdf$names,
-    from = rep(cm$cmodeldf$from, cm$cmodeldf$ncovs),
-    to = rep(cm$cmodeldf$to, cm$cmodeldf$ncovs),
+    from = rep(cmdf$from, cmdf$ncovs),
+    to = rep(cmdf$to, cmdf$ncovs),
     prior = prior_to_rvar(priors$loghrmean, priors$loghrsd, n=1000)[cm$tafdf$consid]
   ) |>
     mutate(loghr  = prior,
@@ -143,7 +144,7 @@ prior_papars_db <- function(priors, pm, qm){
     mutate(string = rvar_to_quantile_string(rvar),
            name = ifelse(namebase=="rvar_log", paste0("log",name), name)) |>
     arrange(across(all_of(c("name", "from")))) |>
-    select("name", "from", "to", "rvar", "string") 
+    select("name", "from", "to", "rvar", "string")
 }
 
 prior_loa_db <- function(priors, qm){
@@ -156,7 +157,7 @@ prior_loa_db <- function(priors, qm){
              rvar = prior_to_rvar(priors$loamean, priors$loasd, n=1000)) |>
     mutate(string = rvar_to_quantile_string(rvar)) |>
     arrange(across(all_of("from"))) |>
-    select("name", "from", "to", "rvar", "string") 
+    select("name", "from", "to", "rvar", "string")
 }
 
 prior_padest_db <- function(priors, pm, qm){

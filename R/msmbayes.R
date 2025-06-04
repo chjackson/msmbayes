@@ -58,7 +58,7 @@
 #' a given state.  The left hand side of the formula should contain
 #' `scale` instad of `Q`.  For example, if state 1 has a phase type
 #' approximation, but state 2 is Markov, then we might supply
-#' covaroates covariates as:
+#' \code{covariates} as:
 #'
 #' \code{covariates = list(scale(1) ~ age + sex,
 #'                         Q(2,1) ~ age)}
