@@ -1,6 +1,8 @@
 Q <- rbind(c(0, 1), c(1, 0))
+infsim_sub <- infsim[infsim$subject <= 10, ]
+infsim_sub$sex <- c(rep("male",180), rep("female",180))
 
-fit_mk <- msmbayes(data=infsim, state="statep", time="months",
+fit_mk <- msmbayes(data=infsim_sub, state="statep", time="months",
                    Q=Q, fit_method="optimize")
 
 compare_soj <- function(fpa, tolerance=0.02){
@@ -14,7 +16,7 @@ compare_soj <- function(fpa, tolerance=0.02){
 test_that("phase-type approximations with tight prior on shape give results close to markov",{
   set.seed(2)
   priors <- list(msmprior("logshape(2)", 0, 0.01))
-  fit_pa <- msmbayes(data=infsim, state="statep", time="months", priors=priors,
+  fit_pa <- msmbayes(data=infsim_sub, state="statep", time="months", priors=priors,
                      Q=Q, fit_method="optimize", pastates = c(2), seed=2)
   expect_equal(med_rvar(phaseapprox_pars(fit_pa) |> filter(name=="shape")),
                1.0, tolerance=0.01)
@@ -22,7 +24,7 @@ test_that("phase-type approximations with tight prior on shape give results clos
 
   expect_equal(med_rvar(qmatrix(fit_pa)[1,2]),
                med_rvar(qmatrix(fit_mk)[1,2]), tolerance=0.01)
-  fit_pa <- msmbayes(data=infsim, state="statep", time="months", priors=priors,
+  fit_pa <- msmbayes(data=infsim_sub, state="statep", time="months", priors=priors,
                      Q=Q, fit_method="optimize", pastates = c(2), pafamily="gamma",
                      seed = 2)
   expect_equal(med_rvar(phaseapprox_pars(fit_pa) |> filter(name=="shape")),
@@ -33,7 +35,7 @@ test_that("phase-type approximations with tight prior on shape give results clos
 test_that("phase-type approximations with tight prior on shape give results close to markov",{
   priors <- list(msmprior("logshape(1)", 0, 0.01),
                  msmprior("logshape(2)", 0, 0.01))
-  fit_pa <- msmbayes(data=infsim, state="statep", time="months", priors=priors,
+  fit_pa <- msmbayes(data=infsim_sub, state="statep", time="months", priors=priors,
                      Q=Q, fit_method="optimize",
                      pastates = c(1,2), pafamily=c("weibull","gamma"),
                      seed = 1)
@@ -52,9 +54,6 @@ test_that("phase type approximations: error handling in prior specification",{
     "Found state ID of 9"
   )
 })
-
-set.seed(1)
-infsim_sub <- infsim[sort(sample(1:nrow(infsim),1000)),]
 
 test_that("phase-type approximations with covariates: tight priors reduce to smaller model",{
   skip_on_cran()

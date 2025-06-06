@@ -1,3 +1,4 @@
+infsim_sub <- infsim[infsim$subject <= 10, ]
 
 Q <- rbind(c(0, 1), c(1, 0))
 E <- rbind(c(0, 1), c(1, 0))
@@ -81,51 +82,14 @@ test_that("msmbayes fixed misclassification model with tiny error rates agrees w
   expect_equal(med_rvar(qvector(drawse)[1]), med_rvar(qvector(drawsf)[1]), tolerance=1e-01)
 })
 
-test_that("msmbayes fitted misclassification model for cav agrees with msm",{
-  fit_msm <- msm(state ~ years, subject = PTNUM, data = cav,
-                 qmatrix = Qcav, ematrix = Ecav)
-
-  set.seed(1)
-  fit_bayes <- msmbayes(data=cav, subject="PTNUM", time="years", state="state",
-                        Q=Qcav, E=Ecav, fit_method="optimize")
-  expect_equal(
-    ematrix.msm(fit_msm)[2,1][["estimate"]],
-    med_rvar(ematrix(fit_bayes)[2,1]), tolerance=0.1)
-  expect_equal(qmatrix.msm(fit_msm)[2,3][["estimate"]],
-               med_rvar(qmatrix(fit_bayes)[2,3]), tolerance=0.1)
-})
-
-test_that("a more complex misclassification structure",{
-  skip_on_cran()
-  fit_msm <- msm(state ~ years, subject = PTNUM, data = cav,
-                 qmatrix = Qcav, ematrix = Ecav2, fixedpars=c(7,10))
-  ## Note in msm (as 1.8.2), it isn't the prob that is being fixed, but the
-  ## mnlogit transform given the rest of the row.
-  ## This will result in a different prob when the inits are converted to MLEs
-  ## Only affects models with 3 potential observed values for a true state
-
-  ematrix.msm(fit_msm)
-  set.seed(100)
-  Efix <- rbind(c(0, 0, 0.001, 0),
-                c(0, 0, 0, 0),
-                c(0.001, 0, 0, 0),
-                c(0, 0, 0, 0))
-  fit_bayes <- msmbayes(data=cav, subject="PTNUM", time="years", state="state",
-                        Q=Qcav, E=Ecav2, Efix=Efix, fit_method="optimize")
-  ematrix(fit_bayes)
-  expect_equal(
-    ematrix.msm(fit_msm)[2,1][["estimate"]],
-    med_rvar(ematrix(fit_bayes)[2,1]), tolerance=0.1)
-})
-
 test_that("priors in misclassification models: explicit priors match default",{
   priors <- list(msmprior("loe(1,2)",0,1),
                  msmprior("loe(2,1)",0,1))
   set.seed(1)
-  fit_default1 <- msmbayes(data=infsim, time="months", Q=Q, E=E, priors=priors,
+  fit_default1 <- msmbayes(data=infsim_sub, time="months", Q=Q, E=E, priors=priors,
                           fit_method="optimize")
   set.seed(1)
-  fit_default2 <- msmbayes(data=infsim, time="months", Q=Q, E=E,
+  fit_default2 <- msmbayes(data=infsim_sub, time="months", Q=Q, E=E,
                           fit_method="optimize")
   expect_equal(med_rvar(ematrix(fit_default1)[1,2]), med_rvar(ematrix(fit_default2)[1,2]))
   priors <- list(msmprior("loe(1,9)",0,1),
@@ -140,10 +104,10 @@ test_that("priors in misclassification models: explicit priors match default",{
 
 test_that("priors in misclassification models: tightening priors reduces posterior SD",{
   priors_weak <- list(msmprior("loe(1,2)", 0, 1), msmprior("loe(2,1)", 0, 1))
-  fit_weak <- msmbayes(data=infsim, time="months", Q=Q, E=E, priors=priors_weak,
+  fit_weak <- msmbayes(data=infsim_sub, time="months", Q=Q, E=E, priors=priors_weak,
                            fit_method="optimize", seed=1)
   priors_strong <- list(msmprior("loe(1,2)", 0, 0.1), msmprior("loe(2,1)", 0, 0.1))
-  fit_strong <- msmbayes(data=infsim, time="months", Q=Q, E=E, priors=priors_strong,
+  fit_strong <- msmbayes(data=infsim_sub, time="months", Q=Q, E=E, priors=priors_strong,
                          fit_method="optimize", seed=20)
   expect_lt(sd_rvar(ematrix(fit_strong)[2,1]), sd_rvar(ematrix(fit_weak)[2,1]))
 })

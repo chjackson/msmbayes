@@ -67,7 +67,7 @@ test_that("edf",{
                 c(1, 0, 1, 0),
                 c(0, 1, 0, 0),
                 c(0, 0, 0, 0))
-  cav_misc <- msmbayes(data=msm::cav, state="state", time="years", subject="PTNUM",
+  cav_misc <- msmbayes(data=msm::cav[1:200,], state="state", time="years", subject="PTNUM",
                      Q=Qcav, E=Ecav, fit_method="optimize")
   expect_equal(mean(edf(cav_misc)$posterior[1]),
                summary(cav_misc) |>filter(name=="e") |>

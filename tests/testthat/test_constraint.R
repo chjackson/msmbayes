@@ -35,10 +35,6 @@ test_that("constraint with two constraints",{
                lhrs$posterior[lhrs$name=="sexmale" & lhrs$from==3 & lhrs$to==2])
 })
 
-#test_that("constraint with pastates/HMM",{
-#  ## needs a 3 from-state model to test this (2 with markov, one pastate)
-#})
-
 test_that("errors in constraint",{
   expect_error(msmbayes(dat, state="state", Q=Qid,
                         covariates = list(Q(1,2) ~ age10, Q(2,3) ~ age10),

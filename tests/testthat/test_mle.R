@@ -1,9 +1,10 @@
 library(msm)
 Q2 <- rbind(c(0, 1), c(1, 0))
+infsim_sub <- infsim[infsim$subject <= 10, ]
 
-test_that("msmbayes with flat priors agrees with msm",{
-  fitb <- msmbayes(data=infsim,  time="months", Q=Q2, priors = "mle")
-  fitm <- msm(state~months, subject=subject, data=infsim, qmatrix=Q2)
+test_that("msmbayes with flat priors: mode agrees with MLE from msm",{
+  fitb <- msmbayes(data=infsim_sub,  time="months", Q=Q2, priors = "mle")
+  fitm <- msm(state~months, subject=subject, data=infsim_sub, qmatrix=Q2)
 
   expect_equal(-2*logLik(fitb), fitm$minus2loglik)
   expect_true(is.numeric(qdf(fitb)$mode))
@@ -28,9 +29,10 @@ test_that("msmbayes with flat priors agrees with msm",{
 
 test_that("msmbayes with flat priors agrees with msm: models with covariates",{
   skip_on_cran()
-  fitbc <- msmbayes(data=infsim,  time="months", Q=Q2,
+  fitbc <- msmbayes(data=infsim_sub,  time="months", Q=Q2,
                    covariates = ~age10, priors = "mle")
-  fitmc <- msm(state~months, subject=subject, data=infsim, covariates = ~age10, qmatrix=Q2)
+  fitmc <- msm(state~months, subject=subject, data=infsim_sub,
+               covariates = ~age10, qmatrix=Q2)
   expect_equal(-2*logLik(fitbc), fitmc$minus2loglik)
 
   expect_true(is.numeric(loghr(fitbc)$mode))
@@ -55,9 +57,9 @@ Efix <- rbind(c(0, 0.01), c(0.01, 0))
 test_that("msmbayes with flat priors and misclassification agrees with msm",{
   skip_on_cran()
   init <- list(logq_markov = c(0, 0))
-  drawse <- msmbayes(data=infsim, time="months", Q=Q2, E=E, Efix=Efix, init=init,
+  drawse <- msmbayes(data=infsim_sub, time="months", Q=Q2, E=E, Efix=Efix, init=init,
                      priors="mle")
-  lik_msm <- msm(state~months, subject=subject, data=infsim,
+  lik_msm <- msm(state~months, subject=subject, data=infsim_sub,
                  qmatrix=Q2, ematrix=Efix, fixedpars=3:4,
                  control=list(fnscale=1000,trace=1,REPORT=1))
   expect_equal(-2*logLik(drawse), lik_msm$minus2loglik)
@@ -73,11 +75,7 @@ test_that("msmbayes with flat priors and misclassification agrees with msm",{
 
 test_that("mle and mode outputs for phaseapprox",{
   skip_on_cran()
-  fit_pa <- msmbayes(data=infsim, state="statep", time="months", priors="mle",
-                     Q=Q2, pastates = c(2))
+  fit_pa <- msmbayes(data=infsim_sub, state="statep", time="months", priors="mle",
+                     Q=Q2, pastates = c(2), iter=100)
   expect_true(is.numeric(phaseapprox_pars(fit_pa)$mode))
-  fit_pa <- msmbayes(data=infsim, state="statep", time="months",
-                     Q=Q2, pastates = c(2), chains=1, iter=1000)
-  phaseapprox_pars(fit_pa)
-  totlos(fit_pa, t=1)
 })

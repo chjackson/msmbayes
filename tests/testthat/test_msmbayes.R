@@ -1,4 +1,6 @@
 Q <- rbind(c(0, 1), c(1, 0))
+infsim_sub <- infsim[infsim$subject <= 10, ]
+infsim_sub$sex <- c(rep("male",180), rep("female",180))
 library(msm)
 
 test_that("likelihood at fixed parameters agrees with msm",{
@@ -53,7 +55,7 @@ test_that("Basic msmbayes model fit agrees with msm",{
 test_that("Covariates msmbayes model fit agrees with msm",{
   skip_on_cran()
   # true logHRs age 1, -1,  male 2, 0
-  draws <- msmbayes(data=infsim, state="statec", time="months", subject="subject", Q=Q,
+  draws <- msmbayes(data=infsim_sub, state="statec", time="months", subject="subject", Q=Q,
                     covariates = list(Q(1,2) ~ age10 + sex, Q(2,1) ~ age10 + sex),
                     fit_method="optimize")
   if (interactive()) bayesplot::mcmc_dens(draws)
@@ -61,7 +63,7 @@ test_that("Covariates msmbayes model fit agrees with msm",{
   bayes_ests_age <- bayes_ests |> filter(name=="age10")
   bayes_ests_sex <- bayes_ests |> filter(name=="sexmale")
 
-  inf_msm <- msm(statec~months, subject=subject, data=infsim, qmatrix=Q,
+  inf_msm <- msm(statec~months, subject=subject, data=infsim_sub, qmatrix=Q,
                  covariates = list("1-2"=~age10+sex, "2-1"=~age10+sex),
                  control=list(fnscale=3000, maxit=1000))
   msm_age <- log(hazard.msm(inf_msm)$age10[,"HR"])
