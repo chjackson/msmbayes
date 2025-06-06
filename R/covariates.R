@@ -16,7 +16,7 @@
 #'
 #' \code{transdf} Data frame with \code{qm$nqpars} rows (number of
 #' intensities on the true/latent space) and the following columns:
-#' 
+#'
 #' * \code{nxq} Vector giving number of covariate effects on each
 #' permitted intensity.
 #'
@@ -26,7 +26,7 @@
 #'
 #' \code{hrdf} Data frame with \code{nx} rows, and columns
 #'
-#' * \code{names} (covariate names),
+#' * \code{name} (covariate names),
 #'
 #' * \code{from} \code{to}: on Markov state space (latent space in HMMs)
 #'
@@ -144,13 +144,15 @@ form_covariates <- function(covariates, data, constraint, qm, pm, em, qmobs,
                           rrastart=rrastart, rraend=rraend)
 
     ## Table with one row per covariate effect on Q, excluding semi-Markov scale parameters
+    hrdf_q <- hrdf_s <- cm_hrdf_no_covariates()
     hrdf_q <- data.frame(
-      names = do.call("c", lapply(mod_Q, function(x)x$xnames)),
+      name = do.call("c", lapply(mod_Q, function(x)x$xnames)),
       from =  do.call("c", lapply(mod_Q, function(x)rep(x$from, x$ncovs))),
       to =  do.call("c", lapply(mod_Q, function(x)rep(x$to, x$ncovs))),
       fromobs =  do.call("c", lapply(mod_Q, function(x)rep(x$fromobs, x$ncovs))),
       toobs =  do.call("c", lapply(mod_Q, function(x)rep(x$toobs, x$ncovs)))
     )
+    if (nrow(hrdf_q)==0) hrdf_q <- cm_hrdf_no_covariates()
     hrdf_q$tafid <- seq_len(nrow(hrdf_q))
     hrdf_q$response <- rep("Q", nrow(hrdf_q))
 
@@ -159,21 +161,22 @@ form_covariates <- function(covariates, data, constraint, qm, pm, em, qmobs,
     ## each intensity with a common scale
     nqi <- lengths(qinds) # number of replicated scale parameters per model (state)
     nxq1 # number of covariates per model
-    hrdf_s <- data.frame( # TESTME CHECK ORDERING WITH MULTIPLE COVS, DIFF ON EACH STATE
-      names = do.call("c",   lapply(mod_scale, function(x)rep(x$xnames, each=nqi))),
+    hrdf_s <- data.frame(
+      name = do.call("c",   lapply(mod_scale, function(x)rep(x$xnames, each=length(x$qind)))),
       from = do.call("c",    lapply(mod_scale, function(x)rep(x$from, length(x$xnames)))),
       to = do.call("c",      lapply(mod_scale, function(x)rep(x$to, length(x$xnames)))),
-      fromobs = do.call("c", lapply(mod_scale, function(x)rep(rep(x$fromobs, x$ncovs), nqi))),
-      toobs = do.call("c",   lapply(mod_scale, function(x)rep(rep(x$toobs, x$ncovs), nqi))),
-      tafid = nrow(hrdf_q) + (if(length(nxq1)==0) integer() else rep(sequence(nxq1), each=nqi)),
-      response = rep("scale", sum(nqi))
+      fromobs = do.call("c", lapply(mod_scale, function(x)rep(rep(x$fromobs, x$ncovs), each=length(x$qind)))),
+      toobs = do.call("c",   lapply(mod_scale, function(x)rep(rep(x$toobs, x$ncovs), each=length(x$qind)))),
+      tafid = nrow(hrdf_q) + (if(length(nxq1)==0) integer() else rep(1:sum(nxq1), rep(nqi, nxq1)))
     )
+    if (nrow(hrdf_s)==0) hrdf_s <- cm_hrdf_no_covariates()
+    hrdf_s$response = rep("scale", nrow(hrdf_s))
 
     hrdf <- rbind(hrdf_q, hrdf_s)
 
     ## Table with one row per covariate effect on next-state RRs in semi-Markov models
     rradf <- data.frame(
-      names = do.call("c", lapply(mod_rra, function(x)x$xnames)),
+      name = do.call("c", lapply(mod_rra, function(x)x$xnames)),
       from = do.call("c", lapply(mod_rra, function(x)rep(x$from, x$ncovs))),
       to = do.call("c", lapply(mod_rra, function(x)rep(x$to, x$ncovs)))
     )
@@ -199,6 +202,10 @@ form_covariates <- function(covariates, data, constraint, qm, pm, em, qmobs,
 }
 
 
+cm_hrdf_no_covariates <- function(){
+  data.frame(name=character(), from=numeric(), to=numeric(),
+             fromobs=numeric(), toobs=numeric(), tafid=numeric())
+}
 
 cm_no_covariates <- function(data, qm){
   nxq <- xstart <- xend <- nrraq <- xrrastart <- xrraend <-
@@ -208,8 +215,8 @@ cm_no_covariates <- function(data, qm){
     transdf = data.frame(nxq=nxq, xstart=xstart, xend=xend,
                          nrraq=nrraq, xrrastart=xrrastart, xrraend=xrraend,
                          rrastart=rrastart, rraend=rraend),
-    hrdf = data.frame(names=character(), from=numeric(), to=numeric(), tafid=numeric()), nx = 0,
-    rradf = data.frame(names=character(), from=numeric(), to=numeric()), nrra=0,
+    hrdf = cm_hrdf_no_covariates(), nx = 0,
+    rradf = data.frame(name=character(), from=numeric(), to=numeric()), nrra=0,
     ntafs = 0,
     X = matrix(0, nrow=nrow(data), ncol=0),
     covnames_orig = NULL
@@ -300,7 +307,6 @@ parse_msm_formula_rhs <- function(form, data, call=caller_env()){
 }
 ## see https://hardhat.tidymodels.org/reference/default_formula_blueprint.html
 ## work around its behaviour of including baseline factor level in the design matrix
-## TODO test with prediction
 
 cov_formula_to_list <- function(covariates, qm){
   rhs <- as.character(covariates[2])
@@ -313,10 +319,11 @@ cov_formula_to_list <- function(covariates, qm){
 ##' On entry, (from, to) is as specified by user
 ##' * for simple markov or phaseapprox models, observable states
 ##' * for nphase models: latent states
+##' For misc models, observable and latent state spaces are the same
 ##'
 ##' @return list of information from that formula
 ##'
-##' from, to: Markov state (latent state in HMMS)
+##' from, to: Markov state (latent state in HMMs)
 ##' fromobs, toobs: observable state
 ##'
 ##' @noRd

@@ -1,6 +1,7 @@
 .transition_string_pattern <- "[[:space:]]*([[:digit:]]+)[[:space:]]*-[[:space:]]*([[:digit:]]+)[[:space:]]*"
 
 #' @param constraint Something like list(age50 = c("1-5","2-5"))
+#' 
 #'
 #' @return A modified copy of the covariates internals object \code{cm}, adding
 #' \code{nxuniq} (number of unique effects) and \code{tafdf} (database of
@@ -22,7 +23,9 @@ cm_form_consdf <- function(constraint, cm, qm, pm, qmlatent, call=caller_env()){
         ci <- ci + 1
       }
     } # end up with consid like 1,1,1,1,2,2,2,3,3 indicating unique parameters among those given constraints
-    cm$consdf <- data.frame(names = xnames, from=fromstate, to=tostate, consid=consid,
+    cm$consdf <- data.frame(name = xnames,
+                            from=fromstate, to=tostate, 
+                            fromobs=fromstate, toobs=tostate, consid=consid,
                          labs = sprintf("%s-%s",fromstate,tostate))
     cm$nxuniq <- max(cm$consdf$consid)
     check_constraint_transitions(cm$consdf, qm, pm, call)
@@ -35,18 +38,19 @@ cm_form_consdf <- function(constraint, cm, qm, pm, qmlatent, call=caller_env()){
 ## Constraints on Markov transitions replicated, but including only one TAF per phasetype state
 cm_form_tafdf <- function(cm, pm){
   if (is.null(cm$consdf)){
-    tafdf <- cm$hrdf[!duplicated(cm$hrdf$tafid),c("names","from","to")]
+    tafdf <- cm$hrdf[!duplicated(cm$hrdf$tafid),
+                     c("name","from","to","fromobs","toobs")]
     tafdf$consid <- as.array(seq_len(nrow(tafdf)))
   } else {
     tafdf <- cm$hrdf |>
-      left_join(cm$consdf, by=c("names","from","to")) |>
+      left_join(cm$consdf, by=c("name","fromobs","toobs")) |>
       filter(!duplicated(.data$tafid))
     nconstr <- if (nrow(cm$consdf)==0) 0 else max(cm$consdf$consid)
     tafdf$consid[is.na(tafdf$consid)] <- seq_len(sum(is.na(tafdf$consid))) + nconstr
 
     tafdf$consid <- match(tafdf$consid, unique(tafdf$consid))
   }
-  tafdf$response <- ifelse(tafdf$from %in% pm$pastates, "scale", "Q")
+  tafdf$response <- ifelse(tafdf$fromobs %in% pm$pastates, "scale", "Q")
   cm$tafdf <- tafdf
   cm$nxuniq <- if (nrow(cm$tafdf)==0) 0 else max(cm$tafdf$consid)
   cm$ntafs <- nrow(cm$tafdf)
@@ -54,6 +58,8 @@ cm_form_tafdf <- function(cm, pm){
 }
 
 check_constraint <- function(constraint, cm, pm, call=caller_env()){
+  if (pm$phasetype)
+    cli_abort("covariate effect constraints are not supported in semi-Markov models", call=call)
   if (!is.list(constraint))
     cli_abort("{.var constraint} should be a list", call=call)
   nc <- names(constraint)

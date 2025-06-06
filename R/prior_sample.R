@@ -73,16 +73,13 @@ msmbayes_prior_sample <- function(data, state="state", time="time", subject="sub
 
     if (expand_hr){ # return different parameters for each latent transition AND constraint
       loghr <- loghr[,cm$hrdf$tafid]
-      ## TESTME with multiple, unbalanced covs
-      names(loghr) <- sprintf("loghr[%s,%s,%s]", cm$hrdf$names, cm$hrdf$from, cm$hrdf$to)
+      names(loghr) <- sprintf("loghr[%s,%s,%s]", cm$hrdf$name, cm$hrdf$from, cm$hrdf$to)
     } else {
       tudf <- cm$tafdf[!duplicated(cm$tafdf$consid),]
       pname <- ifelse(tudf$response=="scale", "loghrscale", "loghr")
-      ind3 <- ifelse(tudf$response=="scale", "", paste0(",",tudf$to))
-      names(loghr) <- sprintf("%s[%s,%s%s]", pname, tudf$names, tudf$from, ind3)
+      ind3 <- ifelse(tudf$response=="scale", "", paste0(",",tudf$toobs))
+      names(loghr) <- sprintf("%s[%s,%s%s]", pname, tudf$name, tudf$fromobs, ind3)
     }
-
-    ##
     res <- cbind(res, loghr)
   }
   if (pm$phaseapprox){
@@ -299,7 +296,7 @@ extract_q <- function(prior_sample, Q, i){
 ##' @format "simmulti.msm" (`covariates`) argument or "sim.msm" (`beta` argument)
 ##' @noRd
 extract_beta <- function(prior_sample, i, qm, qmatrix, format="simmulti.msm"){
-  bre <- "loghr\\[(.+),([[:digit:]]+),([[:digit:]])+\\]"
+  bre <- "loghr\\[(.+),([[:digit:]]+),([[:digit:]]+)\\]"
   bn <- grep(bre,names(prior_sample),value=TRUE)
   bdf <- data.frame(
     name = gsub(bre, "\\1", bn),

@@ -223,7 +223,9 @@
 #'                                 c("1-4","2-4")),
 #'                      sex = list(c("1-2","2-3")))`
 #'
-#'   This is the same feature as in `msm`, but with an easier interface.
+#'   This is the same feature as in `msm`, but with an easier
+#' interface.  In `msmbayes` it is only supported for standard Markov
+#' models, not semi-Markov, phase-type or misclassification models.
 #'
 #' @param nphase Only required for models with phase-type sojourn
 #'   distributions specified directly (not through `pastates`).

@@ -110,7 +110,7 @@ prior_loghr_db <- function(priors, cm){
   prior <- name <- xname <- NULL
   cmdf <- cm$cmodeldf[cm$cmodeldf$response %in% c("Q","scale"),]
   data.frame(
-    xname = cm$tafdf$names,
+    xname = cm$tafdf$name,
     from = rep(cmdf$from, cmdf$ncovs),
     to = rep(cmdf$to, cmdf$ncovs),
     prior = prior_to_rvar(priors$loghrmean, priors$loghrsd, n=1000)[cm$tafdf$consid]

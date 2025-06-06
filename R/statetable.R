@@ -1,12 +1,13 @@
 ##' Summarise intermittenly-observed multi-state data
 ##'
 ##' Tabulate observed transitions between states over successive observations, by
-##' from-state, to-state and (optionally) time interval length.
+##' from-state, to-state and (optionally) time interval length and covariate
+##' values.
 ##'
 ##' This is like the function \code{statetable.msm} in \pkg{msm}, except that it
-##' uses msmbayes syntax for specifying the data, it also summarises
+##' uses `msmbayes` syntax for specifying the data, it summarises
 ##' the length of the time intervals between successive observations,
-##' and returns a tidy data frame.
+##' and it returns a tidy data frame.
 ##'
 ##' **Warning**: it is not appropriate to choose the transition structure
 ##' (the `Q` argument to `msmbayes()`) on the basis of this summary.
@@ -19,7 +20,7 @@
 ##' mild to severe is impossible.
 ##'
 ##' Note this is not fully tidy-friendly, as it will not work
-##' if `data` is grouped using dplyr.
+##' if `data` is grouped using `dplyr`.
 ##'
 ##' @inheritParams msmbayes
 ##'

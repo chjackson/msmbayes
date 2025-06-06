@@ -307,7 +307,7 @@ loghr <- function(draws){
   res <- loghr_internal(draws) |>
     mutate(from = cm$hrdf$from,
            to = cm$hrdf$to,
-           name = cm$hrdf$names) |>
+           name = cm$hrdf$name) |>
     filter(!duplicated(tafid)) |>
     select(-tafid) |>
     relocate(from, to, name, posterior) |>

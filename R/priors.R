@@ -288,7 +288,7 @@ process_priors <- function(priors, qm, cm, pm, em, qmobs,
   if (identical(priors, "mle")){
     mle <- TRUE; priors <- NULL
   } else mle <- FALSE
-  
+
   priors <- check_priors(priors)
   logqmean <- rep(.default_priors$logq$mean, qm$npriorq)
   logqsd <- rep(.default_priors$logq$sd, qm$npriorq)
@@ -361,8 +361,8 @@ check_repeated_prior <- function(tafind, cm, loghr_user){
   cids <- setdiff(which(loghr_user &
                         (cm$tafdf$consid == cm$tafdf$consid[tafind])), tafind)
   if (length(cids) > 0){
-    bad_eff <- sprintf("loghr(%s,%s,%s)",cm$tafdf$names[tafind],
-                       cm$tafdf$from[tafind], cm$tafdf$to[tafind])
+    bad_eff <- sprintf("loghr(%s,%s,%s)",cm$tafdf$name[tafind],
+                       cm$tafdf$fromobs[tafind], cm$tafdf$toobs[tafind])
     cli_warn("Ignoring redundant prior for constrained covariate effect{?s} {bad_eff}")
   }
 }
@@ -442,13 +442,16 @@ check_prior_loghr <- function(prior, cm, pm, call=caller_env()){
 get_prior_hrindex <- function(prior, qmobs, qmlatent, cm, pm, call=caller_env()){
   trans_allowed <- if (pm$phasetype && !pm$phaseapprox) qmlatent$qlab else qmobs$tr$qlab
   ## check for pastates already done in check_prior_loghr
+  user_space <- if (pm$phasetype && !pm$phaseapprox) "latent" else "obs"
+  from <- if (user_space=="obs") cm$tafdf$fromobs else cm$tafdf$from
+  to <- if (user_space=="obs") cm$tafdf$toobs else cm$tafdf$to
   if (prior$ind1 == "all_indices")  ## just supplied covariate name, apply this to transitions from all Markov states
-    tind <- !(cm$tafdf$from %in% pm$pastates)
+    tind <- !(from %in% pm$pastates)
   else  {
     trans <- paste0(prior$ind1, "-", prior$ind2)
     if (!(trans %in% trans_allowed))
       cli_abort("Invalid prior specification for {.var loghr}: transition {trans} is not in the model", call=call)
-    tind <- (cm$tafdf$from == prior$ind1) & (cm$tafdf$to == prior$ind2)
+    tind <- (from == prior$ind1) & (to == prior$ind2)
   }
   covnames <- unique(cm$tafdf$name[tind])
   if (is.null(prior$covname))  prior$covname <- covnames # same prior used for all effects on this transition
@@ -476,17 +479,17 @@ get_prior_pastate <- function(prior, cm, pm, call=caller_env()){
   if (!(prior$ind %in% pm$pastates))
     cli_abort(c("prior for {.var loghrscale} should refer to one of the states given a {.var pastates} model, {pm$pastates}",
                 "Found state {prior$ind}"), call=call)
-  else if (sum(cm$tafdf$from == prior$ind) == 0)
+  else if (sum(cm$tafdf$fromobs == prior$ind) == 0)
     cli_abort("Supplied a prior {.str {prior$username}}, but there are no covariates defined on state {prior$ind}")
   ## TESTME
-  cm$tafdf$consid[cm$tafdf$from==prior$ind &
-                  cm$tafdf$names==prior$covname]
+  cm$tafdf$consid[cm$tafdf$fromobs==prior$ind &
+                  cm$tafdf$name==prior$covname]
 }
 
 get_prior_rraindex <- function(prior, cm){
   ind <- which(cm$rradf$from==prior$ind1 & cm$rradf$to==prior$ind2)
   if (length(ind)==0){
-    if (nrow(cm$rradf)==0) 
+    if (nrow(cm$rradf)==0)
       msg <- "the model does not include covariates on competing exit transitions in a {.var pastates} model"
     else
       msg <- "transition {prior$ind1}-{prior$ind2} is not a competing exit transition in a {.var pastates} model"
