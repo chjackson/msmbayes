@@ -323,7 +323,7 @@ process_priors <- function(priors, qm, cm, pm, em, qmobs,
         check_repeated_prior(tafind, cm, loghr_user)
       }
     } else if (prior$par_base=="loghrscale"){
-      phrind <- get_prior_pastate(prior, cm, pm, call)
+      phrind <- get_prior_hrscaleindex(prior, cm, pm, call)
       loghrmean[phrind] <- prior$mean
       loghrsd[phrind] <- prior$sd
     } else if (prior$par_base=="logshape"){
@@ -333,11 +333,10 @@ process_priors <- function(priors, qm, cm, pm, em, qmobs,
       ind <- get_prior_ssindex(prior, pm)
       logscalemean[ind] <- prior$mean; logscalesd[ind] <- prior$sd
     } else if (prior$par_base=="loe"){
-      ## For the moment index from 1.
-      ## Perhaps index by (true,obs) later
       ind <- get_prior_loeindex(prior, em)
       loemean[ind] <- prior$mean; loesd[ind] <- prior$sd
     } else if (prior$par_base=="loa"){
+      ind <- get_prior_loaindex(prior, qm, pm)
       loamean[prior$ind] <- prior$mean; loasd[prior$ind] <- prior$sd
     } else if (prior$par_base=="logrra"){
       ind <- get_prior_rraindex(prior, cm)
@@ -422,7 +421,7 @@ get_prior_qindex <- function(prior, qmobs, qmlatent, pm, markov_only=TRUE){
 
 check_prior_loghr <- function(prior, cm, pm, call=caller_env()){
   fromstate <- if (!is.null(prior$ind1)) prior$ind1 else prior$ind
-  if (!is.null(fromstate) && (fromstate %in% pm$pastates))
+  if (!is.null(fromstate) && ((fromstate %in% pm$pastates) || (fromstate=="all_indices")))
     cli_abort(c("Prior supplied for {.var loghr} from state {fromstate}, but this state has a phase-type approximation.",
                 "Did you mean to use a prior for {.var loghrscale}?"), call=call)
   if (cm$nx==0)
@@ -445,19 +444,22 @@ get_prior_hrindex <- function(prior, qmobs, qmlatent, cm, pm, call=caller_env())
   user_space <- if (pm$phasetype && !pm$phaseapprox) "latent" else "obs"
   from <- if (user_space=="obs") cm$tafdf$fromobs else cm$tafdf$from
   to <- if (user_space=="obs") cm$tafdf$toobs else cm$tafdf$to
-  if (prior$ind1 == "all_indices")  ## just supplied covariate name, apply this to transitions from all Markov states
+  if (prior$ind1 == "all_indices"){  ## just supplied covariate name, apply this to transitions from all Markov states
     tind <- !(from %in% pm$pastates)
+    tmsg <- ""
+  }
   else  {
     trans <- paste0(prior$ind1, "-", prior$ind2)
     if (!(trans %in% trans_allowed))
       cli_abort("Invalid prior specification for {.var loghr}: transition {trans} is not in the model", call=call)
     tind <- (from == prior$ind1) & (to == prior$ind2)
+    tmsg <- "for transition {trans}"
   }
   covnames <- unique(cm$tafdf$name[tind])
   if (is.null(prior$covname))  prior$covname <- covnames # same prior used for all effects on this transition
   tafind <- which(tind  &  cm$tafdf$name %in% prior$covname)
   if (length(tafind) == 0)
-    cli_abort(c("Bad prior specification: covariate effect name {.var {prior$covname}} is not in the model for transition {trans}",
+    cli_abort(c("Bad prior specification: covariate effect name {.var {prior$covname}} is not in the model {tmsg}",
                 "Valid names include {.var {covnames}}"), call=call)
   tafind
 }
@@ -470,52 +472,81 @@ get_prior_hrindex <- function(prior, qmobs, qmlatent, cm, pm, call=caller_env())
 ##' time acceleration factor for this state/name.  index on the set 1:cm$nxuniq
 ##'
 ##' @noRd
-get_prior_pastate <- function(prior, cm, pm, call=caller_env()){
+get_prior_hrscaleindex <- function(prior, cm, pm, call=caller_env()){
   if (length(pm$pastates)==0)
     cli_abort("Supplied a prior for {.var loghrscale}, but there are no states given a {.var pastates} model") # TESTME
   if (!is.null(prior$ind2))
     cli_abort("prior for {.var loghrscale} should only have one state index",
               call=call)
-  if (!(prior$ind %in% pm$pastates))
+  if (prior$ind == "all_indices"){
+    prior$ind <- pm$pastates
+  }
+  else if (!(prior$ind %in% pm$pastates))
     cli_abort(c("prior for {.var loghrscale} should refer to one of the states given a {.var pastates} model, {pm$pastates}",
                 "Found state {prior$ind}"), call=call)
   else if (sum(cm$tafdf$fromobs == prior$ind) == 0)
     cli_abort("Supplied a prior {.str {prior$username}}, but there are no covariates defined on state {prior$ind}")
-  ## TESTME
-  cm$tafdf$consid[cm$tafdf$fromobs==prior$ind &
-                  cm$tafdf$name==prior$covname]
+  covnames <- unique(cm$tafdf$name[cm$tafdf$fromobs %in% prior$ind])
+  if (is.null(prior$covname))  prior$covname <- covnames # same prior used for all covariates
+  cm$tafdf$consid[cm$tafdf$fromobs %in% prior$ind &
+                  cm$tafdf$name %in% prior$covname]
 }
 
-get_prior_rraindex <- function(prior, cm){
-  ind <- which(cm$rradf$from==prior$ind1 & cm$rradf$to==prior$ind2)
+get_prior_loaindex <- function(prior, qm, pm, call=caller_env()){
+  if (is.null(prior$ind2))
+    cli_abort(c("prior for {.var loa} should have two state indices",
+                "found {.str {prior$username}}"),
+              call=call)
+  if (!pm$phaseapprox)
+    cli_abort(paste0("Unknown prior parameter {prior$username}: not a phase-type approximation model"))
+  crd <- qm$pacrdata[qm$pacrdata$loind==1,,drop=FALSE]
+  ind <- which(crd$oldfrom==prior$ind1 & crd$oldto==prior$ind2)
+  if (length(ind) == 0){
+    msg <- "transition {prior$ind1}-{prior$ind2} is not a competing exit transition in a {.var pastates} model"
+    cli_abort(paste0("Unknown prior parameter {prior$username}:",msg), call=call)
+  }
+  ind
+}
+
+get_prior_rraindex <- function(prior, cm, call=caller_env()){
+  if (prior$ind == "all_indices"){
+    ind <- seq_len(nrow(cm$rradf))
+  }
+  else
+    ind <- which(cm$rradf$from==prior$ind1 & cm$rradf$to==prior$ind2)
   if (length(ind)==0){
     if (nrow(cm$rradf)==0)
       msg <- "the model does not include covariates on competing exit transitions in a {.var pastates} model"
     else
       msg <- "transition {prior$ind1}-{prior$ind2} is not a competing exit transition in a {.var pastates} model"
-    cli_abort(paste0("Unknown prior parameter {prior$par}:",msg))
+    cli_abort(paste0("Unknown prior parameter {prior$username}:",msg), call=call)
   }
   ind
 }
 
 ## Which in the set of misclassification error log odds does a prior refer to
-get_prior_ssindex <- function(prior, pm){
+get_prior_ssindex <- function(prior, pm, call=caller_env()){
   if (prior$ind1 == "all_indices")
     prior$ind1 <- pm$pastates
   else {
     if (!prior$ind1 %in% pm$pastates)
-      cli_abort("Found state ID of {prior$ind1} in prior for shape or scale parameter. Expected this to be one of the states with phase-type sojourn distributions, {pm$pastates}")
+      cli_abort("Found state ID of {prior$ind1} in prior for shape or scale parameter. Expected this to be one of the states with phase-type sojourn distributions, {pm$pastates}", call=call)
   }
   ind <- match(prior$ind1, pm$pastates)
   if (!pm$phaseapprox)
-    cli_abort("Supplied a prior for a shape or scale parameter, but model does not have any states with phase-type approximations")
+    cli_abort("Supplied a prior for a shape or scale parameter, but model does not have any states with phase-type approximations",
+              call=call)
   ind
 }
 
-get_prior_loeindex <- function(prior, em){
+get_prior_loeindex <- function(prior, em, call=caller_env()){
+  if (is.null(prior$ind2))
+    cli_abort(c("prior for {.var loe} should have two state indices",
+                "found {.str {prior$username}}"),
+              call=call)
   ind <- which(em$erow==prior$ind1 & em$ecol==prior$ind2)
   if (length(ind)==0){
-    cli_abort("Unknown prior parameter: misclassification from {prior$ind1} to {prior$ind2} is not in the model")
+    cli_abort("Unknown prior parameter {.str {prior$username}}: misclassification from {prior$ind1} to {prior$ind2} is not in the model", call=call)
   }
   ind
 }

@@ -26,8 +26,8 @@ test_that("prior_sample with covariates",{
   expect_lt(summ[["3rd Qu."]], 2.2)
 })
 
-## TODO
-## shape, scale, e
+## TODO all_indices in scale
+
 
 test_that("prior_sample with pastates, no covariates",{
   priors <- list(msmprior("logshape(1)", median=log(1.1), lower=log(1.06)),

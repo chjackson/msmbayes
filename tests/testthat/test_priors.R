@@ -123,3 +123,23 @@ test_that("msmprior for all indices",{
   nm <- setdiff(names(priors1), "username")
   expect_equal(priors1[nm], priors2[nm])
 })
+
+test_that("msmprior errors in pastates models",{
+  expect_error(msmbayes(data=infsim, Q=Q, time="months",
+                        priors = msmprior("loa(2)", median=-2, lower=-4)),
+               "two state indices")
+  expect_error(msmbayes(data=infsim, Q=Q, time="months",
+                        priors = msmprior("loa(1,2)", median=-2, lower=-4)),
+               "not a phase-type approximation model")
+  expect_error(msmbayes(data=infsim, Q=Q, time="months", pastates=1,
+                        priors = msmprior("loa(1,2)", median=-2, lower=-4)),
+               "not a competing")
+
+})
+
+test_that("msmprior errors in misclassification models",{
+  expect_error(msmbayes(data=infsim, Q=Q, time="months",
+                        priors = msmprior("loe(2,1)", median=-2, lower=-4)),
+               "not in the model")
+})
+

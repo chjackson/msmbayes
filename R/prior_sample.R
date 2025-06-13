@@ -102,15 +102,15 @@ msmbayes_prior_sample <- function(data, state="state", time="time", subject="sub
         loa[,i] <- rnorm(nsim, priors$loamean[i], priors$loasd[i])
       }
       res <- cbind(res, loa)
-    }
 
-    if (cm$nrra > 0){
-      logrra <- as.data.frame(matrix(nrow=nsim, ncol=cm$nrra))
-      names(logrra) <- sprintf("logrra[%s,%s]", cm$rradf$from, cm$rradf$to)
-      for (i in 1:cm$nrra){
-        logrra[,i] <- rnorm(nsim, priors$logrramean[i], priors$logrrasd[i])
+      if (cm$nrra > 0){
+        logrra <- as.data.frame(matrix(nrow=nsim, ncol=cm$nrra))
+        names(logrra) <- sprintf("logrra[%s,%s]", cm$rradf$from, cm$rradf$to)
+        for (i in 1:cm$nrra){
+          logrra[,i] <- rnorm(nsim, priors$logrramean[i], priors$logrrasd[i])
+        }
+        res <- cbind(res, logrra)
       }
-      res <- cbind(res, logrra)
     }
 
   }
@@ -122,14 +122,12 @@ msmbayes_prior_sample <- function(data, state="state", time="time", subject="sub
     }
     res <- cbind(res, loe)
   }
-  attr(res,"post_names") <- prior_post_names(names(res), qm, pm, cm)
+  attr(res,"post_names") <- prior_post_names(names(res), qm, pm, cm, em)
   attr(res,"m") <- m
   res
 }
 
-## TODO include loe, loa in these
-
-prior_post_names <- function(prior_names, qm, pm, cm){
+prior_post_names <- function(prior_names, qm, pm, cm, em){
   logq_prior_names <- grep("logq", prior_names, value=TRUE)
   trans_names <- gsub("logq\\[(.+),(.+)\\]","\\1-\\2",logq_prior_names)
   loghr_post_names <- if (cm$nx > 0) sprintf("loghr[%s]", 1:cm$nx) else NULL
@@ -140,15 +138,27 @@ prior_post_names <- function(prior_names, qm, pm, cm){
     logq_post_names <- sprintf("logq_markov[%s]",qind)
     logshape_prior_names <- grep("logshape", prior_names, value=TRUE)
     logscale_prior_names <- grep("logscale", prior_names, value=TRUE)
-    ssind <- match(pm$pastates, unique(pm$pastates))
+    ssind <- match(pm$pastates, unique(pm$pastates)) # isnt this just 1:npastates
     logshape_post_names <- sprintf("logshape[%s]",ssind)
     logscale_post_names <- sprintf("logscale[%s]",ssind)
+    if (qm$noddsabs > 0){
+      loa_post_names <- sprintf("logoddsabs[%s]", 1:qm$noddsabs)
+      if (cm$nrra > 0){
+        logrra_post_names <- sprintf("logrra[%s]", 1:cm$nrra)
+      } else logrra_post_names <- NULL
+    } else loa_post_names <- NULL
+    
     post_names <- c(logq_post_names, loghr_post_names,
-                    logshape_post_names, logscale_post_names)
+                    logshape_post_names, logscale_post_names,
+                    loa_post_names, logrra_post_names)
   } else {
     qind <- match(trans_names, qm$qlab)
     logq_post_names <- sprintf("logq[%s]",qind)
     post_names <- c(logq_post_names, loghr_post_names)
+  }
+  if (em$nepars > 0){
+    loe_post_names <- sprintf("logoddse[%s]", 1:em$nepars)
+    post_names <- c(post_names, loe_post_names) # TESTME
   }
   post_names
 }
@@ -247,10 +257,10 @@ msmbayes_priorpred_sample <- function(data, state="state", time="time", subject=
   if (complete_obs){
     beta <- extract_beta(prior_sample, i=1, m$qm, q_pred, format="sim.msm")
     covs <- if (m$cm$nx==0) NULL else as.matrix(covs[1,])
-    res <- msm::sim.msm(qmatrix=q_pred, maxtime=max(data$time), covs=covs, beta=beta)
+    res <- sim.msm(qmatrix=q_pred, maxtime=max(data$time), covs=covs, beta=beta)
   } else {
     covariates <- extract_beta(prior_sample, i=1, m$qm, q_pred, format="simmulti.msm")
-    res <- msm::simmulti.msm(data, qmatrix=q_pred, covariates=covariates, ematrix=ematrix)
+    res <- simmulti.msm(data, qmatrix=q_pred, covariates=covariates, ematrix=ematrix)
 
     if (m$pm$phaseapprox){
       res$latent_state <- res$state
@@ -321,7 +331,8 @@ extract_beta <- function(prior_sample, i, qm, qmatrix, format="simmulti.msm"){
 
   ## only keep effects on transitions that are allowed according to qmatrix
   qmatrix_lab <- sprintf("%s-%s", row(qmatrix)[qmatrix>0], col(qmatrix)[qmatrix>0])
-  beta <- beta[,match(qmatrix_lab, qm$phasedata$qlab),drop=FALSE]
+  if (!is.null(qm$phasedata))
+    beta <- beta[,match(qmatrix_lab, qm$phasedata$qlab),drop=FALSE]
 
   if (format=="simmulti.msm")
     res <- as.list(as.data.frame(t(beta)))
