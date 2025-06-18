@@ -337,7 +337,7 @@ process_priors <- function(priors, qm, cm, pm, em, qmobs,
       loemean[ind] <- prior$mean; loesd[ind] <- prior$sd
     } else if (prior$par_base=="loa"){
       ind <- get_prior_loaindex(prior, qm, pm)
-      loamean[prior$ind] <- prior$mean; loasd[prior$ind] <- prior$sd
+      loamean[ind] <- prior$mean; loasd[ind] <- prior$sd
     } else if (prior$par_base=="logrra"){
       ind <- get_prior_rraindex(prior, cm)
       logrramean[ind] <- prior$mean
@@ -421,7 +421,7 @@ get_prior_qindex <- function(prior, qmobs, qmlatent, pm, markov_only=TRUE){
 
 check_prior_loghr <- function(prior, cm, pm, call=caller_env()){
   fromstate <- if (!is.null(prior$ind1)) prior$ind1 else prior$ind
-  if (!is.null(fromstate) && ((fromstate %in% pm$pastates) || (fromstate=="all_indices")))
+  if (!is.null(fromstate) && (fromstate %in% pm$pastates) && !(identical(fromstate,"all_indices")))
     cli_abort(c("Prior supplied for {.var loghr} from state {fromstate}, but this state has a phase-type approximation.",
                 "Did you mean to use a prior for {.var loghrscale}?"), call=call)
   if (cm$nx==0)
@@ -509,7 +509,7 @@ get_prior_loaindex <- function(prior, qm, pm, call=caller_env()){
 }
 
 get_prior_rraindex <- function(prior, cm, call=caller_env()){
-  if (prior$ind == "all_indices"){
+  if (prior$ind1 == "all_indices"){
     ind <- seq_len(nrow(cm$rradf))
   }
   else

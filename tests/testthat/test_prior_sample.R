@@ -32,7 +32,7 @@ test_that("prior_sample with covariates",{
 test_that("prior_sample with pastates, no covariates",{
   priors <- list(msmprior("logshape(1)", median=log(1.1), lower=log(1.06)),
                  msmprior("logscale(1)", median=log(1), lower=log(0.94)),
-                 msmprior("loa(1)", mean=0, sd=0.3),
+                 msmprior("loa(1,3)", mean=0, sd=0.3),
                  msmprior("q(2,3)", lower=1.08, upper=1.12))
   set.seed(1)
   sam <- msmbayes_prior_sample(nsim=1000, data=dat, Q=Q, priors=priors, pastates=1)
@@ -48,7 +48,7 @@ test_that("prior_sample with pastates, no covariates",{
 
 priors <- list(msmprior("logshape(1)", mean=log(1), sd=0.01),
                msmprior("logscale(1)", mean=log(1), sd=0.01),
-               msmprior("loa(1)", mean=0, sd=0.3),
+               msmprior("loa(1,3)", mean=0, sd=0.3),
                msmprior("q(2,3)", lower=1.08, upper=1.12))
 
 test_that("prior_sample with pastates, covariates on scale: priors reflected",{
@@ -99,7 +99,7 @@ test_that("prior_sample with pastates, different covariates on two scales: prior
                   msmprior("logscale(1)", mean=log(1), sd=0.01),
                   msmprior("logshape(2)", mean=log(1), sd=0.01),
                   msmprior("logscale(2)", mean=log(2), sd=0.01),
-                  msmprior("loa(1)", mean=-0.5, sd=0.01),
+                  msmprior("loa(1,3)", mean=-0.5, sd=0.01),
                   msmprior("loghrscale(x,1)", median=log(20), lower=log(19.95)),
                   msmprior("loghrscale(y,1)", median=log(50), lower=log(49.95)),
                   msmprior("loghrscale(x,2)", median=log(10), lower=log(9.95)

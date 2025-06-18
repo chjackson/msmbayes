@@ -70,8 +70,6 @@ test_that("phase-type approximations with covariates: tight priors reduce to sma
                tolerance=0.01)
 })
 
-## TODO TEST WITH DIFFERENT COVS ON DIFFERENT STATES
-
 test_that("phase-type approximations with covariates on Markov and non-Markov states: tight priors reduce to smaller model",{
   skip_on_cran()
   priors <- list(msmprior("loghrscale(sexmale,2)", 0, 0.01),
@@ -85,7 +83,7 @@ test_that("phase-type approximations with covariates on Markov and non-Markov st
 Qid <- rbind(c(0, 1, 1),
              c(0, 0, 1),
              c(0, 0, 0))
-priors <- list(msmprior("loa(1)", mean=0, sd=0.3),
+priors <- list(msmprior("loa(1,3)", mean=0, sd=0.3),
                msmprior("logshape(1)", mean=log(1), sd=0.01),
                msmprior("logscale(1)", mean=log(1), sd=0.01),
                msmprior("q(2,3)", lower=0.98, upper=1.02))
@@ -182,7 +180,7 @@ test_that("phase-type approximations with covariates: error handling",{
 })
 
 test_that("phase-type approximations with multiple exit states and covariates: tight priors reduce to smaller model",{
-  priors <- list(msmprior("loa(1)", mean=0, sd=0.3),
+  priors <- list(msmprior("loa(1,3)", mean=0, sd=0.3),
                  msmprior("logshape(1)", mean=log(1), sd=0.01),
                  msmprior("logscale(1)", mean=log(1), sd=0.01),
                  msmprior("loghrscale(x, 1)", mean=0, sd=0.01),
