@@ -26,8 +26,6 @@ test_that("prior_sample with covariates",{
   expect_lt(summ[["3rd Qu."]], 2.2)
 })
 
-## TODO all_indices in scale
-
 
 test_that("prior_sample with pastates, no covariates",{
   priors <- list(msmprior("logshape(1)", median=log(1.1), lower=log(1.06)),
@@ -168,4 +166,36 @@ test_that("prior_sample with pastates, covariates on exit probs",{
   rra(mod)
   logrra(mod)
   expect_true(logrra(mod)$mode > 0)
+})
+
+
+test_that("msmprior all_indices for hrscale in pastates models",{
+  dat <- data.frame(subject=rep(1:100, each=10), time=rep(0:9, 100),
+                    x=rbinom(1000, 1, 0.5), y=rbinom(1000, 1, 0.5))
+  priorsh <- list(msmprior("loghrscale(x)", median=4, lower=3),
+                  msmprior("loghrscale(y)", median=3, lower=2))
+  sam <- msmbayes_prior_sample(nsim=1000, data=dat, Q=Q, priors=priorsh,
+                               pastates=1:2,
+                               covariates = list(scale(1) ~ x + y,
+                                                 scale(2) ~ x))
+  summ <- summary(sam[["loghrscale[x,1]"]])
+  expect_gt(summ[["1st Qu."]], 3); expect_lt(summ[["3rd Qu."]], 5)
+  summ <- summary(sam[["loghrscale[x,2]"]])
+  expect_gt(summ[["1st Qu."]], 3); expect_lt(summ[["3rd Qu."]], 5)
+  summ <- summary(sam[["loghrscale[y,1]"]])
+  expect_gt(summ[["1st Qu."]], 2); expect_lt(summ[["3rd Qu."]], 4)
+  expect_true(!("loghrscale[y,2]" %in% names(sam)))
+
+  priorsh <- list(msmprior("loghrscale(1)", median=4, lower=3),
+                  msmprior("loghrscale(2)", median=3, lower=2))
+  sam <- msmbayes_prior_sample(nsim=1000, data=dat, Q=Q, priors=priorsh,
+                               pastates=1:2,
+                               covariates = list(scale(1) ~ x + y,
+                                                 scale(2) ~ x))
+  summ <- summary(sam[["loghrscale[x,1]"]])
+  expect_gt(summ[["1st Qu."]], 3); expect_lt(summ[["3rd Qu."]], 5)
+  summ <- summary(sam[["loghrscale[y,1]"]])
+  expect_gt(summ[["1st Qu."]], 3); expect_lt(summ[["3rd Qu."]], 5)
+  summ <- summary(sam[["loghrscale[x,2]"]])
+  expect_gt(summ[["1st Qu."]], 2); expect_lt(summ[["3rd Qu."]], 4)
 })
