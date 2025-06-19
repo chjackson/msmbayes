@@ -160,7 +160,7 @@ data {
   array[nefix] int<lower=1,upper=K> efixcol; // col of E corresponding to entries that are fixed
   array[nefix] real<lower=0,upper=1> efix;   // fixed values of E
 
-  real sumefixed[K]; // sum of pre-fixed off-diagonal error probs for each state
+  array[K] real sumefixed; // sum of pre-fixed off-diagonal error probs for each state
   array[nepars] real loemean;
   array[nepars] real<lower=0> loesd; // prior mean and SE for error log odds
 
@@ -272,15 +272,9 @@ transformed parameters {
   array[K] vector[K] E = rep_array(rep_vector(0,K), K);    // full matrix of error probs
   array[nepars] real evec; // absolute error probs, for those modelled
 
-  vector[ntafs] logtaf; // log HRs or TAFs, including only one TAF per phase-approx model
   vector[nx] loghr;     // log hazard ratios or time acceleration factors for covariates after
   //                    // replicating constrained ones and common multipliers on phase transition rates
-  for (i in 1:ntafs){  logtaf[i] = loghr_uniq[consid[i]];  }  // perhaps we could shortcut these two steps but lets see 
-  for (i in 1:nx){  loghr[i] = logtaf[tafid[i]];  }
 
-  // for (i in 1:nx){  loghr[i] = loghr_uniq[consid[i]];  }
-  // TODO effect on competing exit states
-    
   // JUST FOR MISCLASSIFICATION MODELS
   if (nepars > 0){
     array[K] real sumodds; // sum of error odds over each state 
@@ -376,109 +370,109 @@ transformed parameters {
     }
   }    
     
-  // transition intensity matrix, with some entries fixed to zero
-  array[ntlc] matrix[K,K] Q; 
-  // emission (error or misclassification) matrix
-  // j,k entry: prob of observing k given true state j.  some entries fixed to zero
-  vector[nqpars] qtmp;
-  array[ntlc] matrix[K,K] P;
+  {
 
+    // transition intensity matrix, with some entries fixed to zero
+    array[ntlc] matrix[K,K] Q; 
+    // emission (error or misclassification) matrix
+    // j,k entry: prob of observing k given true state j.  some entries fixed to zero
+    vector[nqpars] qtmp;
+    array[ntlc] matrix[K,K] P;
 
-  // abstract this block into a function?
-  for (j in 1:ntlc){
+    vector[ntafs] logtaf; // log HRs or TAFs, including only one TAF per phase-approx model
+    for (i in 1:ntafs){  logtaf[i] = loghr_uniq[consid[i]];  }  // perhaps we could shortcut these two steps but lets see 
+    for (i in 1:nx){  loghr[i] = logtaf[tafid[i]];  }
 
-    // TODO pastates models.
-    // if i refers to a competing dest state, scale again by different covs
-    // might need a different object or at least index (say xcrstart[i]..)
-
-    Q[j,,] = rep_matrix(0, K, K);
-    for (i in 1:nqpars){
-      qtmp[i] = logq[i];
-      if (nxq[i]>0){
-	qtmp[i] = qtmp[i] + X[j,xstart[i]:xend[i]] * loghr[xstart[i]:xend[i]];
-	if (nrraq[i] > 0){
-	  qtmp[i] = qtmp[i] + X[j,xrrastart[i]:xrraend[i]] * logrra[rrastart[i]:rraend[i]];
-	}
-      }
-      Q[j,qrow[i],qcol[i]] = exp(qtmp[i]);
-    }
-    for (k in 1:K) {
-      Q[j,k,k] =  - sum(Q[j,k,1:K]);  // constrain rows to add to zero
-    }
-  }
-
-    
-  array[K] real mp_jk; // marg prob of data up to time t and true state k at time t, given true state j at time t-1 (recomputed every t, k)
-
-  // Shouldn't really need a different Q for each time lag, just for different covs. Done for convenience.  Scope for efficiency savings here. Shouldn't need to export it at least.
-  for (i in 1:ntlc){
-    P[i,,] = matrix_exp(Q[i,,]*timelag[i]);
-  }
-  
-  for (i in 1:nindiv){
-    array[TI[i],K] real mp; // marg prob of data up to time t and true state k at time t.
-    real misc_prob, outcome_prob;
-    
-    // each person's first observation
-    for (k in 1:K){
-      int censor = (obs[starti[i]]==0);
-      if (!misc || (misc && censor && obstrue[starti[i]]))
-	outcome_prob = censdat[starti[i],k];
-      else if (misc && censor && !obstrue[starti[i]])
-	outcome_prob = dot_product(to_vector(E[k,1:K]), to_vector(censdat[starti[i],1:K])); // observe "obs state in censor set".  so sum E over outcomes in censor set
-      else if (misc && !censor)
-	outcome_prob = E[k,obs[starti[i]]];
-      mp[1,k] = outcome_prob * initprobs[i, k];
-    }
-
-    if (TI[i]>1){
-      for (t in 2:TI[i]){ // subsequent observations after the first
-	int oi = starti[i] - 1 + t;
-	for (k in 1:K){
-	  for (j in 1:K){
-
-	    real trans_prob;
-	    if (obstype[oi]==1){
-	      trans_prob = P[tlcid[oi],j,k];
-	    } 
-	    else if (obstype[oi]==2){
-	      trans_prob = exp(Q[tlcid[oi],j,j]*timelag[tlcid[oi]]);
-	      if (j != k)
-		trans_prob = trans_prob*Q[tlcid[oi],j,k];
-	    }
-	    else if (obstype[oi]==3){
-	      trans_prob = 0;
-	      // note msm assumes the state is known when obstype 3
-	      // so its code (lik.c:update_likhidden) is simpler 
-	      for (r in 1:K){
-		if (r != k)
-		  trans_prob += P[tlcid[oi],j,r] * Q[tlcid[oi],r,k];
-	      }
-	    }
-	    int censor = (obs[oi]==0);
-	    if (!misc || (misc && censor && obstrue[oi]))
-	      outcome_prob = censdat[oi,k]; // observe "true state in censor set". likelihood contribution is an 0/1 indicator
-	    else if (misc && censor && !obstrue[oi])
-	      outcome_prob = dot_product(to_vector(E[k,1:K]), to_vector(censdat[oi,1:K])); // observe "obs state in censor set".  so sum E over outcomes in censor set
-	    else if (misc && !censor)
-	      outcome_prob = E[k,obs[oi]];
-
-	    mp_jk[j] = mp[t-1,j] * trans_prob * outcome_prob;
+    // abstract this block into a function?
+    for (j in 1:ntlc){
+      Q[j,,] = rep_matrix(0, K, K);
+      for (i in 1:nqpars){
+	qtmp[i] = logq[i];
+	if (nxq[i]>0){
+	  qtmp[i] = qtmp[i] + X[j,xstart[i]:xend[i]] * loghr[xstart[i]:xend[i]];
+	  if (nrraq[i] > 0){
+	    qtmp[i] = qtmp[i] + X[j,xrrastart[i]:xrraend[i]] * logrra[rrastart[i]:rraend[i]];
 	  }
-	  mp[t,k] = sum(mp_jk[1:K]);
 	}
+	Q[j,qrow[i],qcol[i]] = exp(qtmp[i]);
+      }
+      for (k in 1:K) {
+	Q[j,k,k] =  - sum(Q[j,k,1:K]);  // constrain rows to add to zero
       }
     }
-    loglik += log(sum(mp[TI[i],1:K]));
-  }
+    
+    array[K] real mp_jk; // marg prob of data up to time t and true state k at time t, given true state j at time t-1 (recomputed every t, k)
 
-  if (nsoj > 0){
-    matrix[K,K] Ptmp;
-    real sprob;
-    for (i in 1:nsoj){
-      Ptmp = matrix_exp(Q[sojtlcid[i],,]*sojtime[i]);
-      sprob = Ptmp[sojstate[i],sojstate[i]];
-      loglik += binomial_lpmf(sojy[i] | sojn[i], sprob);
+    // Shouldn't really need a different Q for each time lag, just for different covs. Done for convenience.  Scope for efficiency savings here. Shouldn't need to export it at least.
+    for (i in 1:ntlc){
+      P[i,,] = matrix_exp(Q[i,,]*timelag[i]);
+    }
+  
+    for (i in 1:nindiv){
+      array[TI[i],K] real mp; // marg prob of data up to time t and true state k at time t.
+      real misc_prob, outcome_prob;
+    
+      // each person's first observation
+      for (k in 1:K){
+	int censor = (obs[starti[i]]==0);
+	if (!misc || (misc && censor && obstrue[starti[i]]))
+	  outcome_prob = censdat[starti[i],k];
+	else if (misc && censor && !obstrue[starti[i]])
+	  outcome_prob = dot_product(to_vector(E[k,1:K]), to_vector(censdat[starti[i],1:K])); // observe "obs state in censor set".  so sum E over outcomes in censor set
+	else if (misc && !censor)
+	  outcome_prob = E[k,obs[starti[i]]];
+	mp[1,k] = outcome_prob * initprobs[i, k];
+      }
+
+      if (TI[i]>1){
+	for (t in 2:TI[i]){ // subsequent observations after the first
+	  int oi = starti[i] - 1 + t;
+	  for (k in 1:K){
+	    for (j in 1:K){
+
+	      real trans_prob;
+	      if (obstype[oi]==1){
+		trans_prob = P[tlcid[oi],j,k];
+	      } 
+	      else if (obstype[oi]==2){
+		trans_prob = exp(Q[tlcid[oi],j,j]*timelag[tlcid[oi]]);
+		if (j != k)
+		  trans_prob = trans_prob*Q[tlcid[oi],j,k];
+	      }
+	      else if (obstype[oi]==3){
+		trans_prob = 0;
+		// note msm assumes the state is known when obstype 3
+		// so its code (lik.c:update_likhidden) is simpler 
+		for (r in 1:K){
+		  if (r != k)
+		    trans_prob += P[tlcid[oi],j,r] * Q[tlcid[oi],r,k];
+		}
+	      }
+	      int censor = (obs[oi]==0);
+	      if (!misc || (misc && censor && obstrue[oi]))
+		outcome_prob = censdat[oi,k]; // observe "true state in censor set". likelihood contribution is an 0/1 indicator
+	      else if (misc && censor && !obstrue[oi])
+		outcome_prob = dot_product(to_vector(E[k,1:K]), to_vector(censdat[oi,1:K])); // observe "obs state in censor set".  so sum E over outcomes in censor set
+	      else if (misc && !censor)
+		outcome_prob = E[k,obs[oi]];
+
+	      mp_jk[j] = mp[t-1,j] * trans_prob * outcome_prob;
+	    }
+	    mp[t,k] = sum(mp_jk[1:K]);
+	  }
+	}
+      }
+      loglik += log(sum(mp[TI[i],1:K]));
+    }
+  
+    if (nsoj > 0){
+      matrix[K,K] Ptmp;
+      real sprob;
+      for (i in 1:nsoj){
+	Ptmp = matrix_exp(Q[sojtlcid[i],,]*sojtime[i]);
+	sprob = Ptmp[sojstate[i],sojstate[i]];
+	loglik += binomial_lpmf(sojy[i] | sojn[i], sprob);
+      }
     }
   }
 

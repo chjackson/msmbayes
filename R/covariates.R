@@ -308,9 +308,6 @@ parse_msm_formula_rhs <- function(form, data, call=caller_env()){
 ## see https://hardhat.tidymodels.org/reference/default_formula_blueprint.html
 ## work around its behaviour of including baseline factor level in the design matrix
 
-## TODO only do this if no LHS is given and it is not a phaseapprox model
-## else give informative error
-
 cov_formula_to_list <- function(covariates, qm, pm){
   has_lhs <- length(as.character(covariates))==3
   if (has_lhs) {
