@@ -68,7 +68,7 @@ form_covariates <- function(covariates, data, constraint, qm, pm, em, qmobs,
 
   ##
   if (inherits(covariates,"formula"))
-    covariates <- cov_formula_to_list(covariates, qmobs)
+    covariates <- cov_formula_to_list(covariates, qmobs, pm)
   if (is.null(covariates))
     cm <- cm_no_covariates(data, qm)
   else if (!is.list(covariates) || (length(covariates)==0))
@@ -308,7 +308,17 @@ parse_msm_formula_rhs <- function(form, data, call=caller_env()){
 ## see https://hardhat.tidymodels.org/reference/default_formula_blueprint.html
 ## work around its behaviour of including baseline factor level in the design matrix
 
-cov_formula_to_list <- function(covariates, qm){
+## TODO only do this if no LHS is given and it is not a phaseapprox model
+## else give informative error
+
+cov_formula_to_list <- function(covariates, qm, pm){
+  has_lhs <- length(as.character(covariates))==3
+  if (has_lhs) {
+    lhs <- as.character(covariates[2])
+    cli_abort("found a single formula with a left hand side of {.var {lhs}}, expected a list")
+  } else if (pm$phaseapprox) {
+    cli_abort("in {.var pastates} models, {.var covariates} should be supplied as a list of formulae. Found a single formula.")
+  }
   rhs <- as.character(covariates[2])
   forms <- sprintf("Q(%s,%s) ~ %s", qm$tr$from, qm$tr$to, rhs)
   lapply(as.list(forms), as.formula)
