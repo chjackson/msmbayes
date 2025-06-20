@@ -146,7 +146,7 @@ prior_post_names <- function(prior_names, qm, pm, cm, em){
       if (cm$nrra > 0){
         logrra_post_names <- sprintf("logrra[%s]", 1:cm$nrra)
       } else logrra_post_names <- NULL
-    } else loa_post_names <- NULL
+    } else loa_post_names <- logrra_post_names <- NULL
     
     post_names <- c(logq_post_names, loghr_post_names,
                     logshape_post_names, logscale_post_names,
