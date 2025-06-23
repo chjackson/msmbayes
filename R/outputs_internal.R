@@ -52,7 +52,7 @@ qvector <- function(draws, new_data=NULL, X=NULL, type="posterior", drop=FALSE){
     qvec <- array(apply(draws_of(qvec), c(2,3), mean), dim=c(ncovvals, nqpars(draws)))
   }
   if (type=="posterior" && is_mode(draws))
-    attr(qvec, "mode") <- qvector(draws, new_data, X, type="mode", drop=TRUE)
+    attr(qvec, "mode") <- qvector(draws, new_data, type="mode", drop=TRUE)
   if (drop && ncovvals==1) qvec <- qvec[1,]
   qvec
 }
@@ -237,8 +237,8 @@ vecbycovs_to_df <- function(rvarmat, new_data, mode=FALSE){
   if (!is.null(new_data) && !isTRUE(attr(new_data, "std")))
     res <- res |>
       left_join(new_data |> mutate(covid=1:n()), by="covid")
-  res <- as_msmbres(res) #|>
-    #select(-covid)
+  res <- as_msmbres(res) |>
+    select(-covid)
   res
 }
 
@@ -298,14 +298,18 @@ mean_sojourn_phase <- function(qvec, tdat, state) {
 #' cbinding together all the design matrices for the different
 #' transitions
 #'
+#' TODO expand for phaseapprox models
+#' match hrdf (same order? original binds hrdf_q, _s. shd be same order as stan loghr. Ordered by model, covariate, transition
+#' tafid distinguishes replicated ones
+#'
 #' @noRd
 new_data_to_X <- function(new_data, draws, call=caller_env()){
   check_new_data(new_data, call=call)
-  blueprints <- attr(draws,"cmodel")$blueprint # or plural???
-  nforms <- length(blueprints)
+  cm <- attr(draws,"cmodel")
+  nforms <- length(cm$blueprints)
   X <- vector("list", nforms)
   for (i in seq_len(nforms)){
-    hh <- hardhat::forge(new_data, blueprints[[i]])
+    hh <- hardhat::forge(new_data, cm$blueprints[[i]])
     all_rows_incomplete <- all(apply(hh$predictors, 1, function(x)any(is.na(x))))
     if (all_rows_incomplete)
       cli_abort(c("{.var newdata} contains no rows where all values of covariates in the model are known",
@@ -316,6 +320,7 @@ new_data_to_X <- function(new_data, draws, call=caller_env()){
     X[[i]][["(Intercept)"]] <- NULL
   }
   X <- as.matrix(do.call("cbind", X))
+  X <- X[,cm$hrdf$tafid,drop=FALSE] # TESTME
   X
 }
 

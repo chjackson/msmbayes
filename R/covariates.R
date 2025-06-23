@@ -143,8 +143,8 @@ form_covariates <- function(covariates, data, constraint, qm, pm, em, qmobs,
                           nrraq=nrraq, xrrastart=xrrastart, xrraend=xrraend,
                           rrastart=rrastart, rraend=rraend)
 
-    ## Table with one row per covariate effect on Q, excluding semi-Markov scale parameters
     hrdf_q <- hrdf_s <- cm_hrdf_no_covariates()
+    ## Table with one row per covariate effect on Q, excluding semi-Markov scale parameters
     hrdf_q <- data.frame(
       name = do.call("c", lapply(mod_Q, function(x)x$xnames)),
       from =  do.call("c", lapply(mod_Q, function(x)rep(x$from, x$ncovs))),
@@ -187,7 +187,7 @@ form_covariates <- function(covariates, data, constraint, qm, pm, em, qmobs,
                rradf = rradf,       nrra = nrow(rradf),
                X = X,
                covnames_orig = unique(unlist(lapply(covariates, all.vars))),
-               blueprint = lapply(mod_all, function(x)x$blueprint)
+               blueprints = lapply(mod_all, function(x)x$blueprint)
                )
   }
 

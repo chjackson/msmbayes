@@ -215,15 +215,16 @@ pmatrixdf <- function(draws, t=1, new_data=NULL){
   P <- pmatrix(draws, t, new_data, drop=FALSE)
   Pmode <- pmatrix(draws, t, new_data, drop=FALSE, type="mode")
   pdf <- expand.grid(1:dim(P)[1], 1:dim(P)[2], 1:dim(P)[3], 1:dim(P)[4]) |>
-    setNames(c("covid", "t", "from", "to")) |>
-    mutate(posterior = as.vector(P),
+    setNames(c("covid", "tid", "from", "to")) |>
+    mutate(t = t[tid],
+           posterior = as.vector(P),
            mode = as.vector(Pmode))
   if (!is.null(new_data))
     pdf <- pdf |>
       left_join(new_data |> mutate(covid=1:n()), by="covid")
   pdf |>
     as_msmbres() |>
-    select(-covid) |>
+    select(-covid, -tid) |>
     relabel_phase_states(draws)
 }
 
@@ -249,6 +250,7 @@ mean_sojourn <- function(draws, new_data=NULL, states="obs"){
   Q <- qmatrix(draws, new_data, drop=FALSE)
   Qmode <- qmatrix(draws, new_data, drop=FALSE, type="mode")
   qvec <- qvector(draws, new_data)
+  qvecmode <- qvector(draws, new_data, type="mode")
   pm <- attr(draws, "pmodel")
   qm <- attr(draws, "qmodel")
   qmobs <- attr(draws, "qmobs")
@@ -265,9 +267,13 @@ mean_sojourn <- function(draws, new_data=NULL, states="obs"){
       for (j in pm$unphased_states){
         jnew <- match(j, pm$pdat$oldinds)
         mst[i,j] <- -1 / Q[i,jnew,jnew,drop=TRUE]
+        if (is_mode(draws)) mstmode[i,j] <- -1 / Qmode[i,jnew,jnew]
       }
-      for (j in pm$phased_states)
+      for (j in pm$phased_states){
         mst[i,j] <- mean_sojourn_phase(qvec[i,], qm$phasedata, j)
+        if (is_mode(draws))
+          mstmode[i,j] <- mean_sojourn_phase(qvecmode[i,], qm$phasedata, j)
+      }
     }
   }
 
@@ -408,20 +414,20 @@ totlos <- function(draws, t, new_data=NULL, fromt=0, pstart=NULL, discount=0,
   totlos <- rvar(totlos)
   res <- vecbycovs_to_df(totlos, new_data) |>
     mutate(state = (1:nst)[vecid]) |>
-    select(-vecid) |>
-    relocate(state, posterior)
+    select(-vecid)
   if (!is.null(Qmode))
     res$mode <- vecbycovs_to_df(totlos_mode, new_data)$posterior
   if (is_phasetype(draws)){
     if (states=="obs"){
       res$state <- attr(draws,"pmodel")$pdat$oldinds[res$state]
       covnames <- names(new_data)
-      res <- res |> group_by(across(all_of(c("state",covnames)))) |>
+      res <- res |>
+        group_by(across(all_of(c("state",covnames)))) |>
         summarise(posterior=rvar_sum(posterior),
                   mode = if (!is.null(Qmode)) sum(mode) else NULL)
     } else res <- relabel_phase_states(res, draws)
   }
-  res
+  res |> relocate(state, posterior) |> as_msmbres()
 }
 
 #' Constructor for a standardising population used for model
@@ -536,7 +542,7 @@ phaseapprox_pars <- function(draws, log=FALSE){
 ##' approximation models, specified with \code{pastates}.
 ##'
 ##' @inheritParams qmatrix
-##' 
+##'
 ##' @export
 loabs_pars <- function(draws){
   dest_base <- oldfrom <- oldto <- state <- tostate <- NULL
@@ -564,7 +570,7 @@ loabs_pars <- function(draws){
 ##'
 ##' These are the inverse multinomial logit transforms of the
 ##' log odds of transition, relative to the first potential exit state.
-##' 
+##'
 ##' @inheritParams qmatrix
 ##'
 ##' @return A dataframe with one row per probability, and colums for
@@ -589,13 +595,13 @@ padest_pars <- function(draws){
 }
 
 #' @name rradoc
-#' 
+#'
 #' @title Effects of covariates on competing exit transitions in phase type
 #' models
 #'
 #' @details Only applicable to phase-type approximation models,
 #' specified with \code{pastates}.
-#' 
+#'
 #' \code{logrra} gives the Linear effect of covariates on log relative
 #' risk of transition to a competing destination state, relative to
 #' baseline destination state.
