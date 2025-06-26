@@ -62,7 +62,8 @@ form_qmodel <- function(Q,Qfix=NULL){
   qvec <- Q[cbind(qrow,qcol)] # supplied values, ignored
   tr <- data.frame(
     qvec = qvec, from=qrow, to=qcol, qlab=qlab,
-    ttype="markov" # may be overwritten
+    fromobs=qrow, toobs=qcol,
+    ttype="markov" # may be overwritten by phase_expand_qmodel
   )
 
   ## TODO clean up structure

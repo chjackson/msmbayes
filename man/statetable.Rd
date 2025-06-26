@@ -46,13 +46,14 @@ A data frame with columns \code{fromstate}, \code{timelag} and
 }
 \description{
 Tabulate observed transitions between states over successive observations, by
-from-state, to-state and (optionally) time interval length.
+from-state, to-state and (optionally) time interval length and covariate
+values.
 }
 \details{
 This is like the function \code{statetable.msm} in \pkg{msm}, except that it
-uses msmbayes syntax for specifying the data, it also summarises
+uses \code{msmbayes} syntax for specifying the data, it summarises
 the length of the time intervals between successive observations,
-and returns a tidy data frame.
+and it returns a tidy data frame.
 
 \strong{Warning}: it is not appropriate to choose the transition structure
 (the \code{Q} argument to \code{msmbayes()}) on the basis of this summary.
@@ -65,5 +66,5 @@ an interval of 1 year (say), but the instantaneous transition from
 mild to severe is impossible.
 
 Note this is not fully tidy-friendly, as it will not work
-if \code{data} is grouped using dplyr.
+if \code{data} is grouped using \code{dplyr}.
 }

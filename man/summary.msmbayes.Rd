@@ -11,7 +11,7 @@
 
 \item{pars}{Character string indicating the parameters to include in the summary.  This can include:
 
-\code{q}: transition intensities
+\code{q}: transition intensities.  In semi-Markov models specified with \code{pastates} these refer to the intensities of transition between the latent phases.
 
 \code{logq}: log transition intensities
 
@@ -27,6 +27,10 @@
 scale parameters in phase-type approximation models.
 
 \code{loghr}: log hazard ratios
+
+\code{taf},\code{logtaf}: effects on scale parameters in semi-Markov phase-type approximations.
+
+\code{rra},\code{logrra}: effects on competing risk transition probabilities in semi-Markov phase-type approximations.
 
 \code{e}: misclassification probabilities
 

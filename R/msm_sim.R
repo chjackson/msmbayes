@@ -99,7 +99,7 @@ sim.msm <- function(qmatrix,   # intensity matrix
 {
     ## Keep only times where time-dependent covariates change
     if (!is.null(covs)) {
-        covs2 <- collapse.covs(covs)
+        covs2 <- collapse_covs(covs)
         covs <- covs2$covs
         obstimes <- obstimes[covs2$ind]
     }
@@ -150,7 +150,7 @@ sim.msm <- function(qmatrix,   # intensity matrix
 ## Drop rows of a covariate matrix which are identical to previous row
 ## Similar method to R's unique.data.frame
 
-collapse.covs <- function(covs)
+collapse_covs <- function(covs)
 {
     if (nrow(covs)==1) list(covs=covs, ind=1)
     else {
@@ -164,7 +164,7 @@ collapse.covs <- function(covs)
 ### Given a simulated Markov model, get the current state at various observation times
 ### By default, only keep one observation in the absorbing state
 
-getobs.msm <- function(sim, obstimes, death=FALSE, drop.absorb=TRUE)
+getobs_msm <- function(sim, obstimes, death=FALSE, drop.absorb=TRUE)
 {
     absorb <- absorbing.msm(qmatrix=sim$qmatrix)
                                         # Only keep one observation in the absorbing state
@@ -414,7 +414,7 @@ simmulti.msm <- function(data,           # data frame with subject, times, covar
     for (pt in 1:n)
     {
         sim.mod <- sim.msm(qmatrix, max(times[[pt]]), covs[[pt]], beta, times[[pt]], start[pt], min(times[[pt]]))
-        obsd <- getobs.msm(sim.mod, times[[pt]], death, drop.absorb)
+        obsd <- getobs_msm(sim.mod, times[[pt]], death, drop.absorb)
         pt.data <- cbind(subj[[pt]][obsd$keep], obsd$time, obsd$state, cens[[pt]][obsd$keep])
         if (!is.null(covnames)) pt.data <- cbind(pt.data, covs[[pt]][obsd$keep,,drop=FALSE])
         if (!is.null(misccovnames)) pt.data <- cbind(pt.data, misccovs[[pt]][obsd$keep,,drop=FALSE])
@@ -564,7 +564,7 @@ simhidden.msm <- function(state, hmodel, nstates, beta=NULL, x=NULL)
 simfitted.msm <- function(x, drop.absorb=TRUE, drop.pci.imp=TRUE){
     sim.df <- x$data$mf
     x$data <- expand.data(x)
-    sim.df$"cens" <- ifelse(sim.df$"(state)" %in% 1:x$qmodel$nstates, 0, sim.df$"(state)") # 0 if not censored, cens indicator if censored, so that censoring is retained in simulated data.  TODO used in pearson?
+    sim.df$"cens" <- ifelse(sim.df$"(state)" %in% 1:x$qmodel$nstates, 0, sim.df$"(state)") # 0 if not censored, cens indicator if censored, so that censoring is retained in simulated data
     if (x$qcmodel$ncovs > 0) {
         sim.df <- cbind(sim.df, x$data$mm.cov)
         cov.effs <- lapply(x$Qmatrices, function(y)t(y)[t(x$qmodel$imatrix)==1])[x$qcmodel$covlabels]
@@ -578,7 +578,7 @@ simfitted.msm <- function(x, drop.absorb=TRUE, drop.pci.imp=TRUE){
     if (!is.null(sim.df$"(subject.weights)")) names(sim.df)[names(sim.df)=="(subject.weights)"] = "subject.weights"
     sim.df$state <- NULL # replace observed with simulated state
     if (any(union(names(cov.effs), names(misccov.effs)) %in% c("state","time","subject","cens")))
-        stop("Not supported with covariates named \"state\", \"time\", \"subject\" or \"cens\"") # TODO?
+        stop("Not supported with covariates named \"state\", \"time\", \"subject\" or \"cens\"") # 
     boot.df <- simmulti.msm(data=sim.df,
                             qmatrix=qmatrix.msm(x, covariates=0, ci="none"),
                             covariates=cov.effs,
@@ -613,8 +613,6 @@ absorbing.msm <- function(x=NULL, qmatrix=NULL)
 ## rate changing at t.  Simulate from exponentials in turn, simulated
 ## value is retained if it is less than the next change time.
 
-#' @rdname pexp
-#' @export
 rpexp <- function(n=1, rate=1, t=0, start=min(t))
 {
     if (length(t) != length(rate))

@@ -6,7 +6,7 @@ test_that("msmbayes with flat priors: mode agrees with MLE from msm",{
   fitb <- msmbayes(data=infsim_sub,  time="months", Q=Q2, priors = "mle")
   fitm <- msm(state~months, subject=subject, data=infsim_sub, qmatrix=Q2)
 
-  expect_equal(-2*logLik(fitb), fitm$minus2loglik)
+  expect_equal(-2*loglik(fitb)$mode, fitm$minus2loglik)
   expect_true(is.numeric(qdf(fitb)$mode))
   expect_true(inherits(qmatrix(fitb)[1,1], "rvar"))
   expect_true(is.numeric(qmatrix(fitb, type="mode")[1,1]))
@@ -33,7 +33,7 @@ test_that("msmbayes with flat priors agrees with msm: models with covariates",{
                    covariates = ~age10, priors = "mle")
   fitmc <- msm(state~months, subject=subject, data=infsim_sub,
                covariates = ~age10, qmatrix=Q2)
-  expect_equal(-2*logLik(fitbc), fitmc$minus2loglik)
+  expect_equal(-2*loglik(fitbc)$mode, fitmc$minus2loglik)
 
   expect_true(is.numeric(loghr(fitbc)$mode))
   nd <- data.frame(age10 = 1)
@@ -62,7 +62,7 @@ test_that("msmbayes with flat priors and misclassification agrees with msm",{
   lik_msm <- msm(state~months, subject=subject, data=infsim_sub,
                  qmatrix=Q2, ematrix=Efix, fixedpars=3:4,
                  control=list(fnscale=1000,trace=1,REPORT=1))
-  expect_equal(-2*logLik(drawse), lik_msm$minus2loglik)
+  expect_equal(-2*loglik(drawse)$mode, lik_msm$minus2loglik)
 
   expect_true(is.numeric(ematrix(drawse, type="mode")[1,1]))
 

@@ -4,12 +4,15 @@
 \alias{qdf}
 \title{Transition intensities from an msmbayes model, presented as a tidy data frame}
 \usage{
-qdf(draws, new_data = NULL)
+qdf(draws, new_data = NULL, keep_covid = FALSE)
 }
 \arguments{
 \item{draws}{Object returned by \code{\link{msmbayes}}.}
 
 \item{new_data}{Data frame with covariate values to predict for}
+
+\item{keep_covid}{(logical) Keep the integer column \code{covid} identifying unique
+covariate combinations.}
 }
 \value{
 A data frame with one row per from-state / to-state / covariate value.

@@ -10,11 +10,6 @@
 ##'
 ##' @param nsim Number of samples to generate
 ##'
-##' @param expand_q  If \code{TRUE} then parameters for transition rates will refer to states on the latent space.
-##'
-##' @param expand_hr  If \code{TRUE} then parameters for transition rates and log hazard ratios on these will refer to states on the latent space,
-##' and covariate effects on scale parameters are replicated to produce one hazard ratio for each transition on the corresponding space of phases.
-##'
 ##' @return A data frame with one column per model parameter (on a transformed scale, e.g. log intensities), and one row per sample.    The names are in the natural
 ##' format as specified in `priors`.
 ##'
@@ -22,6 +17,11 @@
 ##' corresponding parameters in the `draws` object that would be
 ##' returned by `msmbayes` if this model were to be fitted to data.
 ##' These are less user-interpretable than the natural names.
+##'
+##' An attribute \code{"expand"} contains the same sample but with
+##' parameters for covariate effects referring to state transitions
+##' on the latent space.  Used internally for posterior predictive
+##' sampling.
 ##'
 ##' @md
 ##' @export
@@ -34,8 +34,7 @@ msmbayes_prior_sample <- function(data, state="state", time="time", subject="sub
                                   nphase = NULL,
                                   E = NULL,
                                   priors = NULL,
-                                  nsim = 1,
-                                  expand_q = FALSE, expand_hr=FALSE){
+                                  nsim = 1){
   m <- msmbayes_form_internals(data=data, state=state, time=time, subject=subject,
                                Q=Q, covariates=covariates, pastates=pastates,
                                pafamily=pafamily, pamethod=pamethod, E=E,
@@ -43,6 +42,26 @@ msmbayes_prior_sample <- function(data, state="state", time="time", subject="sub
                                prior_sample = TRUE)
   qm <- m$qm; pm <- m$pm; priors <- m$priors; cm <- m$cm; em <- m$em; data <- m$data; qmobs <- m$qmobs
 
+  logq <- prior_sample_logq(priors, nsim, qm, pm)
+  p <- prior_sample_loghr(priors, nsim, cm)
+  loghr <- p$loghr
+  loghr_expand <- p$loghr_expand
+  logss <- prior_sample_logss(priors, nsim, pm)
+  loa <- prior_sample_loa(priors, nsim, qm, pm)
+  p <- prior_sample_logrra(priors, nsim, qm, pm, cm)
+  logrra <- p$logrra
+  logrra_expand <- p$logrra_expand
+  loe <- prior_sample_loe(priors, nsim, em)
+
+  res <- cbind(logq, loghr, logss, loa, logrra, loe)
+  attr(res, "expand") <- cbind(loghr_expand, logrra_expand)
+
+  attr(res,"post_names") <- prior_post_names(names(res), qm, pm, cm, em)
+  attr(res,"m") <- m
+  res
+}
+
+prior_sample_logq <- function(priors, nsim, qm, pm){
   if (qm$npriorq > 0){
     logq <- matrix(nrow=nsim, ncol=qm$npriorq)
     for (i in 1:qm$npriorq){
@@ -51,37 +70,32 @@ msmbayes_prior_sample <- function(data, state="state", time="time", subject="sub
     logq <- as.data.frame(logq)
     pdat <- qm$phasedata
     if (pm$phaseapprox)
-      if (expand_q)
-        names(logq) <- sprintf("logq[%s,%s]",
-                               pdat$qrow[pdat$ttype=="markov"],
-                               pdat$qcol[pdat$ttype=="markov"])
-      else
-        names(logq) <- sprintf("logq[%s,%s]",
-                               pdat$oldfrom[pdat$ttype=="markov"],
-                               pdat$oldto[pdat$ttype=="markov"])
+      names(logq) <- sprintf("logq[%s,%s]",
+                             pdat$oldfrom[pdat$ttype=="markov"],
+                             pdat$oldto[pdat$ttype=="markov"]) # or use pdat$qrow.. if want names on latent space
     else names(logq)<- sprintf("logq[%s,%s]",qm$qrow,qm$qcol)
   } else logq <- as.data.frame(matrix(nrow=nsim, ncol=0))
+  logq
+}
 
-  res <- logq
-
+prior_sample_loghr <- function(priors, nsim, cm){
   if (cm$nxuniq > 0){
     loghr <- matrix(nrow=nsim, ncol=cm$nxuniq)
     for (i in 1:cm$nxuniq){
       loghr[,i] <- rnorm(nsim, priors$loghrmean[i], priors$loghrsd[i])
     }
     loghr <- as.data.frame(loghr)
+    tudf <- cm$tafdf[!duplicated(cm$tafdf$consid),,drop=FALSE]
+    pname <- ifelse(tudf$response=="scale", "logtaf", "loghr")
+    ind3 <- ifelse(tudf$response=="scale", "", paste0(",",tudf$toobs))
+    names(loghr) <- sprintf("%s[%s,%s%s]", pname, tudf$name, tudf$fromobs, ind3)
+    loghr_expand <- loghr[,cm$hrdf$tafid,drop=FALSE]
+    names(loghr_expand) <- sprintf("loghr[%s,%s,%s]", cm$hrdf$name, cm$hrdf$from, cm$hrdf$to)
+  } else loghr <- loghr_expand <- as.data.frame(matrix(nrow=nsim, ncol=0))
+  list(loghr=loghr, loghr_expand=loghr_expand)
+}
 
-    if (expand_hr){ # return different parameters for each latent transition AND constraint
-      loghr <- loghr[,cm$hrdf$tafid]
-      names(loghr) <- sprintf("loghr[%s,%s,%s]", cm$hrdf$name, cm$hrdf$from, cm$hrdf$to)
-    } else {
-      tudf <- cm$tafdf[!duplicated(cm$tafdf$consid),]
-      pname <- ifelse(tudf$response=="scale", "loghrscale", "loghr")
-      ind3 <- ifelse(tudf$response=="scale", "", paste0(",",tudf$toobs))
-      names(loghr) <- sprintf("%s[%s,%s%s]", pname, tudf$name, tudf$fromobs, ind3)
-    }
-    res <- cbind(res, loghr)
-  }
+prior_sample_logss <- function(priors, nsim, pm){
   if (pm$phaseapprox){
     logshape <- logscale <- matrix(nrow=nsim, ncol=pm$npastates)
     for (i in 1:pm$npastates){
@@ -92,39 +106,52 @@ msmbayes_prior_sample <- function(data, state="state", time="time", subject="sub
     logscale <- as.data.frame(logscale)
     names(logshape) <- sprintf("logshape[%s]",pm$pastates)
     names(logscale) <- sprintf("logscale[%s]",pm$pastates)
-    res <- cbind(res, logshape, logscale)
+    logss <- cbind(logshape, logscale)
+  } else logss <- as.data.frame(matrix(nrow=nsim, ncol=0))
+  logss
+}
 
-    noddsabs <- qm$noddsabs
-    if (noddsabs > 0){
-      loa <- as.data.frame(matrix(nrow=nsim, ncol=noddsabs))
-      names(loa) <- sprintf("logoddsa[%s]", 1:noddsabs)
-      for (i in 1:noddsabs){
-        loa[,i] <- rnorm(nsim, priors$loamean[i], priors$loasd[i])
-      }
-      res <- cbind(res, loa)
-
-      if (cm$nrra > 0){
-        logrra <- as.data.frame(matrix(nrow=nsim, ncol=cm$nrra))
-        names(logrra) <- sprintf("logrra[%s,%s]", cm$rradf$from, cm$rradf$to)
-        for (i in 1:cm$nrra){
-          logrra[,i] <- rnorm(nsim, priors$logrramean[i], priors$logrrasd[i])
-        }
-        res <- cbind(res, logrra)
-      }
+prior_sample_loa <- function(priors, nsim, qm, pm){
+  noddsabs <- qm$noddsabs
+  if (pm$phaseapprox && noddsabs > 0){
+    loa <- as.data.frame(matrix(nrow=nsim, ncol=noddsabs))
+    names(loa) <- sprintf("logoddsa[%s]", 1:noddsabs)
+    for (i in 1:noddsabs){
+      loa[,i] <- rnorm(nsim, priors$loamean[i], priors$loasd[i])
     }
+  } else loa <- as.data.frame(matrix(nrow=nsim, ncol=0))
+  loa
+}
 
-  }
+prior_sample_logrra <- function(priors, nsim, qm, pm, cm){
+  if (pm$phaseapprox && qm$noddsabs > 0 && cm$nrra > 0){
+    logrra <- as.data.frame(matrix(nrow=nsim, ncol=cm$nrra))
+    for (i in 1:cm$nrra){
+      logrra[,i] <- rnorm(nsim, priors$logrramean[i], priors$logrrasd[i])
+    }
+    rradf <- cm$rradf
+    rradf$value <- t(as.matrix(logrra))
+    rradf_expand <- rradf |> # replicate to transitions on latent space
+      inner_join(cm$transdf |> select(from, to, fromobs, toobs),
+                 by = join_by(from==fromobs, to==toobs)) |>
+      select(modelid, name, from=from.y, to=to.y, value)
+    logrra <- as.data.frame(t(rradf$value))
+    names(logrra) <- sprintf("logrra[%s,%s,%s]", rradf$name, rradf$from, rradf$to)
+    logrra_expand <- as.data.frame(t(rradf_expand$value))
+    names(logrra_expand) <- sprintf("logrra[%s,%s,%s]", rradf_expand$name, rradf_expand$from, rradf_expand$to)
+  } else logrra <- logrra_expand <- as.data.frame(matrix(nrow=nsim, ncol=0))
+  list(logrra=logrra, logrra_expand=logrra_expand)
+}
+
+prior_sample_loe <- function(priors, nsim, em){
   if (em$nepars > 0){
     loe <- as.data.frame(matrix(nrow=nsim, ncol=em$nepars))
     names(loe) <- sprintf("logoddse[%s,%s]", em$erow, em$ecol)
     for (i in 1:em$nepars){
       loe[,i] <- rnorm(nsim, priors$loemean[i], priors$loesd[i])
     }
-    res <- cbind(res, loe)
-  }
-  attr(res,"post_names") <- prior_post_names(names(res), qm, pm, cm, em)
-  attr(res,"m") <- m
-  res
+  } else loe <- as.data.frame(matrix(nrow=nsim, ncol=0))
+  loe
 }
 
 prior_post_names <- function(prior_names, qm, pm, cm, em){
@@ -147,7 +174,7 @@ prior_post_names <- function(prior_names, qm, pm, cm, em){
         logrra_post_names <- sprintf("logrra[%s]", 1:cm$nrra)
       } else logrra_post_names <- NULL
     } else loa_post_names <- logrra_post_names <- NULL
-    
+
     post_names <- c(logq_post_names, loghr_post_names,
                     logshape_post_names, logscale_post_names,
                     loa_post_names, logrra_post_names)
@@ -213,7 +240,7 @@ msmbayes_priorpred_sample <- function(data, state="state", time="time", subject=
                                         Q=Q, covariates=covariates,
                                         pastates=pastates, pafamily=pafamily, pamethod=pamethod,
                                         nphase=nphase, E=E, priors=priors,
-                                        nsim = 1, expand_q=FALSE, expand_hr=TRUE)
+                                        nsim = 1)
   m <- msmbayes_form_internals(data=data, state=state, time=time, subject=subject,
                                Q=Q, covariates=covariates, pastates=pastates,
                                pafamily=pafamily, pamethod=pamethod, E=E,
@@ -233,18 +260,9 @@ msmbayes_priorpred_sample <- function(data, state="state", time="time", subject=
       tprobs <- loabs_to_probs(logoddsabs, m$qm, m$qmobs)
       q_prior[tprobs>0] <- q_prior[tprobs>0] * tprobs[tprobs>0]
       ## adjust the 1s for transition probs to absorbing states
-
-      ## TODO adjust for covariates on these, multiplying q_prior by appropriate beta*gamma
     }
     shapes <- exp(unlist(prior_sample[grep("logshape",names(prior_sample),value=TRUE)]))
-
-    ## TODO do we adjust scales for covs via loghrscale, or apply covs to the expanded intensity matrix?
-    ## Currently this deals with one qmatrix.  which is combined with data$X and beta
-    ## is data$X replicated correctly. and what is beta: matrix ncovs x nqpars
-    ## TODO extend extract_beta to deal with new expanded betas
-
     scales <- exp(unlist(prior_sample[grep("logscale",names(prior_sample),value=TRUE)]))
-
     q_pred <- qphaseapprox(qmatrix=q_prior,
                            shape = shapes, scale=scales,
                            pastates=pastates, family=pafamily, method=pamethod)
@@ -254,13 +272,16 @@ msmbayes_priorpred_sample <- function(data, state="state", time="time", subject=
   if (nrow(data) == 0) {
     cli_abort("`data` is empty")
   }
+  beta <- form_simmsm_beta(prior_sample, m$qm, m$cm, q_pred)
+
   if (complete_obs){
-    beta <- extract_beta(prior_sample, i=1, m$qm, q_pred, format="sim.msm")
-    covs <- if (m$cm$nx==0) NULL else as.matrix(covs[1,])
+    covs <- if (m$cm$nx==0) NULL else as.matrix(covs[1,rownames(beta)])
     res <- sim.msm(qmatrix=q_pred, maxtime=max(data$time), covs=covs, beta=beta)
   } else {
-    covariates <- extract_beta(prior_sample, i=1, m$qm, q_pred, format="simmulti.msm")
-    res <- simmulti.msm(data, qmatrix=q_pred, covariates=covariates, ematrix=ematrix)
+    beta_list <- if(is.null(beta)) NULL else as.list(as.data.frame(t(beta)))
+    ## values of covariates named in rows of beta supplied in data frame "data"
+    res <- simmulti.msm(data, qmatrix=q_pred, ematrix=ematrix,
+                        covariates = beta_list)
 
     if (m$pm$phaseapprox){
       res$latent_state <- res$state
@@ -268,7 +289,7 @@ msmbayes_priorpred_sample <- function(data, state="state", time="time", subject=
       res$state <- res$obs <- NULL # should one of these be named "state" for consistency?
     }
     if (cov_format == "orig"){
-      res[names(covariates)] <- NULL
+      res[rownames(beta)] <- NULL
       covdata <- data_orig[res$keep,][m$cm$covnames_orig]
       res <- cbind(res, covdata)
     }
@@ -292,52 +313,6 @@ extract_q <- function(prior_sample, Q, i){
   ## TODO for phasetype models logq on entry is named on phase space
   Q[cbind(qfrom,qto)] <- exp(unlist(prior_sample[i,lqn]))
   Q
-}
-
-##' Form beta argument for sim.msm
-##' One row per covariate (in any order, as it is matched with covs argument)
-##' One col per permitted transition in Q, rowwise, even if no covariate effect
-##' on that
-##' @param qmatrix matrix with >0 entries indicating allowed transitions
-##'
-##' Needs to match output of qphaseapprox - note that not all transition
-##' rates on maximal phased space will be allowed
-##'
-##' @format "simmulti.msm" (`covariates`) argument or "sim.msm" (`beta` argument)
-##' @noRd
-extract_beta <- function(prior_sample, i, qm, qmatrix, format="simmulti.msm"){
-  bre <- "loghr\\[(.+),([[:digit:]]+),([[:digit:]]+)\\]"
-  bn <- grep(bre,names(prior_sample),value=TRUE)
-  bdf <- data.frame(
-    name = gsub(bre, "\\1", bn),
-    from = as.numeric(gsub(bre, "\\2", bn)),
-    to = as.numeric(gsub(bre, "\\3", bn)),
-    sam = as.numeric(prior_sample[i,bn])
-  )
-  bdf$lab <- paste(bdf$from,bdf$to,sep="-")
-  bdf <- bdf[order(bdf$from, bdf$to),]
-  ncovs <- length(unique(bdf$name))
-
-  qdb_rowwise <- as.data.frame(qm[c("qrow","qcol")])[order(qm$qrow,qm$qcol),]
-  qdb_rowwise$lab <- paste(qdb_rowwise$qrow,qdb_rowwise$qcol,sep="-")
-
-  beta <- matrix(0, nrow=ncovs, ncol=qm$nqpars)
-  rownames(beta) <- unique(bdf$name); colnames(beta) <- qdb_rowwise$lab
-  for (j in 1:ncovs){
-    covname <- unique(bdf$name)[j]
-    bdfj <- bdf[bdf$name==covname,]
-    beta[j,match(bdfj$lab,qdb_rowwise$lab)] <- bdfj$sam
-  }
-
-  ## only keep effects on transitions that are allowed according to qmatrix
-  qmatrix_lab <- sprintf("%s-%s", row(qmatrix)[qmatrix>0], col(qmatrix)[qmatrix>0])
-  if (!is.null(qm$phasedata))
-    beta <- beta[,match(qmatrix_lab, qm$phasedata$qlab),drop=FALSE]
-
-  if (format=="simmulti.msm")
-    res <- as.list(as.data.frame(t(beta)))
-  else res <- beta
-  res
 }
 
 extract_logoddsabs <- function(prior_sample, i=1){
@@ -365,4 +340,84 @@ loabs_to_probs <- function(loabs, qm, qmobs){
   pmat <- emat / rowSums(emat)
   pmat[is.nan(pmat)] <- 0
   pmat
+}
+
+##' Form matrix of log hazard ratios (beta) for the "sim.msm" function
+##'
+##' @param qmatrix matrix with >0 entries indicating allowed transitions
+##'
+##' @return Matrix of log hazard ratios, with one named row for each
+##'   covariate, and one column for each allowed transition rate on
+##'   the Markov space, in the (rowwise) order of the msmbayes
+##'   internal "qm" .  This may result in fewer allowed transitions
+##'   than implied by the full phased state space, since some phase
+##'   transitions have rate zero under particular phase-type
+##'   approximations.
+##'
+##' In phase-type approximation models where covariates may affect
+##' competing risk transitions as well as the sojourn distribution
+##' scale parameter, the log hazard ratio is the sum of two
+##' parameters: one for the scale (beta) and one for the log relative
+##' competing risk (gamma).
+##'
+##' @noRd
+form_simmsm_beta <- function(prior_sample, qm, cm, qmatrix=NULL, i=1){
+  if (cm$nx + cm$nrra==0) return(NULL)
+  bdf <- extract_beta_df(prior_sample, i)
+  rrdf <- extract_logrra_df(prior_sample, cm, i)
+  brrdf <- full_join(bdf, rrdf, by=join_by("name","from","to","lab")) |>
+    mutate(gamma=if_else(is.na(gamma), 0, gamma),
+           betagamma = beta + gamma)
+  bwidedf <- brrdf |>
+    select(name, from, to, betagamma) |>
+    pivot_wider(names_from="name", values_from="betagamma")
+  beta <- cm$transdf |>
+    select(from, to) |>
+    arrange(from, to) |> # msm reads across rows, msmbayes down cols
+    left_join(bwidedf, by=join_by("from","to")) |>
+    mutate(across(everything(), ~replace_na(.x,0))) |>
+    select(-from,-to) |> as.matrix() |> t()
+
+##  beta <- beta_df_to_matrix(bdf, qm)
+  if (!is.null(qmatrix) && !is.null(qm$phasedata)){
+    qmatrix_lab <- sprintf("%s-%s",
+                           row(qmatrix)[qmatrix>0], col(qmatrix)[qmatrix>0])
+    beta <- beta[,match(qmatrix_lab, qm$phasedata$qlab),drop=FALSE]
+  }
+  beta
+}
+
+## tidy the betas from a single posterior sample
+## input: one stretched matrix row.
+## output: data frame
+## includes all log hrs between phases, effects on scale replicated
+## excludes effects on competing risk probs (gamma)
+extract_beta_df <- function(prior_sample, i=1){
+  prior_sample <- attr(prior_sample,"expand")
+  bre <- "loghr\\[(.+),([[:digit:]]+),([[:digit:]]+)\\]"
+  bn <- grep(bre,names(prior_sample),value=TRUE)
+  bdf <- data.frame(
+    name = gsub(bre, "\\1", bn),
+    from = as.numeric(gsub(bre, "\\2", bn)),
+    to = as.numeric(gsub(bre, "\\3", bn)),
+    beta = as.numeric(prior_sample[i,bn])
+  )
+  bdf$lab <- paste(bdf$from,bdf$to,sep="-")
+  bdf <- bdf[order(bdf$from, bdf$to),]
+  bdf
+}
+
+extract_logrra_df <- function(prior_sample, cm, i=1){
+  prior_sample <- attr(prior_sample,"expand")
+  re <- "logrra\\[(.+),([[:digit:]]+),([[:digit:]]+)\\]"
+  rn <- grep(re, names(prior_sample), value=TRUE)
+  rrdf <- data.frame(
+    name = gsub(re, "\\1", rn),
+    from = as.numeric(gsub(re, "\\2", rn)),
+    to = as.numeric(gsub(re, "\\3", rn)),
+    gamma = as.numeric(prior_sample[i,rn])
+  )
+  rrdf$lab <- paste(rrdf$from,rrdf$to,sep="-")
+  rrdf <- rrdf[order(rrdf$from, rrdf$to),]
+  rrdf
 }

@@ -4,7 +4,7 @@
 ##' Determine parameters of a phase-type model that approximate a parametric shape-scale distribution
 ##'
 ##' @details The approximating phase-type distribution is one for which the first three moments are the same
-##' as those of the target distribution.   See the vignettes and paper for full details. 
+##' as those of the target distribution.   See the vignettes and paper for full details.
 ##'
 ##' @param shape shape parameter.  This can be vectorised.
 ##'
@@ -67,7 +67,7 @@ check_positive_number <- function(x){
   if (any(x < 0)) cli_abort("negative value for {.var {namex}} supplied")
 }
 
-## TODO for the moment method 
+## TODO for the moment method
 
 check_shape_in_bounds <- function(shape, family){
   bounds <- range(phase5approx(family)$traindat$a)
@@ -118,11 +118,14 @@ qphaseapprox <- function(qmatrix, pastates, shape, scale=1, family="weibull", me
     qnew[pdprog] <- rates$p
     qnew[pdabs] <- rates$a
     ## Adjust phase exit rates for competing transition probs
-    q_adj <- matrix(1, nrow=qm$K, ncol=qm$K)
-    crrows <- pm$pdat$oldinds %in% qm$pacrdata$oldfrom
-    crcols <- pm$pdat$oldinds %in% qm$pacrdata$oldto
-    q_adj[crrows,crcols] <- qmatrix[pm$pdat$oldinds,pm$pdat$oldinds][crrows,crcols]
-    qnew <- qnew * q_adj
+    crd <- qm$pacrdata[qm$pacrdata$oldfrom==pm$pastates[i],]
+    if (nrow(crd) > 0){
+      q_adj <- matrix(1, nrow=qm$K, ncol=qm$K)
+      crrows <- pm$pdat$oldinds %in% crd$oldfrom
+      crcols <- pm$pdat$oldinds %in% crd$oldto
+      q_adj[crrows,crcols] <- qmatrix[pm$pdat$oldinds,pm$pdat$oldinds][crrows,crcols]
+      qnew <- qnew * q_adj
+    }
   }
   if (att==FALSE) {attr(qnew,"prog_inds") <- attr(qnew,"abs_inds") <- NULL}
   diag(qnew) <- 0; diag(qnew) <- -rowSums(qnew)

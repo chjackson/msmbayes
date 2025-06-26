@@ -23,7 +23,7 @@
 #' level, e.g. `"loghr(sexMALE,2,3)"` for level `"MALE"` of factor
 #' `"sex"`.
 #'
-#' `"loghrscale"`. Covariate effect on the sojourn time in states
+#' `"logtaf"`. Covariate effect on the sojourn time in states
 #' given a semi-Markov models with a phase-type approximation.  This
 #' is specified with only one index, indicating the state,
 #' e.g. `"loghr(age,2)"`.  Note this is interpreted as a log hazard
@@ -34,8 +34,8 @@
 #' sojourn time.
 #'
 #' Covariate effects on competing transitions out of semi-Markov
-#' states are also specified with `loghr`.  For example,
-#' `"loghr(age,2,3)"` for the effect of `age` on the relative rate of
+#' states are specified with `logrra`.  For example,
+#' `"logrra(age,2,3)"` for the effect of `age` on the relative rate of
 #' transition from state 2 to state 3, relative to the rate of
 #' transition from state 2 to the first competing destination state.
 #' These parameters are not applicable to semi-Markov states with only
@@ -73,7 +73,7 @@
 #'
 #'
 #'
-#' @param mean Prior mean.  This is only used for the parameters that have direct normal priors, that is `logq`, `loghr`, `loghrscale`, `logshape`, `logscale`, `loe`, `loa`.  That is, excluding `time`, `q` and `hr`, whose priors are defined by transformations of a normal distribution.
+#' @param mean Prior mean.  This is only used for the parameters that have direct normal priors, that is `logq`, `loghr`, `logtaf`, `logshape`, `logscale`, `loe`, `loa`.  That is, excluding `time`, `q` and `hr`, whose priors are defined by transformations of a normal distribution.
 #'
 #' @param sd Prior standard deviation (only for parameters with direct normal priors)
 #'
@@ -188,7 +188,7 @@ transform_mlu <- function(par, mlu){
   "loghr" = c("loghr", "hr"),
   "logshape" = c("logshape"),
   "logscale" = c("logscale"),
-  "loghrscale" = c("loghrscale"),
+  "logtaf" = c("logtaf"),
   "logrra" = c("logrra"),
   "loe" = c("loe"),
   "loa" = c("loa")
@@ -267,7 +267,7 @@ extraneous_covname_error <- function(res){
   ## currently must be normal priors, can't change family.
   logq = list(mean=-2, sd=2),
   loghr = list(mean=0, sd=10),
-  loghrscale = list(mean=0, sd=10),
+  logtaf = list(mean=0, sd=10),
   logrra = list(mean=0, sd=10),
   logshape = list(mean=0, sd=0.5), # this gets truncated on the supported region in hmm.stan
   logscale = list(mean=2, sd=2), # log inverse of default prior for q, ie rate when shape is 1
@@ -294,6 +294,8 @@ process_priors <- function(priors, qm, cm, pm, em, qmobs,
   logqsd <- rep(.default_priors$logq$sd, qm$npriorq)
   loghrmean <- rep(.default_priors$loghr$mean, cm$nxuniq)
   loghrsd <- rep(.default_priors$loghr$sd, cm$nxuniq)
+  logtafmean <- rep(.default_priors$logtaf$mean, cm$nxuniq)
+  logtafsd <- rep(.default_priors$logtaf$sd, cm$nxuniq)
   logshapemean <- rep(.default_priors$logshape$mean, pm$npastates)
   logshapesd <- rep(.default_priors$logshape$sd, pm$npastates)
   logscalemean <- rep(.default_priors$logscale$mean, pm$npastates)
@@ -322,8 +324,8 @@ process_priors <- function(priors, qm, cm, pm, em, qmobs,
         loghr_user[tafind] <- TRUE
         check_repeated_prior(tafind, cm, loghr_user)
       }
-    } else if (prior$par_base=="loghrscale"){
-      phrind <- get_prior_hrscaleindex(prior, cm, pm, call)
+    } else if (prior$par_base=="logtaf"){
+      phrind <- get_prior_tafindex(prior, cm, pm, call)
       loghrmean[phrind] <- prior$mean
       loghrsd[phrind] <- prior$sd
     } else if (prior$par_base=="logshape"){
@@ -347,6 +349,7 @@ process_priors <- function(priors, qm, cm, pm, em, qmobs,
   lb <- logshape_bounds(pm)
   list(logqmean = as.array(logqmean), logqsd = as.array(logqsd),
        loghrmean = as.array(loghrmean), loghrsd = as.array(loghrsd),
+       logtafmean = as.array(logtafmean), logtafsd = as.array(logtafsd),
        logshapemean = as.array(logshapemean), logshapesd = as.array(logshapesd),
        logscalemean = as.array(logscalemean), logscalesd = as.array(logscalesd),
        logshapemin = as.array(lb$min), logshapemax = as.array(lb$max),
@@ -423,7 +426,7 @@ check_prior_loghr <- function(prior, cm, pm, call=caller_env()){
   fromstate <- if (!is.null(prior$ind1)) prior$ind1 else prior$ind
   if (!is.null(fromstate) && (fromstate %in% pm$pastates) && !(identical(fromstate,"all_indices")))
     cli_abort(c("Prior supplied for {.var loghr} from state {fromstate}, but this state has a phase-type approximation.",
-                "Did you mean to use a prior for {.var loghrscale}?"), call=call)
+                "Did you mean to use a prior for {.var logtaf}?"), call=call)
   if (cm$nx==0)
     cli_warn("Ignoring prior on {.var loghr}, as no covariates in the model")
 }
@@ -472,17 +475,17 @@ get_prior_hrindex <- function(prior, qmobs, qmlatent, cm, pm, call=caller_env())
 ##' time acceleration factor for this state/name.  index on the set 1:cm$nxuniq
 ##'
 ##' @noRd
-get_prior_hrscaleindex <- function(prior, cm, pm, call=caller_env()){
+get_prior_tafindex <- function(prior, cm, pm, call=caller_env()){
   if (length(pm$pastates)==0)
-    cli_abort("Supplied a prior for {.var loghrscale}, but there are no states given a {.var pastates} model") # TESTME
+    cli_abort("Supplied a prior for {.var logtaf}, but there are no states given a {.var pastates} model") # TESTME
   if (!is.null(prior$ind2))
-    cli_abort("prior for {.var loghrscale} should only have one state index",
+    cli_abort("prior for {.var logtaf} should only have one state index",
               call=call)
   if (prior$ind == "all_indices"){
     prior$ind <- pm$pastates
   }
   else if (!(prior$ind %in% pm$pastates))
-    cli_abort(c("prior for {.var loghrscale} should refer to one of the states given a {.var pastates} model, {pm$pastates}",
+    cli_abort(c("prior for {.var logtaf} should refer to one of the states given a {.var pastates} model, {pm$pastates}",
                 "Found state {prior$ind}"), call=call)
   else if (sum(cm$tafdf$fromobs == prior$ind) == 0)
     cli_abort("Supplied a prior {.str {prior$username}}, but there are no covariates defined on state {prior$ind}")
@@ -499,11 +502,11 @@ get_prior_loaindex <- function(prior, qm, pm, call=caller_env()){
               call=call)
   if (!pm$phaseapprox)
     cli_abort(paste0("Unknown prior parameter {prior$username}: not a phase-type approximation model"))
-  crd <- qm$pacrdata[qm$pacrdata$loind==1,,drop=FALSE]
+  crd <- qm$pacrdata[qm$pacrdata$loind > 0,,drop=FALSE]
   ind <- which(crd$oldfrom==prior$ind1 & crd$oldto==prior$ind2)
   if (length(ind) == 0){
     msg <- "transition {prior$ind1}-{prior$ind2} is not a competing exit transition in a {.var pastates} model"
-    cli_abort(paste0("Unknown prior parameter {prior$username}:",msg), call=call)
+    cli_abort(paste("Unknown prior parameter {prior$username}:",msg), call=call)
   }
   ind
 }

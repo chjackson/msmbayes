@@ -1,5 +1,5 @@
-## Functions that work on rvars but also degrade nicely when supplied numerics
-## 
+## Functions that return rvars when supplied rvars, but
+## return numerics when supplied numerics
 
 ## sum of a single vector
 rvarn_sum <- function(x){
@@ -18,3 +18,8 @@ rvarn_numeric <- function(n, ndraws=NULL){
     res <- rdo(res, ndraws=ndraws)
   res
 }
+
+
+## Functions that always return rvars
+rvar_tapply <- rfun(tapply, "X")
+rvar_rep <- rfun(rep, "x")

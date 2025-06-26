@@ -2,9 +2,12 @@
 % Please edit documentation in R/outputs.R
 \name{loghr}
 \alias{loghr}
-\title{Log hazard ratios for covariates on transition intensities}
+\alias{hr}
+\title{(Log) hazard ratios for covariates on transition intensities}
 \usage{
 loghr(draws)
+
+hr(draws)
 }
 \arguments{
 \item{draws}{Object returned by \code{\link{msmbayes}}.}
@@ -12,10 +15,12 @@ loghr(draws)
 \value{
 A data frame containing samples from the posterior distribution.
 See \code{\link{qdf}} for notes on this format and how to summarise.
+\code{\link{hr}} returns these on the natural scale, \code{\link{loghr}}
+returns them on the log scale.
 }
 \description{
-Log hazard ratios for covariates on transition intensities
-}
-\seealso{
-\code{\link{hr}}
+In semi-Markov models specified with \code{pastates}, these only include
+covariate effects on transitions out of "Markov" states, that is, those not included
+in \code{pastates}.  Effects on scale parameters of sojourn distributions
+in "semi-Markov" states are extracted with \code{\link{logtaf}}.
 }

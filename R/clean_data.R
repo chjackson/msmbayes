@@ -239,7 +239,7 @@ form_censdat <- function(dat, censor_states, qm, em, pm, call=caller_env()){
 #'
 #' * Constructs obstype, obstrue and censdat if needed
 #'
-#' * Converts the covariates (if supplied in a model) to a design matrix,
+#' * Attaches the covariates (if supplied in a model) as a design matrix,
 #'   as a matrix column X
 #'
 #' * Attaches any named covariates in their original form in the data, if requested.

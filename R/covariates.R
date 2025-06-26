@@ -83,21 +83,16 @@ form_covariates <- function(covariates, data, constraint, qm, pm, em, qmobs,
       mod_all[[i]] <- process_covmodel(pform, qm, pm, em)
     }
 
-    ## Separate out models on intensities, semi-Markov scale parameters, and semi-Markov next-state RRs
-    mods_with_response <- function(mods, responses){
-      mods[sapply(mods, function(x)isTRUE(x$response %in% responses))]
-    }
-    mod_Q <- mods_with_response(mod_all, "Q")
-    mod_scale <- mods_with_response(mod_all, "scale")
-    mod_Qs <- mods_with_response(mod_all, c("Q","scale"))
-    mod_rra <- mods_with_response(mod_all, "rra")
-
     cmodeldf <- data.frame(
       response = sapply(mod_all, function(x)x$response),
       from = sapply(mod_all, function(x)x$fromuser),
       to = sapply(mod_all, function(x)x$touser),
       ncovs = sapply(mod_all, function(x)x$ncovs)
     )
+    ## Separate out models on intensities, semi-Markov scale parameters, and semi-Markov next-state RRs
+    mod_Q <- mod_all[cmodeldf$response == "Q"]
+    mod_scale <- mod_all[cmodeldf$response=="scale"]
+    mod_rra <- mod_all[cmodeldf$response=="rra"]
 
     ## Matrix of covariate values for Stan
     Xq <- do.call("cbind", lapply(mod_Q, function(x)x$X))
@@ -107,11 +102,12 @@ form_covariates <- function(covariates, data, constraint, qm, pm, em, qmobs,
 
     ## Number of covariates on each intensity, and their indices in X...
     nxq <- xend <- xstart <- nrraq <- xrraend <- xrrastart <-
-      rraend <- rrastart <- numeric(qm$nqpars)
+      rraend <- rrastart <- modelid <- numeric(qm$nqpars)
 
     ## ...determine these for Markov states...
     if (length(mod_Q) > 0){
       qind <- sapply(mod_Q, function(x)x$qind)
+      modelid[qind] <- which(cmodeldf$response=="Q")
       nxq[qind] <- sapply(mod_Q, function(x)x$ncovs)
       xend[qind] <- cumsum(nxq[qind])
       xstart[qind] <- cumsum(c(0,nxq[qind][-length(nxq[qind])])) + 1
@@ -119,12 +115,13 @@ form_covariates <- function(covariates, data, constraint, qm, pm, em, qmobs,
 
     ## ...and for semi-Markov scale parameters (duplicated over intensities)
     qinds <- lapply(mod_scale, function(x)x$qind) # one vector per model
-    nxq1 <- sapply(mod_scale, function(x)x$ncovs) # one scalar per model
+    nxq1 <- cmodeldf$ncovs[cmodeldf$response=="scale"]
     for (i in seq_along(qinds)){
       qi <- qinds[[i]]
+      modelid[qi] <- rep(which(cmodeldf$response=="scale")[i], length(qi))
       nxq[qi] <- rep(nxq1[i], length(qi))
-      xend[qi] <- NCOL(Xq) + cumsum(nxq1[i])
-      xstart[qi] <- NCOL(Xq) + cumsum(c(0,nxq1[i][-length(nxq1[i])])) + 1
+      xend[qi] <- NCOL(Xq) + cumsum(nxq1)[i]
+      xstart[qi] <- NCOL(Xq) + cumsum(c(0,nxq1[-length(nxq1)]))[i] + 1
     }
 
     ## ...For semi-Markov next-state relative risk parameters
@@ -139,7 +136,9 @@ form_covariates <- function(covariates, data, constraint, qm, pm, em, qmobs,
     }
 
     ## Table with one row per allowed latent transition, giving covariate model for this
-    transdf <- data.frame(nxq=nxq, xstart=xstart, xend=xend,
+    transdf <- data.frame(from=qm$tr$from, to=qm$tr$to,
+                          fromobs=qm$tr$fromobs, toobs=qm$tr$toobs,
+                          nxq=nxq, modelid=modelid, xstart=xstart, xend=xend,
                           nrraq=nrraq, xrrastart=xrrastart, xrraend=xrraend,
                           rrastart=rrastart, rraend=rraend)
 
@@ -147,6 +146,8 @@ form_covariates <- function(covariates, data, constraint, qm, pm, em, qmobs,
     ## Table with one row per covariate effect on Q, excluding semi-Markov scale parameters
     hrdf_q <- data.frame(
       name = do.call("c", lapply(mod_Q, function(x)x$xnames)),
+      modelid = rep(which(cmodeldf$response=="Q"),
+                    cmodeldf$ncovs[cmodeldf$response=="Q"]),
       from =  do.call("c", lapply(mod_Q, function(x)rep(x$from, x$ncovs))),
       to =  do.call("c", lapply(mod_Q, function(x)rep(x$to, x$ncovs))),
       fromobs =  do.call("c", lapply(mod_Q, function(x)rep(x$fromobs, x$ncovs))),
@@ -163,6 +164,8 @@ form_covariates <- function(covariates, data, constraint, qm, pm, em, qmobs,
     nxq1 # number of covariates per model
     hrdf_s <- data.frame(
       name = do.call("c",   lapply(mod_scale, function(x)rep(x$xnames, each=length(x$qind)))),
+      modelid = rep(which(cmodeldf$response=="scale"),
+                    sapply(mod_scale, function(x){x$ncovs*length(x$qind)})),
       from = do.call("c",    lapply(mod_scale, function(x)rep(x$from, length(x$xnames)))),
       to = do.call("c",      lapply(mod_scale, function(x)rep(x$to, length(x$xnames)))),
       fromobs = do.call("c", lapply(mod_scale, function(x)rep(rep(x$fromobs, x$ncovs), each=length(x$qind)))),
@@ -176,6 +179,8 @@ form_covariates <- function(covariates, data, constraint, qm, pm, em, qmobs,
 
     ## Table with one row per covariate effect on next-state RRs in semi-Markov models
     rradf <- data.frame(
+      modelid = rep(which(cmodeldf$response=="rra"),
+                    cmodeldf$ncovs[cmodeldf$response=="rra"]),
       name = do.call("c", lapply(mod_rra, function(x)x$xnames)),
       from = do.call("c", lapply(mod_rra, function(x)rep(x$from, x$ncovs))),
       to = do.call("c", lapply(mod_rra, function(x)rep(x$to, x$ncovs)))
@@ -203,20 +208,23 @@ form_covariates <- function(covariates, data, constraint, qm, pm, em, qmobs,
 
 
 cm_hrdf_no_covariates <- function(){
-  data.frame(name=character(), from=numeric(), to=numeric(),
+  data.frame(modelid=numeric(), name=character(), from=numeric(), to=numeric(),
              fromobs=numeric(), toobs=numeric(), tafid=numeric())
 }
 
 cm_no_covariates <- function(data, qm){
-  nxq <- xstart <- xend <- nrraq <- xrrastart <- xrraend <-
+  nxq <- modelid <- xstart <- xend <- nrraq <- xrrastart <- xrraend <-
     rrastart <- rraend <- rep(0, qm$nqpars)
   list(
-    cmodeldf = data.frame(from=numeric(), to=numeric(), ncovs=numeric(), ncovsrra=numeric()), ncmodels=0,
-    transdf = data.frame(nxq=nxq, xstart=xstart, xend=xend,
+    cmodeldf = data.frame(from=numeric(), to=numeric(),
+                          ncovs=numeric(), ncovsrra=numeric()), ncmodels=0,
+    transdf = data.frame(modelid=modelid, nxq=nxq, xstart=xstart, xend=xend,
                          nrraq=nrraq, xrrastart=xrrastart, xrraend=xrraend,
                          rrastart=rrastart, rraend=rraend),
     hrdf = cm_hrdf_no_covariates(), nx = 0,
-    rradf = data.frame(name=character(), from=numeric(), to=numeric()), nrra=0,
+    rradf = data.frame(modelid=numeric(), name=character(),
+                       from=numeric(), to=numeric()),
+    nrra=0,
     ntafs = 0,
     X = matrix(0, nrow=nrow(data), ncol=0),
     covnames_orig = NULL
@@ -364,7 +372,7 @@ process_covmodel <- function(pform, qm, pm, em){
 
 ##' @param response Q, rra or scale
 ##' @param fromto (from, to) pair as specified by user as e.g. Q(from,to) ~ age
-##' @return index into database of transition rates on true space
+##' @return index into database qm$phasedata of transition rates on true space
 ##' @noRd
 get_qindex <- function(response, fromto, qm, pm){
   if (response %in% c("Q","rra")){

@@ -364,19 +364,12 @@ msmbayes <- function(data, state="state", time="time", subject="subject",
   attr(res, "fit_method") <- fit_method
   attr(res, "opt") <- attr(fit, "opt")
   attr(res, "mle") <- m$priors$mle
-  attr(res, "loglik") <- get_loglik(m, standat, res, fit_method)
   if (keep_data) {
     attr(res, "data") <- m$data
     attr(res, "standat") <- standat
-  }
+  } else attr(res, "standat") <- standat_public(standat)
   class(res) <- c("msmbayes",class(res))
   res
-}
-
-get_loglik <- function(m, standat, fit, fit_method){
-  ll <- if (fit_method=="optimize") attr(fit, "opt")$value else fit$loglik
-  mnconst <- if (m$em$hmm) 0 else standat$multinom_const
-  ll - mnconst
 }
 
 .cmdstanr_fit_methods <- c("pathfinder", "laplace")
@@ -443,12 +436,27 @@ has_covariates <- function(draws){
   attr(draws,"cm")$nx > 0
 }
 
+has_q_covariates <- function(draws){
+  cm <- attr(draws,"cmodel")
+  nrow(cm$tafdf[cm$tafdf$response=="Q",]) > 0
+}
+
+has_scale_covariates <- function(draws){
+  cm <- attr(draws,"cmodel")
+  nrow(cm$tafdf[cm$tafdf$response=="scale",]) > 0
+}
+
 has_rra <- function(draws){
   nrow(attr(draws,"qmodel")$pacrdata) > 0
 }
 
 has_rra_covariates <- function(draws){
   attr(draws,"cm")$nrra > 0
+}
+
+# is hmm.stan model used
+is_hmm <- function(draws){
+  attr(draws, "emodel")$hmm
 }
 
 is_phasetype <- function(draws){
@@ -489,9 +497,4 @@ is_mle <- function(draws){
 
 get_mode_draws <- function(draws){
   posterior::as_draws_df(as.list(get_mode(draws)))
-}
-
-##' @export
-logLik.msmbayes <- function(object, ...){
-  attr(object, "loglik")
 }

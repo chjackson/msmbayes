@@ -35,9 +35,6 @@ weibull_nmo <- function(shape, scale=1){
   list(m1=mean, n2=n2, n3=n3, mean=mean, var=var, skew=skew)
 }
 
-## TODO investigate also Gompertz
-## or do we need AFT property?
-
 ##' Normalised moments of the log-normal distribution
 ##'
 ##' Note these depend on sdlog, not meanlog.  This is the "scale" parameter

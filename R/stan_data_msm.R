@@ -90,6 +90,8 @@ form_transition_data <- function(dat, qm, covariates=NULL, time=TRUE){
 #' @noRd
 aggregate_transition_data <- function(dat,K){
   X <- fromstate <- tostate <- timelag <- Xstr <- subject <- obstype <- NULL
+  if (is.null(dat$X)) dat$X <- matrix(nrow=nrow(dat), ncol=0)
+  if (is.null(dat$obstype)) dat$obstype <- 1
   dat <- dat |>
     mutate(Xstr = apply(X, 1, paste, collapse=";"),
            tostate = factor(tostate, levels=1:K),
@@ -144,4 +146,8 @@ aggdata_towide <- function(dat, K){
   dwide$ntostate[is.na(dwide$ntostate)] <- 0
   for (i in cnames) dwide[[i]] <- NULL
   dwide
+}
+
+standat_public <- function(standat){
+  standat["multinom_const"]
 }

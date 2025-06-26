@@ -43,11 +43,9 @@
 statetable <- function(data, state="state", subject="subject", time="time",
                        covariates = NULL,
                        time_groups=1, format="wide"){
-  check_data_frame(data, call)
-  check_dat_variables(dat=data, state=state, time=time, subject=subject)
-  res <- clean_data(data, state, time, subject,
-                    covariates=covariates) |>
-    form_transition_data(covariates=covariates) |>
+
+  res <- transition_data(data, state, subject, time,
+                         covariates) |>  
     mutate(timelag = cut_allow_1(.data[["timelag"]], time_groups)) |>
     dplyr::count(.data[["fromstate"]], .data[["tostate"]], .data[["timelag"]],
                  dplyr::across(dplyr::all_of(covariates)), .drop=FALSE)
@@ -63,4 +61,12 @@ cut_allow_1 <- function(x, nbreaks){
     x <- sprintf("[%s,%s]",min(x),max(x))
   else
     x <- cut(x, nbreaks)
+}
+
+transition_data <- function(data, state="state", subject="subject", time="time",
+                            covariates = NULL){
+  check_data_frame(data)
+  check_dat_variables(dat=data, state=state, time=time, subject=subject)
+  clean_data(data, state, time, subject, covariates=covariates) |>
+    form_transition_data(covariates=covariates)
 }

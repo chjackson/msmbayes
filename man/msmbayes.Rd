@@ -86,7 +86,7 @@ multiplicative effect on all rates of transition between phases for
 a given state.  The left hand side of the formula should contain
 \code{scale} instad of \code{Q}.  For example, if state 1 has a phase type
 approximation, but state 2 is Markov, then we might supply
-covaroates covariates as:
+\code{covariates} as:
 
 \code{covariates = list(scale(1) ~ age + sex,
                         Q(2,1) ~ age)}
@@ -219,7 +219,9 @@ of sexMALE to be equal for transitions 1-2 and 2-3, specify
 
 \code{constraint = list(age = list(c("1-2","2-3"), c("1-4","2-4")), sex = list(c("1-2","2-3")))}
 
-This is the same feature as in \code{msm}, but with an easier interface.}
+This is the same feature as in \code{msm}, but with an easier
+interface.  In \code{msmbayes} it is only supported for standard Markov
+models, not semi-Markov, phase-type or misclassification models.}
 
 \item{nphase}{Only required for models with phase-type sojourn
 distributions specified directly (not through \code{pastates}).

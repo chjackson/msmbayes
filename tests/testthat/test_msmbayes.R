@@ -9,30 +9,43 @@ test_that("likelihood at fixed parameters agrees with msm",{
                     algorithm="Fixed_param", chains=1, iter=1, keep_data=TRUE)
   lik_msm <- msm(state~months, subject=subject,
                  data=infsim, qmatrix=Q, fixedpars=TRUE)$minus2loglik
-  expect_equal(-2*logLik(draws), lik_msm)
+  expect_equal(-2*draws_of(logLik(draws))[1], lik_msm)
 })
 
 test_that("likelihood with covariates agrees with msm",{
   init<- list(list(logq=c(0, 0),loghr_uniq=c(-2,-2)))
   draws <- msmbayes(data=infsim,  time="months", Q=Q,
-                    covariates=list(Q(1,2) ~ age10, Q(2,1) ~ age10), init=init,
+                    covariates=list(Q(1,2) ~ age10,
+                                    Q(2,1) ~ age10), init=init,
                     algorithm="Fixed_param", chains=1, iter=1, keep_data=TRUE)
   lik_msm <- msm(state~months, subject=subject, covariates = ~age10,
                  covinits = list(age10 = c(-2, -2)), center=FALSE,
                  data=infsim, qmatrix=Q, fixedpars=TRUE)$minus2loglik
-  expect_equal(-2*logLik(draws), lik_msm)
+  expect_equal(-2*draws_of(logLik(draws))[1], lik_msm)
 })
 
 test_that("likelihood with covariates on one transition agrees with msm",{
-  init<- list(list(logq=c(0, 0),
-                   loghr_uniq=as.array(c(-2))))
+  init <- list(list(logq=c(0, 0),
+                    loghr_uniq=as.array(c(-2))))
   draws <- msmbayes(data=infsim,  time="months", Q=Q,
                     covariates=list(Q(2,1) ~ age10), init=init,
                     algorithm="Fixed_param", chains=1, iter=1, keep_data=TRUE)
   lik_msm <- msm(state~months, subject=subject, covariates = ~age10,
-                 covinits = list(age10 = c(0, -2)), center=FALSE,
+                 covinits = list(age10 = c(0, -2)), center=FALSE, # reading across rows of Q
                  data=infsim, qmatrix=Q, fixedpars=TRUE)$minus2loglik
-  expect_equal(-2*logLik(draws), lik_msm)
+  expect_equal(-2*draws_of(logLik(draws))[1], lik_msm)
+})
+
+test_that("likelihood with different covariates on two transitions agrees with msm",{
+  init <- list(list(logq=c(0, 0),
+                    loghr_uniq=as.array(c(-2,-3,-4))))
+  draws <- msmbayes(data=infsim,  time="months", Q=Q,
+                    covariates=list(Q(1,2) ~ age10 + sex, Q(2,1) ~ age10), init=init,
+                    algorithm="Fixed_param", chains=1, iter=1, keep_data=TRUE)
+  lik_msm <- msm(state~months, subject=subject, covariates = ~age10+sex,
+                 covinits = list(age10 = c(-2, -4), sexmale=c(-3, 0)), center=FALSE,
+                 data=infsim, qmatrix=Q, fixedpars=TRUE)$minus2loglik
+  expect_equal(-2*draws_of(logLik(draws))[1], lik_msm)
 })
 
 set.seed(1)

@@ -272,6 +272,7 @@ transformed parameters {
   array[K] vector[K] E = rep_array(rep_vector(0,K), K);    // full matrix of error probs
   array[nepars] real evec; // absolute error probs, for those modelled
 
+  vector[ntafs] logtaf; // log HRs or TAFs, including only one TAF per phase-approx model
   vector[nx] loghr;     // log hazard ratios or time acceleration factors for covariates after
   //                    // replicating constrained ones and common multipliers on phase transition rates
 
@@ -379,7 +380,6 @@ transformed parameters {
     vector[nqpars] qtmp;
     array[ntlc] matrix[K,K] P;
 
-    vector[ntafs] logtaf; // log HRs or TAFs, including only one TAF per phase-approx model
     for (i in 1:ntafs){  logtaf[i] = loghr_uniq[consid[i]];  }  // perhaps we could shortcut these two steps but lets see 
     for (i in 1:nx){  loghr[i] = logtaf[tafid[i]];  }
 
@@ -389,7 +389,7 @@ transformed parameters {
       for (i in 1:nqpars){
 	qtmp[i] = logq[i];
 	if (nxq[i]>0){
-	  qtmp[i] = qtmp[i] + X[j,xstart[i]:xend[i]] * loghr[xstart[i]:xend[i]];
+	  qtmp[i] = qtmp[i] + X[j,xstart[i]:xend[i]] * logtaf[xstart[i]:xend[i]];
 	  if (nrraq[i] > 0){
 	    qtmp[i] = qtmp[i] + X[j,xrrastart[i]:xrraend[i]] * logrra[rrastart[i]:rraend[i]];
 	  }
@@ -400,14 +400,13 @@ transformed parameters {
 	Q[j,k,k] =  - sum(Q[j,k,1:K]);  // constrain rows to add to zero
       }
     }
-    
-    array[K] real mp_jk; // marg prob of data up to time t and true state k at time t, given true state j at time t-1 (recomputed every t, k)
-
-    // Shouldn't really need a different Q for each time lag, just for different covs. Done for convenience.  Scope for efficiency savings here. Shouldn't need to export it at least.
+    // Shouldn't really need a different Q for each time lag, just for different covs. Done for convenience.  Scope for efficiency savings here.
     for (i in 1:ntlc){
       P[i,,] = matrix_exp(Q[i,,]*timelag[i]);
     }
   
+    array[K] real mp_jk; // marg prob of data up to time t and true state k at time t, given true state j at time t-1 (recomputed every t, k)
+
     for (i in 1:nindiv){
       array[TI[i],K] real mp; // marg prob of data up to time t and true state k at time t.
       real misc_prob, outcome_prob;

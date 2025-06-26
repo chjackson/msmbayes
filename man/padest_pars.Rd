@@ -15,6 +15,10 @@ A dataframe with one row per probability, and colums for
 (from) state, to-state, posterior distribution (as an \code{rvar}
 object) and posterior mode (if the model was fitted by mode
 optimisation).
+
+padest stands for probability of absorption (from phase system) in
+destination state ... TODO clearer name?  pcomprisk? pnext? pnextstate? we also
+have loa, logoddsabs
 }
 \description{
 These are the inverse multinomial logit transforms of the

@@ -13,7 +13,7 @@ print.msmbayes <- function(x,...){
 #'
 #' @param pars Character string indicating the parameters to include in the summary.  This can include:
 #'
-#' `q`: transition intensities
+#' `q`: transition intensities.  In semi-Markov models specified with `pastates` these refer to the intensities of transition between the latent phases. 
 #'
 #' `logq`: log transition intensities
 #'
@@ -29,6 +29,10 @@ print.msmbayes <- function(x,...){
 #' scale parameters in phase-type approximation models.
 #'
 #' `loghr`: log hazard ratios
+#'
+#' `taf`,`logtaf`: effects on scale parameters in semi-Markov phase-type approximations.
+#'
+#' `rra`,`logrra`: effects on competing risk transition probabilities in semi-Markov phase-type approximations.
 #'
 #' `e`: misclassification probabilities
 #'
@@ -72,7 +76,7 @@ print.msmbayes <- function(x,...){
 summary.msmbayes <- function(object, pars=NULL,...){
   name <- from <- to <- state <- tostate <- posterior <- prior_string <- NULL
   if (is.null(pars)){
-    pars <- c("q","mst","hr","shape","scale","e","padest","rra")
+    pars <- c("q","mst","hr","shape","scale","taf","padest","rra","e")
   }
   colnames <- c("name", "from", "to", "posterior")
   if (is_mode(object)) colnames <- c(colnames, "mode")
@@ -96,45 +100,68 @@ summary.msmbayes <- function(object, pars=NULL,...){
       select(all_of(colnames))
     res <- rbind(res, mst)
   }
-  if (is_phaseapprox(object) && (("shape" %in% pars)||("scale" %in% pars))){
-    pa <- phaseapprox_pars(object) |> mutate(from=state, to=NA) |>
-      select(all_of(colnames))
-    res <- rbind(res, pa)
-  }
-  if (is_phaseapprox(object) && (("logshape" %in% pars)||("logscale" %in% pars))){
-    pa <- phaseapprox_pars(object, log=TRUE) |> mutate(from=state,to=NA) |>
-      select(all_of(colnames))
-    res <- rbind(res, pa)
-  }
-  if (is_phaseapprox(object) && has_rra(object) && ("padest" %in% pars)){
-    pe <- padest_pars(object) |> mutate(from=state, to=tostate) |>
-      select(all_of(colnames))
-    res <- rbind(res, pe)
+  if (is_phaseapprox(object)){
+    if ((("shape" %in% pars)||("scale" %in% pars))){
+      pa <- phaseapprox_pars(object) |> mutate(from=state, to=NA) |>
+        select(all_of(colnames))
+      res <- rbind(res, pa)
+    }
+    if ((("logshape" %in% pars)||("logscale" %in% pars))){
+      pa <- phaseapprox_pars(object, log=TRUE) |> mutate(from=state,to=NA) |>
+        select(all_of(colnames))
+      res <- rbind(res, pa)
+    }
+    if (has_rra(object)){
+      if ("padest" %in% pars){
+        pa <- padest_pars(object) |> mutate(from=state, to=tostate) |>
+          select(all_of(colnames))
+        res <- rbind(res, pa)
+      }
+      if ("loa" %in% pars){ # inconsistent naming
+        pa <- loabs_pars(object) |> mutate(from=state, to=tostate) |>
+          select(all_of(colnames))
+        res <- rbind(res, pa)
+      }
+    }
   }
   res <- res |> filter(name %in% pars)
-  if (has_covariates(object) && ("hr" %in% pars)){
+  if (has_q_covariates(object) && ("hr" %in% pars)){
     hr_ests <- hr(object, ...) |>
       mutate(name=sprintf("hr(%s)", name)) |>
       select(all_of(colnames))
     res <- rbind(res, hr_ests)
   }
-  if (has_covariates(object) && ("loghr" %in% pars)){
+  if (has_q_covariates(object) && ("loghr" %in% pars)){
     loghr_ests <- loghr(object, ...) |>
       mutate(name=sprintf("loghr(%s)", name)) |>
       select(all_of(colnames))
     res <- rbind(res, loghr_ests)
   }
-  if (has_rra_covariates(object) && ("logrra" %in% pars)){
-    logrra_ests <- logrra(object, ...) |>
-      mutate(name=sprintf("logrra(%s)", name), from=state, to=tostate) |>
+  if (has_scale_covariates(object) && (("taf" %in% pars))){
+    pa <- taf(object,...) |>
+      mutate(name = sprintf("taf(%s)", name),
+             to = NA) |>
       select(all_of(colnames))
-    res <- rbind(res, logrra_ests)
+    res <- rbind(res, pa)
+  }
+  if (has_scale_covariates(object) && (("logtaf" %in% pars))){
+    pa <- logtaf(object,...) |>
+      mutate(name = sprintf("logtaf(%s)", name),
+             to = NA) |>
+      select(all_of(colnames))
+    res <- rbind(res, pa)
   }
   if (has_rra_covariates(object) && ("rra" %in% pars)){
     rra_ests <- rra(object, ...) |>
       mutate(name=sprintf("rra(%s)", name), from=state, to=tostate) |>
       select(all_of(colnames))
     res <- rbind(res, rra_ests)
+  }
+  if (has_rra_covariates(object) && ("logrra" %in% pars)){
+    logrra_ests <- logrra(object, ...) |>
+      mutate(name=sprintf("logrra(%s)", name), from=state, to=tostate) |>
+      select(all_of(colnames))
+    res <- rbind(res, logrra_ests)
   }
   if (has_misc(object) && ("e" %in% pars)){
     e_ests <- edf(object, ...) |>

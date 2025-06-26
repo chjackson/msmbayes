@@ -39,7 +39,7 @@ cm_form_consdf <- function(constraint, cm, qm, pm, qmlatent, call=caller_env()){
 cm_form_tafdf <- function(cm, pm){
   if (is.null(cm$consdf)){
     tafdf <- cm$hrdf[!duplicated(cm$hrdf$tafid),
-                     c("name","from","to","fromobs","toobs")]
+                     c("name","modelid","from","to","fromobs","toobs")]
     tafdf$consid <- as.array(seq_len(nrow(tafdf)))
   } else {
     tafdf <- cm$hrdf |>

@@ -63,9 +63,12 @@ prior_db <- function(priors, qm, cm, pm, qmobs, em){
   mst <- prior_mst_db(priors, qmprior, pm, logq |> filter(name=="q"))
   loghr <- prior_loghr_db(priors, cm)
   papars <- prior_papars_db(priors, pm, qm)
+  logtaf <- prior_logtaf_db(priors, cm)
   loa <- prior_loa_db(priors, qm)
+  padest <- prior_padest_db(priors, qm)
+  logrra <- prior_logrra_db(priors, cm)
   loe <- prior_loe_db(priors, em)
-  res <- rbind(logq, mst, loghr, papars, loa, loe)
+  res <- rbind(logq, mst, loghr, papars, logtaf, loa, padest, logrra, loe)
   if (pm$phasetype & !pm$phaseapprox){
     res$from <- pm$pdat$label[res$from]
     res$to <- pm$pdat$label[res$to]
@@ -106,9 +109,9 @@ prior_mst_db <- function(priors, qm, pm, qdb){
 }
 
 prior_loghr_db <- function(priors, cm){
-  if (cm$nx==0) return(NULL)
   prior <- name <- xname <- NULL
-  cmdf <- cm$cmodeldf[cm$cmodeldf$response %in% c("Q","scale"),]
+  cmdf <- cm$cmodeldf[cm$cmodeldf$response %in% c("Q"),]
+  if (nrow(cmdf)==0) return(NULL)
   data.frame(
     xname = cm$tafdf$name,
     from = rep(cmdf$from, cmdf$ncovs),
@@ -147,22 +150,93 @@ prior_papars_db <- function(priors, pm, qm){
     select("name", "from", "to", "rvar", "string")
 }
 
-prior_loa_db <- function(priors, qm){
-  rvar <- loind <- NULL
-  if (qm$noddsabs==0) return(NULL)
-  pa <- qm$pacrdata |> filter(loind==1)
-  data.frame(name = "loa",
-             from = pa |> pull("oldfrom"),
-             to = pa |> pull("oldto"),
-             rvar = prior_to_rvar(priors$loamean, priors$loasd, n=1000)) |>
-    mutate(string = rvar_to_quantile_string(rvar)) |>
-    arrange(across(all_of("from"))) |>
+prior_logtaf_db <- function(priors, cm){
+  prior <- name <- xname <- NULL
+  cmdf <- cm$cmodeldf[cm$cmodeldf$response %in% c("scale"),]
+  if (nrow(cmdf)==0) return(NULL)
+  data.frame(
+    xname = cm$tafdf$name[cm$tafdf$response=="scale"],
+    from = rep(cmdf$from, cmdf$ncovs),
+    to = rep(cmdf$to, cmdf$ncovs),
+    prior = prior_to_rvar(priors$logtafmean,
+                          priors$logtafsd, n=1000)[cm$tafdf$consid]
+  ) |>
+    mutate(logtaf  = prior,
+           taf  = exp(prior)) |>
+    tidyr::pivot_longer(cols = all_of(c("logtaf", "taf")),
+                        names_to = "name", values_to = "rvar") |>
+    mutate(string = rvar_to_quantile_string(rvar),
+           name = paste0(name, sprintf("(%s)", xname))) |>
+    arrange(across(all_of(c("name", "from", "to")))) |>
     select("name", "from", "to", "rvar", "string")
 }
 
-prior_padest_db <- function(priors, pm, qm){
+prior_loa_internal <- function(priors, qm){
+  rvar <- loind <- from <- NULL
   if (qm$noddsabs==0) return(NULL)
-  ## TODO transform of loa_db
+  pa <- qm$pacrdata |> filter(!dest_base)
+  res <- data.frame(name = "loa",
+                    from = pa |> pull("oldfrom"),
+                    to = pa |> pull("oldto"),
+                    prior = prior_to_rvar(priors$loamean, priors$loasd, n=1000)
+  ) |>
+    arrange(from) |>
+    mutate(logoddsabs = prior,
+           oddsabs = exp(prior))
+  res$sumodds <- rvar_rep(rvar_tapply(res$oddsabs, res$from, sum),
+                          table(res$from))
+  res
+}
+
+prior_loa_db <- function(priors, qm){
+  if (qm$noddsabs==0) return(NULL)
+  res <- prior_loa_internal(priors, qm) |>
+    rename(rvar = logoddsabs) |>
+    mutate(string = rvar_to_quantile_string(rvar)) |>
+    select("name", "from", "to", "rvar", "string")
+  res
+}
+
+prior_padest_db <- function(priors, qm){
+  if (qm$noddsabs==0) return(NULL)
+  pabs <- from <- to <- NULL
+  res <- prior_loa_internal(priors, qm)
+  odds1 <- res |>
+    select("from", "to", "sumodds") |>
+    filter(!duplicated(from)) |>
+    mutate(to = qm$pacrdata |> arrange(oldfrom) |> filter(dest_base) |> pull(oldto),
+           oddsabs=1)
+  res |>
+    select("from", "to", "sumodds", "oddsabs") |>
+    rbind(odds1) |>
+    mutate(name="padest",
+           pabs = oddsabs / (1 + sumodds)) |>
+    arrange(from, to) |>
+    rename(rvar = pabs) |>
+    mutate(string = rvar_to_quantile_string(rvar)) |>
+    select("name", "from", "to", "rvar", "string")
+}
+
+### TESTME 
+prior_logrra_db <- function(priors, cm){
+  prior <- name <- xname <- NULL
+  cmdf <- cm$cmodeldf[cm$cmodeldf$response %in% c("rra"),]
+  if (nrow(cmdf)==0) return(NULL)
+  data.frame(
+    xname = cm$rradf$name,
+    from = rep(cmdf$from, cmdf$ncovs),
+    to = rep(cmdf$to, cmdf$ncovs),
+    prior = prior_to_rvar(priors$logrramean,
+                          priors$logrrasd, n=1000)
+  ) |>
+    mutate(logrra  = prior,
+           rra  = exp(prior)) |>
+    tidyr::pivot_longer(cols = all_of(c("logrra", "rra")),
+                        names_to = "name", values_to = "rvar") |>
+    mutate(string = rvar_to_quantile_string(rvar),
+           name = paste0(name, sprintf("(%s)", xname))) |>
+    arrange(across(all_of(c("name", "from", "to")))) |>
+    select("name", "from", "to", "rvar", "string")
 }
 
 prior_loe_db <- function(priors, em){

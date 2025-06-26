@@ -36,7 +36,7 @@
 qmatrix <- function(draws, new_data=NULL, X=NULL, drop=TRUE, type="posterior"){
   if (type=="mode" && !is_mode(draws)) return(NULL)
   qvec <- qvector(draws, new_data, X, type)
-  ncovvals <- if(is.null(new_data)) 1 else nrow(new_data)
+  ncovvals <- attr(qvec, "ncovvals")
   qm <- attr(draws, "qmodel")
   if (type=="posterior")
     Q <- rvar(array(0, dim=c(ndraws(qvec), ncovvals, qm$K, qm$K)))
@@ -53,6 +53,9 @@ qmatrix <- function(draws, new_data=NULL, X=NULL, drop=TRUE, type="posterior"){
 #' Transition intensities from an msmbayes model, presented as a tidy data frame
 #'
 #' @inheritParams qmatrix
+#'
+#' @param keep_covid (logical) Keep the integer column `covid` identifying unique
+#' covariate combinations.
 #'
 #' @return A data frame with one row per from-state / to-state / covariate value.
 #'
@@ -73,14 +76,14 @@ qmatrix <- function(draws, new_data=NULL, X=NULL, drop=TRUE, type="posterior"){
 #'     new_data = data.frame(sex=c("female","male")))
 #'
 #' @export
-qdf <- function(draws, new_data=NULL){
+qdf <- function(draws, new_data=NULL, keep_covid=FALSE){
   from <- to <- posterior <- vecid <- NULL
   qvec <- qvector(draws, new_data)
   qvecmode <- qvector(draws, new_data, type="mode")
   qm <- attr(draws, "qmodel")
   if (!has_covariates(draws)) new_data <- NULL
   mode <- vecbycovs_to_df(qvecmode, new_data)$posterior
-  vecbycovs_to_df(qvec, new_data) |>
+  vecbycovs_to_df(qvec, new_data, keep_covid=keep_covid) |>
     mutate(from = qm$qrow[vecid],
            to = qm$qcol[vecid],
            mode = mode) |>
@@ -294,42 +297,78 @@ mean_sojourn <- function(draws, new_data=NULL, states="obs"){
   mst
 }
 
-#' Log hazard ratios for covariates on transition intensities
-#'
-#' @inheritParams qmatrix
-#'
-#' @return A data frame containing samples from the posterior distribution.
-#' See \code{\link{qdf}} for notes on this format and how to summarise.
-#'
-#' @seealso \code{\link{hr}}
-#'
-#' @export
+##' (Log) hazard ratios for covariates on transition intensities
+##'
+##' In semi-Markov models specified with \code{pastates}, these only include
+##' covariate effects on transitions out of "Markov" states, that is, those not included
+##' in \code{pastates}.  Effects on scale parameters of sojourn distributions
+##' in "semi-Markov" states are extracted with \code{\link{logtaf}}.
+##'
+##' @inheritParams qmatrix
+##'
+##' @return A data frame containing samples from the posterior distribution.
+##' See \code{\link{qdf}} for notes on this format and how to summarise.
+##' \code{\link{hr}} returns these on the natural scale, \code{\link{loghr}}
+##' returns them on the log scale.
+##'
+##' @export
 loghr <- function(draws){
-  name <- posterior <- from <- to <- tafid <- NULL
+  name <- posterior <- from <- to <- tafid <- mode <- NULL
   cm <- attr(draws,"cmodel")
   qm <- attr(draws,"qmodel")
   if (cm$nx==0)
     cli_abort("No covariates in the model")
   res <- loghr_internal(draws) |>
-    mutate(from = cm$hrdf$from,
-           to = cm$hrdf$to,
-           name = cm$hrdf$name) |>
-    filter(!duplicated(tafid)) |>
-    select(-tafid) |>
-    relocate(from, to, name, posterior) |>
-    relabel_phase_states(draws, space="observed")
+    filter(response=="Q") |>
+    select(from=fromobs, to=toobs, name, posterior, any_of("mode"))
   as_msmbres(res)
 }
 
-#' Hazard ratios for covariates on transition intensities
-#'
-#' @inheritParams qmatrix
-#'
-#' @return A data frame containing samples from the posterior distribution.
-#' See \code{\link{qdf}} for notes on this format and how to summarise.
-#'
-#' @seealso \code{\link{loghr}}
-#'
+##' (Log) time acceleration factors in semi-Markov models
+##'
+##' Extracts the covariate effects on scale parameters in phase-type approximation
+##'  sojourn distributions in semi-Markov models.   Note these are not hazard
+##'  ratios for transitions on the observable state space.  They are time acceleration
+##'  factors, such that an increase in one covariate unit makes time pass at `taf`
+##'  times the speed, such that the sojourn time is expected to reduce by \eqn{exp(-taf)}.
+##'   The log TAFs are labelled \eqn{\beta} in the paper and vignettes.
+##'
+##'  See \code{loghr} for effects of covariates on transitions out of Markov states,
+##'  which are log hazard ratios.
+##'
+##' @return A data frame containing samples from the posterior distribution.
+##' See \code{\link{qdf}} for notes on this format and how to summarise.
+##'
+##' \code{\link{taf}} returns these on the natural scale, \code{\link{logtaf}}
+##' returns them on the log scale.
+##'
+##' @aliases taf
+##' @export
+logtaf <- function(draws){
+  name <- posterior <- from <- to <- tafid <- mode <- NULL
+  cm <- attr(draws,"cmodel")
+  qm <- attr(draws,"qmodel")
+  if (!has_scale_covariates(draws))
+    cli_abort("Model does not include covariates on scale parameters")
+  res <- loghr_internal(draws) |>
+    filter(response=="scale",
+           !duplicated(tafid)) |>
+    select(from=fromobs, name, posterior, any_of("mode"))
+  as_msmbres(res)
+}
+
+##' @aliases logtaf
+##' @rdname logtaf
+##' @export
+taf <- function(draws){
+  res <- logtaf(draws)
+  res$posterior <- exp(res$posterior)
+  if (!is.null(res$mode)) res$mode <- exp(res$mode)
+  res
+}
+
+#' @aliases loghr
+#' @rdname loghr
 #' @export
 hr <- function(draws){
   res <- loghr(draws)
@@ -397,7 +436,7 @@ totlos <- function(draws, t, new_data=NULL, fromt=0, pstart=NULL, discount=0,
       c(0, pstart),
       cbind(rep(0,nst), Q - discount*diag(nst))
     )
-    totlos[d,i,] <- c(1, rep(0, nst)) %*%
+    c(1, rep(0, nst)) %*%
       (expm(t*Qnew) - expm(fromt*Qnew)) %*%
       rbind(rep(0, nst), diag(nst))
   }
@@ -420,9 +459,8 @@ totlos <- function(draws, t, new_data=NULL, fromt=0, pstart=NULL, discount=0,
   if (is_phasetype(draws)){
     if (states=="obs"){
       res$state <- attr(draws,"pmodel")$pdat$oldinds[res$state]
-      covnames <- names(new_data)
       res <- res |>
-        group_by(across(all_of(c("state",covnames)))) |>
+        group_by(across(all_of(c("state",attr(res,"covnames"))))) |>
         summarise(posterior=rvar_sum(posterior),
                   mode = if (!is.null(Qmode)) sum(mode) else NULL)
     } else res <- relabel_phase_states(res, draws)
@@ -552,6 +590,7 @@ loabs_pars <- function(draws){
   pacr <- attr(draws, "qmodel")$pacrdata |> filter(!dest_base) |>
     left_join(refs |> select(oldfrom, ref=oldto), by="oldfrom")
   res <- data.frame(
+    name = "loa",
     state = pacr$oldfrom,
     tostate = pacr$oldto,
     refstate = pacr$ref,
@@ -577,6 +616,10 @@ loabs_pars <- function(draws){
 ##'   (from) state, to-state, posterior distribution (as an `rvar`
 ##'   object) and posterior mode (if the model was fitted by mode
 ##'   optimisation).
+##'
+##' padest stands for probability of absorption (from phase system) in
+##' destination state ... TODO clearer name?  pcomprisk? pnext? pnextstate? we also
+##' have loa, logoddsabs
 ##'
 ##' @export
 padest_pars <- function(draws){
@@ -642,4 +685,36 @@ rra <- function(draws){
   res$posterior <- exp(res$posterior)
   if (!is.null(res$mode)) res$mode <- exp(res$mode)
   res |> as_msmbres()
+}
+
+##' @title Log likelihood from an msmbayes model
+##' @rdname loglik
+##' @aliases logLik.msmbayes
+##'
+##' @return A data frame with columns indicating
+##'
+##' `posterior`: the posterior distribution of the log likelihood (as an `rvar` object).
+##'
+##' `mode` the posterior mode of the log likelihood (only if optimisation was used to fit the model, rather than MCMC).  If `msmbayes` was called `priors="mle"`, this is the maximised log likelihood.
+##'
+##'
+##' @export
+loglik <- function(draws){
+  name <- posterior <- from <- to <- tafid <- NULL
+  qm <- attr(draws,"qmodel")
+  res <- data.frame(variable = "loglik") |>
+    mutate(posterior = loglik_internal(draws),
+           mode = loglik_internal(draws, type="mode"),
+           npars = npars(draws))
+  as_msmbres(res)
+}
+
+##' @rdname loglik
+##' @aliases loglik
+##' @export
+logLik.msmbayes <- function(object, ...){
+  ll <- loglik(object)
+  if (is_mode(object)) res <- ll$mode else res <- ll$posterior
+  attr(res, "df") <- ll$npars
+  res
 }

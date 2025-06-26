@@ -297,7 +297,7 @@ phase_expand_qmodel <- function(qm, pm){
                 qcol = col(Qnew)[Qnew > 0])
   qmnew$qlab <- paste(qmnew$qrow, qmnew$qcol, sep="-")
   qmnew$phasedata <- pd <- form_phasetrans(qmnew, pm)
-  ## TODO rename tr for consistency? Clearer obs/latent distinction. Remove the vectors
+  qmnew$tr <- qmnew$phasedata # TODO deprecate phasedata, remove the vectors
 
   if (pm$phaseapprox){
     qmnew$npaqkl <- 9 # for KL-based 5-phase approximation
@@ -334,7 +334,7 @@ phase_expand_qmodel <- function(qm, pm){
 ##'
 ##' @noRd
 form_phaseapprox_ratedata <- function(qm, pm){
-  if (pm$npastates==0) return(NULL) # TODO null object for stan data
+  if (pm$npastates==0) return(NULL)
   pdat <- qm$phasedata
   pdat$pafrom <- pdat$oldfrom %in% pm$pastates
   npaqall <- sum(pdat$pafrom)
@@ -384,12 +384,12 @@ form_phaseapprox_comprisk_data <- function(qm, pm){
 #' phase-type models.
 #'
 #' @param space whether dat$from, dat$to are on observed or latent space on input
-#' 
+#'
 #' TIDYME
 #' Used in qdf, edf, pmatrixdf, mean_sojourn, loghr, totlos
 #' loghr uses space=observed.
 #'
-#' 
+#'
 #'
 #' @noRd
 relabel_phase_states <- function(dat, draws, wide=TRUE, space="latent"){
@@ -445,10 +445,10 @@ relabel_phase_states <- function(dat, draws, wide=TRUE, space="latent"){
 #' @md
 #' @noRd
 form_phasetrans <- function(qm, pm){
-  tdat <- as.data.frame(qm[c("qrow","qcol")])  # TODO naming. better as truefrom?
+  tdat <- as.data.frame(qm[c("qrow","qcol")])  # TODO naming. better as from, to
   pdat <- pm$pdat
   tdat$qlab <- sprintf("%s-%s", tdat$qrow, tdat$qcol)
-  tdat$oldfrom <- pdat$oldinds[tdat$qrow] # better as obsfrom?
+  tdat$oldfrom <- pdat$oldinds[tdat$qrow] # better as fromobs, toobs?
   tdat$oldto <- pdat$oldinds[tdat$qcol]
   tdat$oldlab <- paste(tdat$oldfrom, tdat$oldto, sep="-")
   tdat$phasefrom <- pdat$phase[qm$qrow] # better as isphasefrom?
@@ -465,5 +465,9 @@ form_phasetrans <- function(qm, pm){
   tdat$ndest <- table(puq$oldfrom)[tdat$oldfrom]
   ## is this rate a competing risks rate
   tdat$pabs <- tdat$ndest > 1 & tdat$ttype=="abs"
+  tdat$from <- tdat$qrow
+  tdat$to <- tdat$qcol # TODO deprecate qrow, qcol, oldfrom, oldto
+  tdat$fromobs <- tdat$oldfrom
+  tdat$toobs <- tdat$oldto
   tdat
 }

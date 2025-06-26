@@ -28,18 +28,30 @@ qvector <- function(draws, new_data=NULL, X=NULL, type="posterior", drop=FALSE){
   }
   else {
     cm <- attr(draws, "cmodel")
-    loghr <- td |>  gather_rvars(loghr[]) |>  pull(".value")
+    if (is_hmm(draws))
+      loghr <- td |>  gather_rvars(logtaf[]) |>  pull(".value")
+    else loghr <- td |>  gather_rvars(loghr[]) |>  pull(".value")
+    if (cm$nrra > 0)
+      logrra <- td |>  gather_rvars(logrra[]) |>  pull(".value")
     if (is.null(X))
       X <- new_data_to_X(new_data, draws)
     else check_X(X, draws)
     ncovvals <- nrow(X)
     logqnew <- rvar(array(dim=c(ndraws(logq), ncovvals, nqpars(draws))))
     for (i in 1:nqpars(draws)){
-      inds <- cm$transdf$xstart[i]:cm$transdf$xend[i]
       logqnew[,i] <- logq[i]
-      if (cm$transdf$nxq[i] > 0)
+      if (cm$transdf$nxq[i] > 0){
+        inds <- cm$transdf$xstart[i]:cm$transdf$xend[i]
         logqnew[,i] <- logqnew[,i] +
-          X[,inds,drop=FALSE] %**% loghr[inds]  # %**% from posterior
+          X[,inds,drop=FALSE] %**% loghr[inds]  # %**% from library(posterior)
+        ## TESTME
+      }
+      ## TESTME include logrra
+      if (cm$transdf$nrraq[i] > 0){
+        inds <- cm$transdf$xrrastart[i]:cm$transdf$xrraend[i]
+        logqnew[,i] <- logqnew[,i] +
+          X[,inds,drop=FALSE] %**% logrra[inds]
+      }
     }
   }
   qvec <- exp(logqnew)
@@ -54,6 +66,7 @@ qvector <- function(draws, new_data=NULL, X=NULL, type="posterior", drop=FALSE){
   if (type=="posterior" && is_mode(draws))
     attr(qvec, "mode") <- qvector(draws, new_data, type="mode", drop=TRUE)
   if (drop && ncovvals==1) qvec <- qvec[1,]
+  attr(qvec, "ncovvals") <- ncovvals
   qvec
 }
 
@@ -116,7 +129,7 @@ loghr_internal <- function(draws, type="posterior"){
     t() |>
     as.data.frame() |>
     rename(posterior=V1) |>
-    mutate(tafid = cm$hrdf$tafid)
+    cbind(cm$hrdf)
   if (type=="mode")
     loghr <- loghr |> rename(mode=posterior) |> mutate(mode=as.numeric(draws_of(mode)))
   if (type=="posterior" && is_mode(draws))
@@ -221,7 +234,8 @@ qvec_to_mst <- function(qvec, qm){
 #' \code{covid} indexes distinct combinations of covariate values
 #'
 #' @noRd
-vecbycovs_to_df <- function(rvarmat, new_data, mode=FALSE){
+vecbycovs_to_df <- function(rvarmat, new_data, mode=FALSE,
+                            keep_covid=FALSE){
   covid <- vecid <- value <- NULL
   if (is.null(rvarmat)) return(NULL)
   ncovvals <- dim(rvarmat)[1]
@@ -234,11 +248,13 @@ vecbycovs_to_df <- function(rvarmat, new_data, mode=FALSE){
                         names_prefix = "vecid",
                         names_transform=list(vecid=as.integer)) |>
     rename(posterior = value)
-  if (!is.null(new_data) && !isTRUE(attr(new_data, "std")))
+  if (!is.null(new_data) && !isTRUE(attr(new_data, "std"))){
     res <- res |>
       left_join(new_data |> mutate(covid=1:n()), by="covid")
-  res <- as_msmbres(res) |>
-    select(-covid)
+    attr(res, "covnames") <- names(new_data)
+  } else attr(res, "covnames") <- NULL
+  res <- as_msmbres(res)
+  if (!keep_covid) res <- res |> select(-covid)
   res
 }
 
@@ -298,10 +314,6 @@ mean_sojourn_phase <- function(qvec, tdat, state) {
 #' cbinding together all the design matrices for the different
 #' transitions
 #'
-#' TODO expand for phaseapprox models
-#' match hrdf (same order? original binds hrdf_q, _s. shd be same order as stan loghr. Ordered by model, covariate, transition
-#' tafid distinguishes replicated ones
-#'
 #' @noRd
 new_data_to_X <- function(new_data, draws, call=caller_env()){
   check_new_data(new_data, call=call)
@@ -319,8 +331,10 @@ new_data_to_X <- function(new_data, draws, call=caller_env()){
     X[[i]] <- hh$predictors
     X[[i]][["(Intercept)"]] <- NULL
   }
-  X <- as.matrix(do.call("cbind", X))
-  X <- X[,cm$hrdf$tafid,drop=FALSE] # TESTME
+  Xq <- X[cm$cmodeldf$response=="Q"]
+  Xs <- X[cm$cmodeldf$response=="scale"]
+  Xrr <- X[cm$cmodeldf$response=="rra"]
+  X <- as.matrix(do.call("cbind", c(Xq, Xs, Xrr))) # dim 0, 20, 30
   X
 }
 
@@ -334,7 +348,8 @@ check_new_data <- function(new_data, call=caller_env()){
 soj_prob_phase <- function(draws, t, state, new_data=NULL,
                            method = "analytic"){
   from <- fromobs <- ttype <- posterior <- covid <- NULL
-  qphase <- qdf(draws, new_data=new_data) |> filter(fromobs==state)
+  qphase <- qdf(draws, new_data=new_data, keep_covid=TRUE) |>
+    filter(fromobs==state)
 
   arateg <- qphase |> filter(ttype=="abs") |> group_by(from, covid)
   arate <- arateg |>
@@ -395,4 +410,26 @@ soj_prob_nonphase <- function(draws, t, state, new_data=NULL){
     select(-vecid) |>
     as_msmbres()
   res
+}
+
+loglik_internal <- function(draws, type="posterior"){
+  if (type=="mode" && !is_mode(draws)) return(NULL)
+  td <- tidy_draws(if (type=="posterior") draws else get_mode_draws(draws))
+  loglik <- td |> gather_rvars(loglik[]) |> pull(".value")
+  if (type=="mode") loglik <- as.numeric(draws_of(loglik))
+  if (!is_hmm(draws))
+    loglik <- loglik - attr(draws,"standat")$multinom_const
+  loglik
+}
+
+npars <- function(draws){
+  qm <- attr(draws,"qmodel")
+  cm <- attr(draws,"cmodel")
+  pm <- attr(draws,"pmodel")
+  em <- attr(draws,"emodel")
+  if (is_hmm(draws)){
+    qm$npriorq + cm$nxuniq + 2*pm$npastates + qm$noddsabs + cm$nrra + em$nepars
+  } else {
+    qm$nqpars + cm$nxuniq
+  }
 }

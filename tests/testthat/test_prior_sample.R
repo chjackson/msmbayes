@@ -52,15 +52,13 @@ priors <- list(msmprior("logshape(1)", mean=log(1), sd=0.01),
 test_that("prior_sample with pastates, covariates on scale: priors reflected",{
   set.seed(1)
   priorsh <- c(priors,
-               list(msmprior("loghrscale(age10,1)", median=log(1), lower=log(0.95))))
+               list(msmprior("logtaf(age10,1)", median=log(1), lower=log(0.95))))
   expect_error(msmbayes_prior_sample(nsim=1000, data=dat, Q=Q, priors=priorsh, pastates=1),
                "no covariates")
   sam <- msmbayes_prior_sample(nsim=100, data=dat, Q=Q, priors=priorsh, pastates=1,
                                covariates = list(scale(1) ~ age10))
-  summ <- summary(sam[["loghrscale[age10,1]"]])
+  summ <- summary(sam[["logtaf[age10,1]"]])
   expect_gt(summ[["1st Qu."]], log(0.95)); expect_lt(summ[["3rd Qu."]], log(1.05))
-  sam <- msmbayes_prior_sample(nsim=100, data=dat, Q=Q, priors=priorsh, pastates=1,
-                               covariates = list(scale(1) ~ age10), expand_hr=TRUE)
 
   ## priorpred_sample runs
   set.seed(1)
@@ -74,7 +72,7 @@ test_that("priorpred_sample with pastates, covariates on scale: sense check with
   set.seed(1)
   dat <- data.frame(subject=rep(1:100, each=10), time=rep(0:9, 100), x=rbinom(1000, 1, 0.5))
   priorsh <- c(priors,
-               list(msmprior("loghrscale(x,1)", median=-log(20), upper=-log(19.95))))
+               list(msmprior("logtaf(x,1)", median=-log(20), upper=-log(19.95))))
   sam <- msmbayes_prior_sample(nsim=100, data=dat, Q=Q, priors=priorsh, pastates=1,
                                covariates = list(scale(1) ~ x))
   head(sam)
@@ -83,9 +81,9 @@ test_that("priorpred_sample with pastates, covariates on scale: sense check with
   statetable(sam, state="obs_state", covariates = "x")
   mod <- msmbayes(data=sam, state="obs_state", Q=Q, pastates=1,
                   covariates = list(scale(1) ~ x), fit_method="optimize")
-  hr(mod)
-  loghr(mod) # but looks like it recognises the large effect
-  expect_true(hr(mod)$mode > 0)
+  taf(mod)
+  logtaf(mod) # but looks like it recognises the large effect
+  expect_true(taf(mod)$mode > 0)
 })
 
 test_that("prior_sample with pastates, different covariates on two scales: priors reflected",{
@@ -98,20 +96,20 @@ test_that("prior_sample with pastates, different covariates on two scales: prior
                   msmprior("logshape(2)", mean=log(1), sd=0.01),
                   msmprior("logscale(2)", mean=log(2), sd=0.01),
                   msmprior("loa(1,3)", mean=-0.5, sd=0.01),
-                  msmprior("loghrscale(x,1)", median=log(20), lower=log(19.95)),
-                  msmprior("loghrscale(y,1)", median=log(50), lower=log(49.95)),
-                  msmprior("loghrscale(x,2)", median=log(10), lower=log(9.95)
+                  msmprior("logtaf(x,1)", median=log(20), lower=log(19.95)),
+                  msmprior("logtaf(y,1)", median=log(50), lower=log(49.95)),
+                  msmprior("logtaf(x,2)", median=log(10), lower=log(9.95)
                   )
   )
   sam <- msmbayes_prior_sample(nsim=100, data=dat, Q=Q, priors=priorsh, pastates=c(1,2),
                                covariates = list(scale(1) ~ x + y,
                                                  scale(2) ~ x))
 
-  summ <- summary(sam[["loghrscale[x,1]"]])
+  summ <- summary(sam[["logtaf[x,1]"]])
   expect_gt(summ[["1st Qu."]], log(19)); expect_lt(summ[["3rd Qu."]], log(21))
-  summ <- summary(sam[["loghrscale[y,1]"]])
+  summ <- summary(sam[["logtaf[y,1]"]])
   expect_gt(summ[["1st Qu."]], log(49)); expect_lt(summ[["3rd Qu."]], log(51))
-  summ <- summary(sam[["loghrscale[x,2]"]])
+  summ <- summary(sam[["logtaf[x,2]"]])
   expect_gt(summ[["1st Qu."]], log(9.9)); expect_lt(summ[["3rd Qu."]], log(10.1))
   summ <- summary(sam[["logoddsa[1]"]])
   expect_gt(summ[["1st Qu."]], -0.6); expect_lt(summ[["3rd Qu."]], -0.4)
@@ -128,9 +126,9 @@ test_that("prior_sample with pastates, different covariates on two scales: prior
   priorsh <- list(msmprior("logshape(1)", mean=log(1), sd=0.01),
                   msmprior("logshape(2)", mean=log(1), sd=0.01),
                   msmprior("logscale(2)", mean=log(2), sd=0.1),
-                  msmprior("loghrscale(y,1)", median=log(50), lower=log(1)),
-                  msmprior("loghrscale(x,1)", median=log(20), lower=log(1)),
-                  msmprior("loghrscale(x,2)", median=log(10), lower=log(1)))
+                  msmprior("logtaf(y,1)", median=log(50), lower=log(1)),
+                  msmprior("logtaf(x,1)", median=log(20), lower=log(1)),
+                  msmprior("logtaf(x,2)", median=log(10), lower=log(1)))
   mod <- msmbayes(data=sam, state="obs_state", Q=Q, pastates=c(1,2), priors=priorsh,
                   covariates = list(scale(1) ~ x + y,
                                     scale(2) ~ x), fit_method="optimize")
@@ -148,7 +146,7 @@ test_that("prior_sample with pastates, covariates on exit probs",{
                "does not include")
   sam <- msmbayes_prior_sample(nsim=1000, data=dat, Q=Q, priors=priorsr, pastates=1,
                                covariates = list(rra(1,3) ~ x))
-  summ <- summary(sam[["logrra[1,3]"]])
+  summ <- summary(sam[["logrra[x,1,3]"]])
   expect_gt(summ[["1st Qu."]], log(1.94)); expect_lt(summ[["3rd Qu."]], log(2.06))
 
   set.seed(1)
@@ -169,33 +167,33 @@ test_that("prior_sample with pastates, covariates on exit probs",{
 })
 
 
-test_that("msmprior all_indices for hrscale in pastates models",{
+test_that("msmprior all_indices for taf in pastates models",{
   dat <- data.frame(subject=rep(1:100, each=10), time=rep(0:9, 100),
                     x=rbinom(1000, 1, 0.5), y=rbinom(1000, 1, 0.5))
-  priorsh <- list(msmprior("loghrscale(x)", median=4, lower=3),
-                  msmprior("loghrscale(y)", median=3, lower=2))
+  priorsh <- list(msmprior("logtaf(x)", median=4, lower=3),
+                  msmprior("logtaf(y)", median=3, lower=2))
   sam <- msmbayes_prior_sample(nsim=1000, data=dat, Q=Q, priors=priorsh,
                                pastates=1:2,
                                covariates = list(scale(1) ~ x + y,
                                                  scale(2) ~ x))
-  summ <- summary(sam[["loghrscale[x,1]"]])
+  summ <- summary(sam[["logtaf[x,1]"]])
   expect_gt(summ[["1st Qu."]], 3); expect_lt(summ[["3rd Qu."]], 5)
-  summ <- summary(sam[["loghrscale[x,2]"]])
+  summ <- summary(sam[["logtaf[x,2]"]])
   expect_gt(summ[["1st Qu."]], 3); expect_lt(summ[["3rd Qu."]], 5)
-  summ <- summary(sam[["loghrscale[y,1]"]])
+  summ <- summary(sam[["logtaf[y,1]"]])
   expect_gt(summ[["1st Qu."]], 2); expect_lt(summ[["3rd Qu."]], 4)
-  expect_true(!("loghrscale[y,2]" %in% names(sam)))
+  expect_true(!("logtaf[y,2]" %in% names(sam)))
 
-  priorsh <- list(msmprior("loghrscale(1)", median=4, lower=3),
-                  msmprior("loghrscale(2)", median=3, lower=2))
+  priorsh <- list(msmprior("logtaf(1)", median=4, lower=3),
+                  msmprior("logtaf(2)", median=3, lower=2))
   sam <- msmbayes_prior_sample(nsim=1000, data=dat, Q=Q, priors=priorsh,
                                pastates=1:2,
                                covariates = list(scale(1) ~ x + y,
                                                  scale(2) ~ x))
-  summ <- summary(sam[["loghrscale[x,1]"]])
+  summ <- summary(sam[["logtaf[x,1]"]])
   expect_gt(summ[["1st Qu."]], 3); expect_lt(summ[["3rd Qu."]], 5)
-  summ <- summary(sam[["loghrscale[y,1]"]])
+  summ <- summary(sam[["logtaf[y,1]"]])
   expect_gt(summ[["1st Qu."]], 3); expect_lt(summ[["3rd Qu."]], 5)
-  summ <- summary(sam[["loghrscale[x,2]"]])
+  summ <- summary(sam[["logtaf[x,2]"]])
   expect_gt(summ[["1st Qu."]], 2); expect_lt(summ[["3rd Qu."]], 4)
 })
