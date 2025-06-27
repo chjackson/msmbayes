@@ -61,8 +61,6 @@ msmbayes_prior_sample <- function(data, state="state", time="time", subject="sub
                               attr(logrra,"stan_names"), attr(loe,"stan_names"))
 
   attr(res, "expand") <- cbind(loghr_expand, logrra_expand)
-  attr(attr(res, "expand"),"stan_names") <- c(attr(loghr_expand,"stan_names"),
-                                              attr(logrra_expand,"stan_names"))
 
   attr(res,"m") <- m
   res
@@ -98,13 +96,13 @@ prior_sample_loghr <- function(priors, nsim, cm){
     }
     loghr <- as.data.frame(loghr)
     tudf <- cm$tafdf[!duplicated(cm$tafdf$consid),,drop=FALSE]
-    pname <- ifelse(tudf$response=="scale", "logtaf", "loghr")
+    tudf$pname <- ifelse(tudf$response=="scale", "logtaf", "loghr")
     ind3 <- ifelse(tudf$response=="scale", "", paste0(",",tudf$toobs))
-    names(loghr) <- sprintf("%s[%s,%s%s]", pname, tudf$name, tudf$fromobs, ind3)
+    names(loghr) <- sprintf("%s[%s,%s%s]", tudf$pname, tudf$name, tudf$fromobs, ind3)
     loghr_expand <- loghr[,cm$hrdf$tafid,drop=FALSE]
-    names(loghr_expand) <- sprintf("loghr[%s,%s,%s]", cm$hrdf$name, cm$hrdf$from, cm$hrdf$to) # inconsistent, why not logtaf?
-    attr(loghr, "stan_names") <- sprintf("loghr[%s]", 1:cm$nxuniq)
-    attr(loghr_expand, "stan_names") <- sprintf("loghr[%s]", 1:cm$nx)
+    cm$hrdf$pname <- ifelse(cm$hrdf$response=="scale", "logtaf", "loghr")
+    names(loghr_expand) <- sprintf("%s[%s,%s,%s]", cm$hrdf$pname, cm$hrdf$name, cm$hrdf$from, cm$hrdf$to)
+    attr(loghr, "stan_names") <- sprintf("%s[%s]", tudf$pname, 1:cm$nxuniq)
   } else
     loghr <- loghr_expand <- as.data.frame(matrix(nrow=nsim, ncol=0))
   list(loghr=loghr, loghr_expand=loghr_expand)
@@ -157,7 +155,7 @@ prior_sample_logrra <- function(priors, nsim, qm, pm, cm){
     names(logrra) <- sprintf("logrra[%s,%s,%s]", rradf$name, rradf$from, rradf$to)
     logrra_expand <- as.data.frame(t(rradf_expand$value))
     names(logrra_expand) <- sprintf("logrra[%s,%s,%s]", rradf_expand$name, rradf_expand$from, rradf_expand$to)
-    attr(logrra_expand,"stan_names") <- sprintf("logrra[%s]", 1:cm$nrra)
+    attr(logrra,"stan_names") <- sprintf("logrra[%s]", 1:cm$nrra)
   } else logrra <- logrra_expand <- as.data.frame(matrix(nrow=nsim, ncol=0))
   list(logrra=logrra, logrra_expand=logrra_expand)
 }
