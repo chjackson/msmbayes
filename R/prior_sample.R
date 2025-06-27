@@ -13,10 +13,11 @@
 ##' @return A data frame with one column per model parameter (on a transformed scale, e.g. log intensities), and one row per sample.    The names are in the natural
 ##' format as specified in `priors`.
 ##'
-##' An attribute \code{"post_names"} contains the names of the
+##' An attribute \code{"stan_names"} contains the names of the
 ##' corresponding parameters in the `draws` object that would be
 ##' returned by `msmbayes` if this model were to be fitted to data.
-##' These are less user-interpretable than the natural names.
+##' These are the names used internally by Stan, and not meant to be
+##' interpretable by users.
 ##'
 ##' An attribute \code{"expand"} contains the same sample but with
 ##' parameters for covariate effects referring to state transitions
@@ -42,7 +43,7 @@ msmbayes_prior_sample <- function(data, state="state", time="time", subject="sub
                                prior_sample = TRUE)
   qm <- m$qm; pm <- m$pm; priors <- m$priors; cm <- m$cm; em <- m$em; data <- m$data; qmobs <- m$qmobs
 
-  logq <- prior_sample_logq(priors, nsim, qm, pm)
+  logq <- prior_sample_logq(priors, nsim, qm, pm, em)
   p <- prior_sample_loghr(priors, nsim, cm)
   loghr <- p$loghr
   loghr_expand <- p$loghr_expand
@@ -54,26 +55,37 @@ msmbayes_prior_sample <- function(data, state="state", time="time", subject="sub
   loe <- prior_sample_loe(priors, nsim, em)
 
   res <- cbind(logq, loghr, logss, loa, logrra, loe)
-  attr(res, "expand") <- cbind(loghr_expand, logrra_expand)
 
-  attr(res,"post_names") <- prior_post_names(names(res), qm, pm, cm, em)
+  attr(res,"stan_names") <- c(attr(logq,"stan_names"), attr(loghr,"stan_names"),
+                              attr(logss,"stan_names"), attr(loa,"stan_names"),
+                              attr(logrra,"stan_names"), attr(loe,"stan_names"))
+
+  attr(res, "expand") <- cbind(loghr_expand, logrra_expand)
+  attr(attr(res, "expand"),"stan_names") <- c(attr(loghr_expand,"stan_names"),
+                                              attr(logrra_expand,"stan_names"))
+
   attr(res,"m") <- m
   res
 }
 
-prior_sample_logq <- function(priors, nsim, qm, pm){
+prior_sample_logq <- function(priors, nsim, qm, pm, em){
   if (qm$npriorq > 0){
     logq <- matrix(nrow=nsim, ncol=qm$npriorq)
     for (i in 1:qm$npriorq){
       logq[,i] <- rnorm(nsim, priors$logqmean[i], priors$logqsd[i])
     }
     logq <- as.data.frame(logq)
-    pdat <- qm$phasedata
-    if (pm$phaseapprox)
-      names(logq) <- sprintf("logq[%s,%s]",
-                             pdat$oldfrom[pdat$ttype=="markov"],
-                             pdat$oldto[pdat$ttype=="markov"]) # or use pdat$qrow.. if want names on latent space
-    else names(logq)<- sprintf("logq[%s,%s]",qm$qrow,qm$qcol)
+    if (pm$phaseapprox){
+      pdat <- qm$phasedata
+      from <- pdat$oldfrom[pdat$ttype=="markov"] # or use pdat$qrow.. if want names on latent space
+      to <- pdat$oldto[pdat$ttype=="markov"]
+    }
+    else {
+      from <- qm$qrow; to <- qm$qcol; labs <- qm$qlab
+    }
+    names(logq) <- sprintf("logq[%s,%s]", from, to)
+    nm <- if (em$hmm) "_markov" else ""
+    attr(logq,"stan_names") <- sprintf("logq%s[%s]",nm,seq_along(from))
   } else logq <- as.data.frame(matrix(nrow=nsim, ncol=0))
   logq
 }
@@ -90,8 +102,11 @@ prior_sample_loghr <- function(priors, nsim, cm){
     ind3 <- ifelse(tudf$response=="scale", "", paste0(",",tudf$toobs))
     names(loghr) <- sprintf("%s[%s,%s%s]", pname, tudf$name, tudf$fromobs, ind3)
     loghr_expand <- loghr[,cm$hrdf$tafid,drop=FALSE]
-    names(loghr_expand) <- sprintf("loghr[%s,%s,%s]", cm$hrdf$name, cm$hrdf$from, cm$hrdf$to)
-  } else loghr <- loghr_expand <- as.data.frame(matrix(nrow=nsim, ncol=0))
+    names(loghr_expand) <- sprintf("loghr[%s,%s,%s]", cm$hrdf$name, cm$hrdf$from, cm$hrdf$to) # inconsistent, why not logtaf?
+    attr(loghr, "stan_names") <- sprintf("loghr[%s]", 1:cm$nxuniq)
+    attr(loghr_expand, "stan_names") <- sprintf("loghr[%s]", 1:cm$nx)
+  } else
+    loghr <- loghr_expand <- as.data.frame(matrix(nrow=nsim, ncol=0))
   list(loghr=loghr, loghr_expand=loghr_expand)
 }
 
@@ -107,6 +122,8 @@ prior_sample_logss <- function(priors, nsim, pm){
     names(logshape) <- sprintf("logshape[%s]",pm$pastates)
     names(logscale) <- sprintf("logscale[%s]",pm$pastates)
     logss <- cbind(logshape, logscale)
+    attr(logss,"stan_names") <- c(sprintf("logshape[%s]",1:pm$npastates),
+                                  sprintf("logscale[%s]",1:pm$npastates))
   } else logss <- as.data.frame(matrix(nrow=nsim, ncol=0))
   logss
 }
@@ -115,10 +132,11 @@ prior_sample_loa <- function(priors, nsim, qm, pm){
   noddsabs <- qm$noddsabs
   if (pm$phaseapprox && noddsabs > 0){
     loa <- as.data.frame(matrix(nrow=nsim, ncol=noddsabs))
-    names(loa) <- sprintf("logoddsa[%s]", 1:noddsabs)
+    names(loa) <- sprintf("logoddsa[%s]", 1:noddsabs) # inconsistent name
     for (i in 1:noddsabs){
       loa[,i] <- rnorm(nsim, priors$loamean[i], priors$loasd[i])
     }
+    attr(loa, "stan_names") <- sprintf("logoddsabs[%s]", 1:qm$noddsabs)
   } else loa <- as.data.frame(matrix(nrow=nsim, ncol=0))
   loa
 }
@@ -139,6 +157,7 @@ prior_sample_logrra <- function(priors, nsim, qm, pm, cm){
     names(logrra) <- sprintf("logrra[%s,%s,%s]", rradf$name, rradf$from, rradf$to)
     logrra_expand <- as.data.frame(t(rradf_expand$value))
     names(logrra_expand) <- sprintf("logrra[%s,%s,%s]", rradf_expand$name, rradf_expand$from, rradf_expand$to)
+    attr(logrra_expand,"stan_names") <- sprintf("logrra[%s]", 1:cm$nrra)
   } else logrra <- logrra_expand <- as.data.frame(matrix(nrow=nsim, ncol=0))
   list(logrra=logrra, logrra_expand=logrra_expand)
 }
@@ -150,45 +169,11 @@ prior_sample_loe <- function(priors, nsim, em){
     for (i in 1:em$nepars){
       loe[,i] <- rnorm(nsim, priors$loemean[i], priors$loesd[i])
     }
+    attr(loe, "stan_names") <- sprintf("logoddse[%s]", 1:em$nepars)
   } else loe <- as.data.frame(matrix(nrow=nsim, ncol=0))
   loe
 }
 
-prior_post_names <- function(prior_names, qm, pm, cm, em){
-  logq_prior_names <- grep("logq", prior_names, value=TRUE)
-  trans_names <- gsub("logq\\[(.+),(.+)\\]","\\1-\\2",logq_prior_names)
-  loghr_post_names <- if (cm$nx > 0) sprintf("loghr[%s]", 1:cm$nx) else NULL
-
-  if (pm$phaseapprox){
-    pd <- qm$phasedata
-    qind <- match(trans_names, pd$oldlab[pd$ttype=="markov"])
-    logq_post_names <- sprintf("logq_markov[%s]",qind)
-    logshape_prior_names <- grep("logshape", prior_names, value=TRUE)
-    logscale_prior_names <- grep("logscale", prior_names, value=TRUE)
-    ssind <- match(pm$pastates, unique(pm$pastates)) # isnt this just 1:npastates
-    logshape_post_names <- sprintf("logshape[%s]",ssind)
-    logscale_post_names <- sprintf("logscale[%s]",ssind)
-    if (qm$noddsabs > 0){
-      loa_post_names <- sprintf("logoddsabs[%s]", 1:qm$noddsabs)
-      if (cm$nrra > 0){
-        logrra_post_names <- sprintf("logrra[%s]", 1:cm$nrra)
-      } else logrra_post_names <- NULL
-    } else loa_post_names <- logrra_post_names <- NULL
-
-    post_names <- c(logq_post_names, loghr_post_names,
-                    logshape_post_names, logscale_post_names,
-                    loa_post_names, logrra_post_names)
-  } else {
-    qind <- match(trans_names, qm$qlab)
-    logq_post_names <- sprintf("logq[%s]",qind)
-    post_names <- c(logq_post_names, loghr_post_names)
-  }
-  if (em$nepars > 0){
-    loe_post_names <- sprintf("logoddse[%s]", 1:em$nepars)
-    post_names <- c(post_names, loe_post_names) # TESTME
-  }
-  post_names
-}
 
 ##' Generate a dataset from the prior predictive distribution in a msmbayes model
 ##'
@@ -251,7 +236,7 @@ msmbayes_priorpred_sample <- function(data, state="state", time="time", subject=
   names(data) <- gsub("X\\\\.","",names(data))
   covs <- data[["X"]]
   data <- cbind(data[,c("time","subject")], covs)
-  q_prior <- q_pred <- extract_q(prior_sample, Q, i=1) # on observed state space
+  q_prior <- q_pred <- extract_q(prior_sample, Q, i=1) # on user state space
   ## For phaseapprox models, this will have 1 for pa states, real values for others
 
   if (m$pm$phaseapprox){

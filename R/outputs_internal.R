@@ -225,14 +225,13 @@ qvec_to_mst <- function(qvec, qm){
 #'   values and elements of the vector.  The covariate values from
 #'   \code{new_data} are joined to form additional columns.
 #'
-#' TODO document ordering : by vecid within covid
-#' ensure mode matches
-#'
 #' A column \code{vecid} gives the index into the original vector
 #' of outputs.
 #'
 #' \code{covid} indexes distinct combinations of covariate values
 #'
+#' Ordered by \code{vecid} within \code{covid}.
+#' 
 #' @noRd
 vecbycovs_to_df <- function(rvarmat, new_data, mode=FALSE,
                             keep_covid=FALSE){

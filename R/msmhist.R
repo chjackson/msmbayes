@@ -114,7 +114,7 @@ msmhist <- function(data, state="state", time="time", subject="subject", nbins,
     ggplot2::ylab("")
 }
 
-## TODO
+## Potential future developments:
 ## option to plot "point" barplot in case of equally spaced data
 ## manual bins? and/or nicer binning heuristic?
 ## error checking

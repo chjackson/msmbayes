@@ -74,3 +74,39 @@ test_that("one-simulation test: illness-death phase-type approx",{
   # prior sample OK.  What about statetable on sam
   statetable(sam, state="obs_state") # Right OK.  Model fitting must be bugged then.
 })
+
+
+test_that("one-simulation test: covariates on scale and transition probs",{
+  Qid <- rbind(c(0,1,1),c(0,0,1),c(0,0,0))
+  nindiv <- 1000
+  nobspt <- 12
+  subjdf <- data.frame(
+    subject = 1:nindiv,
+    agegroup = factor(rep(rep(c("0-60", "60-70", "70-80", "80+"), c(2,2,3,3)), nindiv/10)),
+    male = factor(rep(c("male","female"), (nindiv/10)*c(6,4)))
+  )
+  dat <- subjdf[rep(1:nindiv,each=nobspt),]
+  dat$time <- rep(1:nobspt, nindiv)
+
+  priors_phase_id <-
+    list(logshape1 = msmprior("logshape(1)", mean=0, sd=0.01),
+         logscale1 = msmprior("logscale(1)", mean= - 1.8, sd=0.01),
+         loa = msmprior("loa(1,3)", mean = -3, sd=0.01),
+         logtaf = msmprior("logtaf", mean = 2, sd = 0.01))
+
+  sam <- msmbayes_priorpred_sample(data=dat, Q=Qid,
+                                   pastates=c(1), pafamily="weibull", priors=priors_phase_id,
+                                   covariates = list(scale(1) ~ male))
+  mod <- msmbayes(data=sam, state="obs_state", Q=Qid,
+                  pastates=c(1), pafamily="weibull",
+                  covariates = list(scale(1) ~ male),
+                  fit_method="optimize",
+                  priors=list(msmprior("loa(1,3)", 0, 2.3)))
+
+  phaseapprox_pars(mod,log=TRUE)
+  loabs_pars(mod)
+  logtaf(mod)
+
+  attr(sam,"prior_sample")
+  statetable(sam, state="obs_state")
+})

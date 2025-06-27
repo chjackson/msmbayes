@@ -12,7 +12,7 @@
 ##'
 ##' @param family parametric family approximated by the phase-type distribution: `"weibull"` or `"gamma"`
 ##'
-##' @param method TODO decide whether to keep the spline method.
+##' @param method (Deprecated)
 ##'
 ##' @param nphase Number of phases.
 ##'
@@ -40,7 +40,7 @@ shapescale_to_rates <- function(shape, scale=1, family="weibull",
     if (canonical)
       rates <- rates_to_canpars(rates)
   } else if (method %in% c("kl_hermite","kl_linear")){
-    canparnames <- phase_cannames(nphase=5) # TODO better logic
+    canparnames <- phase_cannames(nphase=5)
     rates <- matrix(nrow=length(shape), ncol=length(canparnames))
     colnames(rates) <- canparnames
     for (i in seq_along(shape)){
@@ -66,17 +66,6 @@ check_positive_number <- function(x){
   if (!is.numeric(x)) cli_abort("{.var {namex}} should be numeric")
   if (any(x < 0)) cli_abort("negative value for {.var {namex}} supplied")
 }
-
-## TODO for the moment method
-
-check_shape_in_bounds <- function(shape, family){
-  bounds <- range(phase5approx(family)$traindat$a)
-  if (shape <= bounds[1])
-    cli_warn("shape {shape} is not strictly less than the lower bound of {bounds[1]} for the phase-type approximation training set")
-  if (shape >= bounds[2])
-    cli_warn("shape {shape} is not strictly greater than the upper bound of {bounds[2]} for the phase-type approximation training set")
-}
-
 
 
 ##' Phase-type expansion of a transition intensity matrix to create a

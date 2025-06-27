@@ -91,13 +91,6 @@
 #' @param panphase Number of phases to use for each state given a
 #'   phase-type Gamma or Weibull approximation.  Vector of same length
 #'   as `pastates`. More phases allow a wider range of shape parameters.
-#'   Only applicable for `pamethod="moment"`.  For the spline-based
-#'   methods, 5 phases are always used.
-#'
-#' @param pamethod `"moment", "kl_linear"` or
-#'   `"kl_hermite"`. Advanced.  Method of constructing the
-#'   approximations. May remove this argument if one of these turns
-#'   out to be good enough.
 #'
 #' @param E By default, `msmbayes` fits a (non-hidden) Markov model.
 #'   If `E` is supplied, then a Markov model with misclassification is
@@ -304,7 +297,6 @@ msmbayes <- function(data, state="state", time="time", subject="subject",
                      covariates = NULL,
                      pastates = NULL,
                      pafamily = "weibull",
-                     pamethod = "moment", # TODO remove eventually
                      panphase = NULL,
                      E = NULL,
                      Efix = NULL,
@@ -326,7 +318,7 @@ msmbayes <- function(data, state="state", time="time", subject="subject",
                                obstype=obstype, deathexact=deathexact,
                                obstrue=obstrue, censor_states=censor_states,
                                pastates=pastates, pafamily=pafamily,
-                               panphase=panphase, pamethod=pamethod, E=E, Efix=Efix,
+                               panphase=panphase, pamethod="moment", E=E, Efix=Efix,
                                constraint=constraint,
                                nphase=nphase, priors=priors, soj_priordata=soj_priordata)
 

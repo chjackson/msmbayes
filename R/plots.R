@@ -1,13 +1,16 @@
+## Currently internal use only
+## Make public and document if these plots appear in vignettes
+
 #' @param res A data frame with class msmbres, from one of the
 #' posterior summary functions, with one row per statistic,
 #' and the posterior stored as an rvar in one column.
 #'
-#' @param name TODO doc
+#' @param name docme
 #'
 #' @param quoted name of column containing the rvar
 #'
-#' @return a data frame with one row per posterior sample
-#' TODO doc cols
+#' @return a data frame with one row per posterior sample.
+#' Docme
 #'
 #' @noRd
 msmbres_to_draws <- function(res, name=NULL, col="value"){
@@ -21,8 +24,8 @@ msmbres_to_draws <- function(res, name=NULL, col="value"){
 #'
 #' @param res Data frame with class msmbres, and with columns
 #' for each of two rvars to be compared, typically prior and
-#' posterior.  Could be produced with attach_priors TODO doc that
-#' [ or todo prob more sensible to do by default ]
+#' posterior.  Could be produced with attach_priors 
+#' [ prob sensible to do by default ]
 #'
 #' @param compare Second column for comparison.  First column assumed
 #'   to be called "value"

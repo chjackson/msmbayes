@@ -197,3 +197,6 @@ test_that("msmprior all_indices for taf in pastates models",{
   summ <- summary(sam[["logtaf[x,2]"]])
   expect_gt(summ[["1st Qu."]], 2); expect_lt(summ[["3rd Qu."]], 4)
 })
+
+## TODO test with nphase
+## see extract_q comment
