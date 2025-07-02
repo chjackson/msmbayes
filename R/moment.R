@@ -259,6 +259,13 @@ lnorm_sdlog_lbound <- function(nphase){
   sqrt(log((nphase) / (nphase-1)))
 }
 
+##' Upper bound for shape parameter in moment-based phase-type approximations
+##'
+##' @param nphase Number of approximating phases 
+##' @param family \code{"weibull"} or \code{"gamma"}
+##' @return Upper bound for shape parameter
+##' 
+##' @export
 shape_ubound <- function(nphase, family){
   res <- numeric(length(nphase))
   family_fns <- list(weibull=weibull_shape_ubound,

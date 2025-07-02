@@ -549,6 +549,8 @@ soj_prob <- function(draws, t, state, new_data=NULL, method="analytic"){
 
 ##' Summarise posteriors for shape and scale parameters for the sojourn distribution in a semi-Markov msmbayes model
 ##'
+##' In models with covariates on the scale parameter, this currently only presents these parameters for covariate values of zero.
+##'
 ##' @param log Return parameters on log scale
 ##'
 ##' @inheritParams qmatrix
@@ -578,6 +580,9 @@ phaseapprox_pars <- function(draws, log=FALSE){
 ##' Log odds of transition to a competing destination state, relative
 ##' to baseline destination state.  Only applicable to phase-type
 ##' approximation models, specified with \code{pastates}.
+##'
+##' In models with covariates on the transition odds, this currently only presents
+##' these parameters for covariate values of zero.
 ##'
 ##' @inheritParams qmatrix
 ##'
@@ -616,6 +621,9 @@ loabs_pars <- function(draws){
 ##'   (from) state, to-state, posterior distribution (as an `rvar`
 ##'   object) and posterior mode (if the model was fitted by mode
 ##'   optimisation).
+##'
+##' In models with covariates on the transition odds, this currently only presents
+##' these parameters for covariate values of zero.
 ##'
 ##' padest stands for probability of absorption (from phase system) in
 ##' destination state ... TODO clearer name?  pcomprisk? pnext? pnextstate? we also
