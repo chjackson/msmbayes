@@ -44,13 +44,12 @@ qvector <- function(draws, new_data=NULL, X=NULL, type="posterior", drop=FALSE){
         inds <- cm$transdf$xstart[i]:cm$transdf$xend[i]
         logqnew[,i] <- logqnew[,i] +
           X[,inds,drop=FALSE] %**% loghr[inds]  # %**% from library(posterior)
-        ## TESTME
       }
-      ## TESTME include logrra
       if (cm$transdf$nrraq[i] > 0){
         inds <- cm$transdf$xrrastart[i]:cm$transdf$xrraend[i]
+        rrinds <- cm$transdf$rrastart[i]:cm$transdf$rraend[i]
         logqnew[,i] <- logqnew[,i] +
-          X[,inds,drop=FALSE] %**% logrra[inds]
+          X[,inds,drop=FALSE] %**% logrra[rrinds]
       }
     }
   }
@@ -231,7 +230,7 @@ qvec_to_mst <- function(qvec, qm){
 #' \code{covid} indexes distinct combinations of covariate values
 #'
 #' Ordered by \code{vecid} within \code{covid}.
-#' 
+#'
 #' @noRd
 vecbycovs_to_df <- function(rvarmat, new_data, mode=FALSE,
                             keep_covid=FALSE){

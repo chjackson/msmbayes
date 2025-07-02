@@ -49,16 +49,20 @@ rvar_to_quantile_string <- function(rvar){
 #'
 #' @param qm, cm, pm, qmobs, ema internal objects from msmbayes
 #'
-#' @return A tidy data frame.
+#' @return A tidy data frame with "rvar" (summarised as mean, SD) and "string"
+#' (median and 95 CI) representations of each prior
 #'
-#' Other derived parameters (e.g.  misclassification probs, log
-#' transition odds, easily addable when needed)
+#' Note we currently don't compute priors for logq and related in
+#' phase-type approximation models, though these exist in principle as
+#' functions of the shape and scale priors, so could add in case these
+#' are ever needed.
 #'
 #' @noRd
 prior_db <- function(priors, qm, cm, pm, qmobs, em){
   name <- NULL
   qmprior <- if (pm$phaseapprox) qmobs else qm
   logq <- prior_logq_db(priors, qmprior) # name, from, to, rvar, string
+  ## logq and related don't have priors in semi-M
   ## do we need priormean, priorsd??? not used. only if print. rm for now
   mst <- prior_mst_db(priors, qmprior, pm, logq |> filter(name=="q"))
   loghr <- prior_loghr_db(priors, cm)
