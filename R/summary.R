@@ -25,6 +25,8 @@ print.msmbayes <- function(x,...){
 #'
 #' `logshape`,`logscale` corresponding log shape or scale
 #'
+#' `pnext`, `logoddsnext` next-state probabilites (or log odds) in phase-type approximation models
+#'
 #' `hr`: hazard ratios on transition intensities, including effects on
 #' scale parameters in phase-type approximation models.
 #'
@@ -32,7 +34,7 @@ print.msmbayes <- function(x,...){
 #'
 #' `taf`,`logtaf`: effects on scale parameters in semi-Markov phase-type approximations.
 #'
-#' `rra`,`logrra`: effects on competing risk transition probabilities in semi-Markov phase-type approximations.
+#' `rrnext`,`logrrnext`: effects on competing risk transition probabilities in semi-Markov phase-type approximations.
 #'
 #' `e`: misclassification probabilities
 #'
@@ -76,7 +78,7 @@ print.msmbayes <- function(x,...){
 summary.msmbayes <- function(object, pars=NULL,...){
   name <- from <- to <- state <- posterior <- prior_string <- NULL
   if (is.null(pars)){
-    pars <- c("q","mst","hr","shape","scale","taf","pnext","rra","e")
+    pars <- c("q","mst","hr","shape","scale","taf","pnext","rrnext","e")
   }
   colnames <- c("name", "from", "to", "posterior")
   if (is_mode(object)) colnames <- c(colnames, "mode")
@@ -111,14 +113,14 @@ summary.msmbayes <- function(object, pars=NULL,...){
         select(all_of(colnames))
       res <- rbind(res, pa)
     }
-    if (has_rra(object)){
+    if (has_rrnext(object)){
       if ("pnext" %in% pars){
         pa <- pnext(object) |> 
           select(all_of(colnames))
         res <- rbind(res, pa)
       }
-      if ("loa" %in% pars){ # inconsistent naming
-        pa <- loabs_pars(object) |> 
+      if ("logoddsnext" %in% pars){ # inconsistent naming
+        pa <- logoddsnext(object) |> 
           select(all_of(colnames))
         res <- rbind(res, pa)
       }
@@ -151,17 +153,17 @@ summary.msmbayes <- function(object, pars=NULL,...){
       select(all_of(colnames))
     res <- rbind(res, pa)
   }
-  if (has_rra_covariates(object) && ("rra" %in% pars)){
-    rra_ests <- rra(object, ...) |>
-      mutate(name=sprintf("rra(%s)", name)) |>
+  if (has_rrnext_covariates(object) && ("rrnext" %in% pars)){
+    rrnext_ests <- rrnext(object, ...) |>
+      mutate(name=sprintf("rrnext(%s)", name)) |>
       select(all_of(colnames))
-    res <- rbind(res, rra_ests)
+    res <- rbind(res, rrnext_ests)
   }
-  if (has_rra_covariates(object) && ("logrra" %in% pars)){
-    logrra_ests <- logrra(object, ...) |>
-      mutate(name=sprintf("logrra(%s)", name)) |>
+  if (has_rrnext_covariates(object) && ("logrrnext" %in% pars)){
+    logrrnext_ests <- logrrnext(object, ...) |>
+      mutate(name=sprintf("logrrnext(%s)", name)) |>
       select(all_of(colnames))
-    res <- rbind(res, logrra_ests)
+    res <- rbind(res, logrrnext_ests)
   }
   if (has_misc(object) && ("e" %in% pars)){
     e_ests <- edf(object, ...) |>

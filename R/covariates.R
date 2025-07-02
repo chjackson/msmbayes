@@ -39,7 +39,7 @@
 #' effects on scale parameters in pastates models counted multiple
 #' times per state: once for each intensity they affect.
 #'
-#' \code{rradf}, \code{nrra}: similar information for relative risk
+#' \code{rrnextdf}, \code{nrrnext}: similar information for relative risk
 #' parameters for semi-Markov competing risks
 #'
 #' \code{X} Matrix with \code{ntafs} columns and the same number of rows
@@ -92,17 +92,17 @@ form_covariates <- function(covariates, data, constraint, qm, pm, em, qmobs,
     ## Separate out models on intensities, semi-Markov scale parameters, and semi-Markov next-state RRs
     mod_Q <- mod_all[cmodeldf$response == "Q"]
     mod_scale <- mod_all[cmodeldf$response=="scale"]
-    mod_rra <- mod_all[cmodeldf$response=="rra"]
+    mod_rrnext <- mod_all[cmodeldf$response=="rrnext"]
 
     ## Matrix of covariate values for Stan
     Xq <- do.call("cbind", lapply(mod_Q, function(x)x$X))
     Xscale <- do.call("cbind", lapply(mod_scale, function(x)x$X))
-    Xrra <- do.call("cbind", lapply(mod_rra, function(x)x$X))
-    X <- as.data.frame(cbind(Xq, Xscale, Xrra))
+    Xrrnext <- do.call("cbind", lapply(mod_rrnext, function(x)x$X))
+    X <- as.data.frame(cbind(Xq, Xscale, Xrrnext))
 
     ## Number of covariates on each intensity, and their indices in X...
-    nxq <- xend <- xstart <- nrraq <- xrraend <- xrrastart <-
-      rraend <- rrastart <- modelid <- numeric(qm$nqpars)
+    nxq <- xend <- xstart <- nrrnextq <- xrrnextend <- xrrnextstart <-
+      rrnextend <- rrnextstart <- modelid <- numeric(qm$nqpars)
 
     ## ...determine these for Markov states...
     if (length(mod_Q) > 0){
@@ -125,22 +125,22 @@ form_covariates <- function(covariates, data, constraint, qm, pm, em, qmobs,
     }
 
     ## ...For semi-Markov next-state relative risk parameters
-    if (length(mod_rra) > 0){
-      qindr <- sapply(mod_rra, function(x)x$qind)
-      nxr1 <- sapply(mod_rra, function(x)x$ncovs)
-      nrraq[qindr] <- nxr1
-      rrastart[qindr] <- cumsum(c(0,nxr1[-length(nxr1)])) + 1
-      rraend[qindr] <- cumsum(nxr1)
-      xrrastart[qindr] <- rrastart[qindr] + NCOL(Xq) + NCOL(Xscale)
-      xrraend[qindr]   <- rraend[qindr]   + NCOL(Xq) + NCOL(Xscale)
+    if (length(mod_rrnext) > 0){
+      qindr <- sapply(mod_rrnext, function(x)x$qind)
+      nxr1 <- sapply(mod_rrnext, function(x)x$ncovs)
+      nrrnextq[qindr] <- nxr1
+      rrnextstart[qindr] <- cumsum(c(0,nxr1[-length(nxr1)])) + 1
+      rrnextend[qindr] <- cumsum(nxr1)
+      xrrnextstart[qindr] <- rrnextstart[qindr] + NCOL(Xq) + NCOL(Xscale)
+      xrrnextend[qindr]   <- rrnextend[qindr]   + NCOL(Xq) + NCOL(Xscale)
     }
 
     ## Table with one row per allowed latent transition, giving covariate model for this
     transdf <- data.frame(from=qm$tr$from, to=qm$tr$to,
                           fromobs=qm$tr$fromobs, toobs=qm$tr$toobs,
                           nxq=nxq, modelid=modelid, xstart=xstart, xend=xend,
-                          nrraq=nrraq, xrrastart=xrrastart, xrraend=xrraend,
-                          rrastart=rrastart, rraend=rraend)
+                          nrrnextq=nrrnextq, xrrnextstart=xrrnextstart, xrrnextend=xrrnextend,
+                          rrnextstart=rrnextstart, rrnextend=rrnextend)
 
     hrdf_q <- hrdf_s <- cm_hrdf_no_covariates()
     ## Table with one row per covariate effect on Q, excluding semi-Markov scale parameters
@@ -178,18 +178,18 @@ form_covariates <- function(covariates, data, constraint, qm, pm, em, qmobs,
     hrdf <- rbind(hrdf_q, hrdf_s)
 
     ## Table with one row per covariate effect on next-state RRs in semi-Markov models
-    rradf <- data.frame(
-      modelid = rep(which(cmodeldf$response=="rra"),
-                    cmodeldf$ncovs[cmodeldf$response=="rra"]),
-      name = do.call("c", lapply(mod_rra, function(x)x$xnames)),
-      from = do.call("c", lapply(mod_rra, function(x)rep(x$from, x$ncovs))),
-      to = do.call("c", lapply(mod_rra, function(x)rep(x$to, x$ncovs)))
+    rrnextdf <- data.frame(
+      modelid = rep(which(cmodeldf$response=="rrnext"),
+                    cmodeldf$ncovs[cmodeldf$response=="rrnext"]),
+      name = do.call("c", lapply(mod_rrnext, function(x)x$xnames)),
+      from = do.call("c", lapply(mod_rrnext, function(x)rep(x$from, x$ncovs))),
+      to = do.call("c", lapply(mod_rrnext, function(x)rep(x$to, x$ncovs)))
     )
 
     cm <- list(cmodeldf = cmodeldf, ncmodels=ncmodels,
                transdf = transdf,
                hrdf = hrdf,         nx = nrow(hrdf),
-               rradf = rradf,       nrra = nrow(rradf),
+               rrnextdf = rrnextdf,       nrrnext = nrow(rrnextdf),
                X = X,
                covnames_orig = unique(unlist(lapply(covariates, all.vars))),
                blueprints = lapply(mod_all, function(x)x$blueprint)
@@ -200,7 +200,7 @@ form_covariates <- function(covariates, data, constraint, qm, pm, em, qmobs,
   cm <- cm_form_tafdf(cm, pm)
 
   if (cm$nx != sum(cm$transdf$nxq)) cli_abort("Internal error in form_covariates: report a bug")
-  if (cm$nrra != sum(cm$cmodeldf$ncovs[cm$cmodeldf$response=="rra"]))
+  if (cm$nrrnext != sum(cm$cmodeldf$ncovs[cm$cmodeldf$response=="rrnext"]))
     cli_abort("Internal error in form_covariates: report a bug")
 
   cm
@@ -213,18 +213,18 @@ cm_hrdf_no_covariates <- function(){
 }
 
 cm_no_covariates <- function(data, qm){
-  nxq <- modelid <- xstart <- xend <- nrraq <- xrrastart <- xrraend <-
-    rrastart <- rraend <- rep(0, qm$nqpars)
+  nxq <- modelid <- xstart <- xend <- nrrnextq <- xrrnextstart <- xrrnextend <-
+    rrnextstart <- rrnextend <- rep(0, qm$nqpars)
   list(
     cmodeldf = data.frame(from=numeric(), to=numeric(),
-                          ncovs=numeric(), ncovsrra=numeric()), ncmodels=0,
+                          ncovs=numeric(), ncovsrrnext=numeric()), ncmodels=0,
     transdf = data.frame(modelid=modelid, nxq=nxq, xstart=xstart, xend=xend,
-                         nrraq=nrraq, xrrastart=xrrastart, xrraend=xrraend,
-                         rrastart=rrastart, rraend=rraend),
+                         nrrnextq=nrrnextq, xrrnextstart=xrrnextstart, xrrnextend=xrrnextend,
+                         rrnextstart=rrnextstart, rrnextend=rrnextend),
     hrdf = cm_hrdf_no_covariates(), nx = 0,
-    rradf = data.frame(modelid=numeric(), name=character(),
+    rrnextdf = data.frame(modelid=numeric(), name=character(),
                        from=numeric(), to=numeric()),
-    nrra=0,
+    nrrnext=0,
     ntafs = 0,
     X = matrix(0, nrow=nrow(data), ncol=0),
     covnames_orig = NULL
@@ -255,14 +255,14 @@ parse_msm_formula_lhs <- function(form, qm, pm, qm_latent, call=caller_env()){
   onestate_pattern <- "\\([[:space:]]*[[:digit:]]+[[:space:]]*\\)"
   twostates_pattern <- "\\([[:space:]]*[[:digit:]]+[[:space:]]*,[[:space:]]*[[:digit:]]+[[:space:]]*\\)"
   Q_pattern <- paste0("Q",twostates_pattern)
-  rra_pattern <- paste0("rra",twostates_pattern)
+  rrnext_pattern <- paste0("rrnext",twostates_pattern)
   scale_pattern <- paste0("scale",onestate_pattern)
   error_line1 <- "{.var covariates} formula has left-hand side {.var {forml}}"
-  expected_form <- if (is.null(pm$pastates)) "{.var Q(r,s)}" else "{.var Q(r,s)}, {.var scale(r)}, or {.var rra(r,s)}"
+  expected_form <- if (is.null(pm$pastates)) "{.var Q(r,s)}" else "{.var Q(r,s)}, {.var scale(r)}, or {.var rrnext(r,s)}"
   error_line2 <- sprintf("This should be of the form %s, where `r` and `s` are numbers indicating states of the model", expected_form)
   if (grepl(Q_pattern, forml)) response <- "Q"
   else if (grepl(scale_pattern, forml)) response <- "scale"
-  else if (grepl(rra_pattern, forml)) response <- "rra"
+  else if (grepl(rrnext_pattern, forml)) response <- "rrnext"
   else cli_abort(c(error_line1, error_line2), call=call)
   qm_covs <- if (pm$phasetype && !pm$phaseapprox) qm_latent else qm
   fromto <- as.numeric(as.character(form[[2]])[-1])
@@ -281,14 +281,14 @@ parse_msm_formula_lhs <- function(form, qm, pm, qm_latent, call=caller_env()){
 transitions in the model: {trans_allowed}")
     if (!is.null(pm$pastates) && (fromto[1] %in% pm$pastates))
       cli_abort(c("{.var covariates} formula contains a response term of {.var {forml}}, but state {fromto[1]} has a phase-type approximation model",
-                  "Covariates for those states must be specified using a {.var scale()} response term and possibly also a {.var rra()} term - see the documentation"), call=call)
+                  "Covariates for those states must be specified using a {.var scale()} response term and possibly also a {.var rrnext()} term - see the documentation"), call=call)
 
   } else if (response=="scale"){
     if (is.null(pm$pastates) || !(fromto %in% pm$pastates))
       cli_abort("{.var covariates} formula contains a response term of {.var {forml}}, but state {fromto} does not have a phase-type approximation", call=call)
     fromto <- c(fromto, NA)
 
-  } else if (response=="rra"){
+  } else if (response=="rrnext"){
     dest_states <- unique(qm_latent$pacrdata$oldto[qm_latent$pacrdata$oldfrom==fromto[1]])
     if (is.null(pm$pastates) || !(fromto[1] %in% pm$pastates))
       cli_abort("{.var covariates} formula contains a response term of {.var {forml}}, but state {fromto} does not have a phase-type approximation", call=call)
@@ -370,12 +370,12 @@ process_covmodel <- function(pform, qm, pm, em){
        ncovs=ncovs, xnames=colnames(X), qind=qind)
 }
 
-##' @param response Q, rra or scale
+##' @param response Q, rrnext or scale
 ##' @param fromto (from, to) pair as specified by user as e.g. Q(from,to) ~ age
 ##' @return index into database qm$phasedata of transition rates on true space
 ##' @noRd
 get_qindex <- function(response, fromto, qm, pm){
-  if (response %in% c("Q","rra")){
+  if (response %in% c("Q","rrnext")){
     ## single number
     if (pm$phaseapprox)
       qind <- which(qm$phasedata$oldfrom==fromto[1] &

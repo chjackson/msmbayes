@@ -68,11 +68,11 @@ prior_db <- function(priors, qm, cm, pm, qmobs, em){
   loghr <- prior_loghr_db(priors, cm)
   papars <- prior_papars_db(priors, pm, qm)
   logtaf <- prior_logtaf_db(priors, cm)
-  loa <- prior_loa_db(priors, qm)
+  logoddsnext <- prior_logoddsnext_db(priors, qm)
   pnext <- prior_pnext_db(priors, qm)
-  logrra <- prior_logrra_db(priors, cm)
+  logrrnext <- prior_logrrnext_db(priors, cm)
   loe <- prior_loe_db(priors, em)
-  res <- rbind(logq, mst, loghr, papars, logtaf, loa, pnext, logrra, loe)
+  res <- rbind(logq, mst, loghr, papars, logtaf, logoddsnext, pnext, logrrnext, loe)
   if (pm$phasetype & !pm$phaseapprox){
     res$from <- pm$pdat$label[res$from]
     res$to <- pm$pdat$label[res$to]
@@ -175,14 +175,14 @@ prior_logtaf_db <- function(priors, cm){
     select("name", "from", "to", "rvar", "string")
 }
 
-prior_loa_internal <- function(priors, qm){
+prior_logoddsnext_internal <- function(priors, qm){
   rvar <- loind <- from <- NULL
   if (qm$noddsnext==0) return(NULL)
   pa <- qm$pacrdata |> filter(!dest_base)
-  res <- data.frame(name = "loa",
+  res <- data.frame(name = "logoddsnext",
                     from = pa |> pull("oldfrom"),
                     to = pa |> pull("oldto"),
-                    prior = prior_to_rvar(priors$loamean, priors$loasd, n=1000)
+                    prior = prior_to_rvar(priors$logoddsnextmean, priors$logoddsnextsd, n=1000)
   ) |>
     arrange(from) |>
     mutate(logoddsnext = prior,
@@ -192,9 +192,9 @@ prior_loa_internal <- function(priors, qm){
   res
 }
 
-prior_loa_db <- function(priors, qm){
+prior_logoddsnext_db <- function(priors, qm){
   if (qm$noddsnext==0) return(NULL)
-  res <- prior_loa_internal(priors, qm) |>
+  res <- prior_logoddsnext_internal(priors, qm) |>
     rename(rvar = logoddsnext) |>
     mutate(string = rvar_to_quantile_string(rvar)) |>
     select("name", "from", "to", "rvar", "string")
@@ -204,7 +204,7 @@ prior_loa_db <- function(priors, qm){
 prior_pnext_db <- function(priors, qm){
   if (qm$noddsnext==0) return(NULL)
   pabs <- from <- to <- NULL
-  res <- prior_loa_internal(priors, qm)
+  res <- prior_logoddsnext_internal(priors, qm)
   odds1 <- res |>
     select("from", "to", "sumodds") |>
     filter(!duplicated(from)) |>
@@ -222,20 +222,20 @@ prior_pnext_db <- function(priors, qm){
 }
 
 ### TESTME 
-prior_logrra_db <- function(priors, cm){
+prior_logrrnext_db <- function(priors, cm){
   prior <- name <- xname <- NULL
-  cmdf <- cm$cmodeldf[cm$cmodeldf$response %in% c("rra"),]
+  cmdf <- cm$cmodeldf[cm$cmodeldf$response %in% c("rrnext"),]
   if (nrow(cmdf)==0) return(NULL)
   data.frame(
-    xname = cm$rradf$name,
+    xname = cm$rrnextdf$name,
     from = rep(cmdf$from, cmdf$ncovs),
     to = rep(cmdf$to, cmdf$ncovs),
-    prior = prior_to_rvar(priors$logrramean,
-                          priors$logrrasd, n=1000)
+    prior = prior_to_rvar(priors$logrrnextmean,
+                          priors$logrrnextsd, n=1000)
   ) |>
-    mutate(logrra  = prior,
-           rra  = exp(prior)) |>
-    tidyr::pivot_longer(cols = all_of(c("logrra", "rra")),
+    mutate(logrrnext  = prior,
+           rrnext  = exp(prior)) |>
+    tidyr::pivot_longer(cols = all_of(c("logrrnext", "rrnext")),
                         names_to = "name", values_to = "rvar") |>
     mutate(string = rvar_to_quantile_string(rvar),
            name = paste0(name, sprintf("(%s)", xname))) |>

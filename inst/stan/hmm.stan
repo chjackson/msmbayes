@@ -188,19 +188,19 @@ data {
   array[ntafs] int<lower=1,upper=nxuniq> consid; // index into loghr_uniq for each loghr
   array[nx]     int<lower=1,upper=ntafs> tafid; // index into logtaf for each loghr
 
-  int<lower=0> nrra; // total number of covariates on RRs for competing exit states
-  array[nqpars] int<lower=0> nrraq;    // number of covariates on RR for competing exit states by transition, or 0 if transition is not of this kind
-  array[nqpars] int<lower=0> xrrastart; // starting index into X for RR on competing exit states in pastates models, or 0 if transition is not of this kind
-  array[nqpars] int<lower=0> xrraend;   // ending index
-  array[nqpars] int<lower=0> rrastart; // starting index into vector of RRs
-  array[nqpars] int<lower=0> rraend;   // ending index
+  int<lower=0> nrrnext; // total number of covariates on RRs for competing exit states
+  array[nqpars] int<lower=0> nrrnextq;    // number of covariates on RR for competing exit states by transition, or 0 if transition is not of this kind
+  array[nqpars] int<lower=0> xrrnextstart; // starting index into X for RR on competing exit states in pastates models, or 0 if transition is not of this kind
+  array[nqpars] int<lower=0> xrrnextend;   // ending index
+  array[nqpars] int<lower=0> rrnextstart; // starting index into vector of RRs
+  array[nqpars] int<lower=0> rrnextend;   // ending index
 
-  matrix[ntlc,ntafs+nrra] X;              // all model matrices, column-binded together and keeping only rows corresponding to distinct (timelag, covariates)
+  matrix[ntlc,ntafs+nrrnext] X;              // all model matrices, column-binded together and keeping only rows corresponding to distinct (timelag, covariates)
   array[nxuniq] real loghrmean;        // mean of normal prior on covariate effects on Markov states
   array[nxuniq] real<lower=0> loghrsd; // sd 
 
-  array[nrra] real logrramean;        // prior mean for log RR for competing exit states in pastates models
-  array[nrra] real<lower=0> logrrasd; // sd 
+  array[nrrnext] real logrrnextmean;        // prior mean for log RR for competing exit states in pastates models
+  array[nrrnext] real<lower=0> logrrnextsd; // sd 
 
   // Prior pseudo-data for sojourn distribution
   int<lower=0> nsoj;
@@ -244,8 +244,8 @@ data {
   array[npaqall] int dest_inds;                          // index from 1:npnext for each of these (or 0 if a prog rate)
 
   int<lower=0> noddsnext;   // number of odds ratio parameters for transition probs to absorption
-  vector[noddsnext] loamean;  // priors for these log odds ratios
-  vector<lower=0>[noddsnext] loasd;
+  vector[noddsnext] logoddsnextmean;  // priors for these log odds ratios
+  vector<lower=0>[noddsnext] logoddsnextsd;
 }
 
 
@@ -259,7 +259,7 @@ parameters {
   array[nepars] real logoddse;  // log(ers/err), error rate log odds
   vector[nxuniq] loghr_uniq;    // log hazard ratios for covariates
   vector[noddsnext] logoddsnext;  // log odds of competing destinations from phase-type approximated states
-  vector[nrra] logrra;          // log RRs for covariate effects on relative risk of competing exit states
+  vector[nrrnext] logrrnext;          // log RRs for covariate effects on relative risk of competing exit states
 } 
 
 
@@ -390,8 +390,8 @@ transformed parameters {
 	qtmp[i] = logq[i];
 	if (nxq[i]>0){
 	  qtmp[i] = qtmp[i] + X[j,xstart[i]:xend[i]] * logtaf[xstart[i]:xend[i]];
-	  if (nrraq[i] > 0){
-	    qtmp[i] = qtmp[i] + X[j,xrrastart[i]:xrraend[i]] * logrra[rrastart[i]:rraend[i]];
+	  if (nrrnextq[i] > 0){
+	    qtmp[i] = qtmp[i] + X[j,xrrnextstart[i]:xrrnextend[i]] * logrrnext[rrnextstart[i]:rrnextend[i]];
 	  }
 	}
 	Q[j,qrow[i],qcol[i]] = exp(qtmp[i]);
@@ -492,9 +492,9 @@ model {
 	loghr_uniq[i] ~ normal(loghrmean[i], loghrsd[i]);
       }
     }
-    if (nrra > 0){
-      for (i in 1:nrra){
-	logrra[i] ~ normal(logrramean[i], logrrasd[i]);
+    if (nrrnext > 0){
+      for (i in 1:nrrnext){
+	logrrnext[i] ~ normal(logrrnextmean[i], logrrnextsd[i]);
       }
     }
     if (nepars > 0){
@@ -504,7 +504,7 @@ model {
     }
     if (noddsnext > 0){
       for (i in 1:noddsnext){
-	logoddsnext[i] ~ normal(loamean[i], loasd[i]);
+	logoddsnext[i] ~ normal(logoddsnextmean[i], logoddsnextsd[i]);
       }
     }
   }

@@ -48,19 +48,19 @@ msmbayes_prior_sample <- function(data, state="state", time="time", subject="sub
   loghr <- p$loghr
   loghr_expand <- p$loghr_expand
   logss <- prior_sample_logss(priors, nsim, pm)
-  loa <- prior_sample_loa(priors, nsim, qm, pm)
-  p <- prior_sample_logrra(priors, nsim, qm, pm, cm)
-  logrra <- p$logrra
-  logrra_expand <- p$logrra_expand
+  logoddsnext <- prior_sample_logoddsnext(priors, nsim, qm, pm)
+  p <- prior_sample_logrrnext(priors, nsim, qm, pm, cm)
+  logrrnext <- p$logrrnext
+  logrrnext_expand <- p$logrrnext_expand
   loe <- prior_sample_loe(priors, nsim, em)
 
-  res <- cbind(logq, loghr, logss, loa, logrra, loe)
+  res <- cbind(logq, loghr, logss, logoddsnext, logrrnext, loe)
 
   attr(res,"stan_names") <- c(attr(logq,"stan_names"), attr(loghr,"stan_names"),
-                              attr(logss,"stan_names"), attr(loa,"stan_names"),
-                              attr(logrra,"stan_names"), attr(loe,"stan_names"))
+                              attr(logss,"stan_names"), attr(logoddsnext,"stan_names"),
+                              attr(logrrnext,"stan_names"), attr(loe,"stan_names"))
 
-  attr(res, "expand") <- cbind(loghr_expand, logrra_expand)
+  attr(res, "expand") <- cbind(loghr_expand, logrrnext_expand)
 
   attr(res,"m") <- m
   res
@@ -126,38 +126,38 @@ prior_sample_logss <- function(priors, nsim, pm){
   logss
 }
 
-prior_sample_loa <- function(priors, nsim, qm, pm){
+prior_sample_logoddsnext <- function(priors, nsim, qm, pm){
   noddsnext <- qm$noddsnext
   if (pm$phaseapprox && noddsnext > 0){
-    loa <- as.data.frame(matrix(nrow=nsim, ncol=noddsnext))
-    names(loa) <- sprintf("logoddsa[%s]", 1:noddsnext) # inconsistent name
+    logoddsnext <- as.data.frame(matrix(nrow=nsim, ncol=noddsnext))
+    names(logoddsnext) <- sprintf("logoddsa[%s]", 1:noddsnext) # inconsistent name
     for (i in 1:noddsnext){
-      loa[,i] <- rnorm(nsim, priors$loamean[i], priors$loasd[i])
+      logoddsnext[,i] <- rnorm(nsim, priors$logoddsnextmean[i], priors$logoddsnextsd[i])
     }
-    attr(loa, "stan_names") <- sprintf("logoddsnext[%s]", 1:qm$noddsnext)
-  } else loa <- as.data.frame(matrix(nrow=nsim, ncol=0))
-  loa
+    attr(logoddsnext, "stan_names") <- sprintf("logoddsnext[%s]", 1:qm$noddsnext)
+  } else logoddsnext <- as.data.frame(matrix(nrow=nsim, ncol=0))
+  logoddsnext
 }
 
-prior_sample_logrra <- function(priors, nsim, qm, pm, cm){
-  if (pm$phaseapprox && qm$noddsnext > 0 && cm$nrra > 0){
-    logrra <- as.data.frame(matrix(nrow=nsim, ncol=cm$nrra))
-    for (i in 1:cm$nrra){
-      logrra[,i] <- rnorm(nsim, priors$logrramean[i], priors$logrrasd[i])
+prior_sample_logrrnext <- function(priors, nsim, qm, pm, cm){
+  if (pm$phaseapprox && qm$noddsnext > 0 && cm$nrrnext > 0){
+    logrrnext <- as.data.frame(matrix(nrow=nsim, ncol=cm$nrrnext))
+    for (i in 1:cm$nrrnext){
+      logrrnext[,i] <- rnorm(nsim, priors$logrrnextmean[i], priors$logrrnextsd[i])
     }
-    rradf <- cm$rradf
-    rradf$value <- t(as.matrix(logrra))
-    rradf_expand <- rradf |> # replicate to transitions on latent space
+    rrnextdf <- cm$rrnextdf
+    rrnextdf$value <- t(as.matrix(logrrnext))
+    rrnextdf_expand <- rrnextdf |> # replicate to transitions on latent space
       inner_join(cm$transdf |> select(from, to, fromobs, toobs),
                  by = join_by(from==fromobs, to==toobs)) |>
       select(modelid, name, from=from.y, to=to.y, value)
-    logrra <- as.data.frame(t(rradf$value))
-    names(logrra) <- sprintf("logrra[%s,%s,%s]", rradf$name, rradf$from, rradf$to)
-    logrra_expand <- as.data.frame(t(rradf_expand$value))
-    names(logrra_expand) <- sprintf("logrra[%s,%s,%s]", rradf_expand$name, rradf_expand$from, rradf_expand$to)
-    attr(logrra,"stan_names") <- sprintf("logrra[%s]", 1:cm$nrra)
-  } else logrra <- logrra_expand <- as.data.frame(matrix(nrow=nsim, ncol=0))
-  list(logrra=logrra, logrra_expand=logrra_expand)
+    logrrnext <- as.data.frame(t(rrnextdf$value))
+    names(logrrnext) <- sprintf("logrrnext[%s,%s,%s]", rrnextdf$name, rrnextdf$from, rrnextdf$to)
+    logrrnext_expand <- as.data.frame(t(rrnextdf_expand$value))
+    names(logrrnext_expand) <- sprintf("logrrnext[%s,%s,%s]", rrnextdf_expand$name, rrnextdf_expand$from, rrnextdf_expand$to)
+    attr(logrrnext,"stan_names") <- sprintf("logrrnext[%s]", 1:cm$nrrnext)
+  } else logrrnext <- logrrnext_expand <- as.data.frame(matrix(nrow=nsim, ncol=0))
+  list(logrrnext=logrrnext, logrrnext_expand=logrrnext_expand)
 }
 
 prior_sample_loe <- function(priors, nsim, em){
@@ -240,7 +240,7 @@ msmbayes_priorpred_sample <- function(data, state="state", time="time", subject=
   if (m$pm$phaseapprox){
     if (m$qm$noddsnext > 0){
       logoddsnext <- extract_logoddsnext(prior_sample)
-      tprobs <- loabs_to_probs(logoddsnext, m$qm, m$qmobs)
+      tprobs <- logoddsnext_to_probs(logoddsnext, m$qm, m$qmobs)
       q_prior[tprobs>0] <- q_prior[tprobs>0] * tprobs[tprobs>0]
       ## adjust the 1s for transition probs to absorbing states
     }
@@ -299,11 +299,11 @@ extract_q <- function(prior_sample, Q, i){
 }
 
 extract_logoddsnext <- function(prior_sample, i=1){
-  loare <- "logoddsa\\[([[:digit:]]+)\\]"
-  prior_sample[i,grepl(loare, names(prior_sample))]
+  logoddsnextre <- "logoddsa\\[([[:digit:]]+)\\]"
+  prior_sample[i,grepl(logoddsnextre, names(prior_sample))]
 }
 
-##' @param loabs vector of log odds for phaseapprox competing risks transitions
+##' @param logoddsnext vector of log odds for phaseapprox competing risks transitions
 ##'
 ##' @return matrix on the observable state space.  The only meaningful entries
 ##'   are those corresponding to transitions from
@@ -313,11 +313,11 @@ extract_logoddsnext <- function(prior_sample, i=1){
 ##'   to zero arbitrarily
 ##'
 ##' @noRd
-loabs_to_probs <- function(loabs, qm, qmobs){
+logoddsnext_to_probs <- function(logoddsnext, qm, qmobs){
   crd <- qm$pacrdata[qm$pacrdata$loind==1,,drop=FALSE]
   crdbase <- qm$pacrdata[qm$pacrdata$dest_base,,drop=FALSE]
   mat <- emat <- matrix(0, nrow=qmobs$K, ncol=qmobs$K)
-  mat[cbind(crd$oldfrom, crd$oldto)] <- loabs
+  mat[cbind(crd$oldfrom, crd$oldto)] <- logoddsnext
   emat[cbind(crdbase$oldfrom, crdbase$oldto)] <- 1
   emat[mat!=0] <- exp(mat[mat!=0])
   pmat <- emat / rowSums(emat)
@@ -345,9 +345,9 @@ loabs_to_probs <- function(loabs, qm, qmobs){
 ##'
 ##' @noRd
 form_simmsm_beta <- function(prior_sample, qm, cm, qmatrix=NULL, i=1){
-  if (cm$nx + cm$nrra==0) return(NULL)
+  if (cm$nx + cm$nrrnext==0) return(NULL)
   bdf <- extract_beta_df(prior_sample, i)
-  rrdf <- extract_logrra_df(prior_sample, cm, i)
+  rrdf <- extract_logrrnext_df(prior_sample, cm, i)
   brrdf <- full_join(bdf, rrdf, by=join_by("name","from","to","lab")) |>
     mutate(gamma=if_else(is.na(gamma), 0, gamma),
            betagamma = beta + gamma)
@@ -390,9 +390,9 @@ extract_beta_df <- function(prior_sample, i=1){
   bdf
 }
 
-extract_logrra_df <- function(prior_sample, cm, i=1){
+extract_logrrnext_df <- function(prior_sample, cm, i=1){
   prior_sample <- attr(prior_sample,"expand")
-  re <- "logrra\\[(.+),([[:digit:]]+),([[:digit:]]+)\\]"
+  re <- "logrrnext\\[(.+),([[:digit:]]+),([[:digit:]]+)\\]"
   rn <- grep(re, names(prior_sample), value=TRUE)
   rrdf <- data.frame(
     name = gsub(re, "\\1", rn),

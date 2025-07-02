@@ -126,13 +126,13 @@ test_that("msmprior for all indices",{
 
 test_that("msmprior errors in pastates models",{
   expect_error(msmbayes(data=infsim, Q=Q, time="months",
-                        priors = msmprior("loa(2)", median=-2, lower=-4)),
+                        priors = msmprior("logoddsnext(2)", median=-2, lower=-4)),
                "two state indices")
   expect_error(msmbayes(data=infsim, Q=Q, time="months",
-                        priors = msmprior("loa(1,2)", median=-2, lower=-4)),
+                        priors = msmprior("logoddsnext(1,2)", median=-2, lower=-4)),
                "not a phase-type approximation model")
   expect_error(msmbayes(data=infsim, Q=Q, time="months", pastates=1,
-                        priors = msmprior("loa(1,2)", median=-2, lower=-4)),
+                        priors = msmprior("logoddsnext(1,2)", median=-2, lower=-4)),
                "not a competing")
 
 })

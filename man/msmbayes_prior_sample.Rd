@@ -82,14 +82,14 @@ approximation, but state 2 is Markov, then we might supply
 
 In models with phase-type approximations and competing exit states,
 covariates on the relative risk of different exit states are
-specified with a formula with \code{rra} on the left hand side.  For
+specified with a formula with \code{rrnext} on the left hand side.  For
 example in a model where state 1 has a phase-type approximation,
 and the next state could be either 2 or 3, a linear model on the
 log relative risk of transition to 3 (relative to the baseline 2)
 might be specified as:
 
 \code{covariates = list(scale(1) ~ age + sex,
-                        rra(1,3) ~ x + time)}
+                        rrnext(1,3) ~ x + time)}
 
 In phase-type models specified with \code{nphase}, or misclassification
 models (specified with \code{E}), covariates on transition intensities

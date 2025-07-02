@@ -81,12 +81,12 @@ make_stan_obsdata <- function(dat, qm=NULL, cm=NULL,
     nxq = as.array(cm$transdf$nxq),
     xstart = as.array(cm$transdf$xstart),
     xend = as.array(cm$transdf$xend),
-    nrra = cm$nrra,
-    nrraq = as.array(cm$transdf$nrraq),
-    xrrastart = as.array(cm$transdf$xrrastart),
-    xrraend = as.array(cm$transdf$xrraend),
-    rrastart = as.array(cm$transdf$rrastart),
-    rraend = as.array(cm$transdf$rraend),
+    nrrnext = cm$nrrnext,
+    nrrnextq = as.array(cm$transdf$nrrnextq),
+    xrrnextstart = as.array(cm$transdf$xrrnextstart),
+    xrrnextend = as.array(cm$transdf$xrrnextend),
+    rrnextstart = as.array(cm$transdf$rrnextstart),
+    rrnextend = as.array(cm$transdf$rrnextend),
 
     X = Xuniq
   )

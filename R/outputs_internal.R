@@ -31,8 +31,8 @@ qvector <- function(draws, new_data=NULL, X=NULL, type="posterior", drop=FALSE){
     if (is_hmm(draws))
       loghr <- td |>  gather_rvars(logtaf[]) |>  pull(".value")
     else loghr <- td |>  gather_rvars(loghr[]) |>  pull(".value")
-    if (cm$nrra > 0)
-      logrra <- td |>  gather_rvars(logrra[]) |>  pull(".value")
+    if (cm$nrrnext > 0)
+      logrrnext <- td |>  gather_rvars(logrrnext[]) |>  pull(".value")
     if (is.null(X))
       X <- new_data_to_X(new_data, draws)
     else check_X(X, draws)
@@ -45,11 +45,11 @@ qvector <- function(draws, new_data=NULL, X=NULL, type="posterior", drop=FALSE){
         logqnew[,i] <- logqnew[,i] +
           X[,inds,drop=FALSE] %**% loghr[inds]  # %**% from library(posterior)
       }
-      if (cm$transdf$nrraq[i] > 0){
+      if (cm$transdf$nrrnextq[i] > 0){
         inds <- cm$transdf$xrrastart[i]:cm$transdf$xrraend[i]
         rrinds <- cm$transdf$rrastart[i]:cm$transdf$rraend[i]
         logqnew[,i] <- logqnew[,i] +
-          X[,inds,drop=FALSE] %**% logrra[rrinds]
+          X[,inds,drop=FALSE] %**% logrrnext[rrinds]
       }
     }
   }
@@ -148,7 +148,7 @@ phaseapprox_pars_internal <- function(draws, type="posterior", log=FALSE){
   value
 }
 
-loabs_pars_internal <- function(draws, type="posterior", log=FALSE){
+logoddsnext_internal <- function(draws, type="posterior", log=FALSE){
   V1 <- posterior <- logoddsnext <- NULL
   if (!is_phaseapprox(draws)) return(NULL)
   if (type=="mode" && !is_mode(draws)) return(NULL)
@@ -170,12 +170,38 @@ pnext_phaseapprox_internal <- function(draws, type="posterior", log=FALSE){
   value
 }
 
-logrra_internal <- function(draws, type="posterior", log=FALSE){
-  logrra <- rra <- V1 <- posterior <- NULL
+## TODO add covariates to this.
+## Extract logoddsnext and logrrnext internally but how do they combine, is it 
+## log(prs / pr1) = logoddsnext + logrrnext*x   ?
+## logrrnext multiplies the transition rate on top of the scale effect 
+## gamma = exp(gamma0 + logrrnext*x)
+## so q = q0 * beta * exp(gamma0 + logrrnext*x)
+## then logoddsnext is log(pnext) - log(p1) = log(qnext) - log(q1) = log(qnext/q1)
+## gamma does not apply to q1 
+## pnext_bycovs_internal <- function(draws, type="posterior"){
+##   cm <- attr(draws,"cmodel")
+##   qm <- attr(draws,"qmodel")
+
+##   logoddsnext <- td |> gather_rvars(logoddsnext[]) |> pull(".value") # add pacr$oldfrom, oldto
+##   logrrnext <- td |> gather_rvars(logrrnext[]) |> pull(".value") # todo add pacr$from, to , name
+## then how to include covs. newdata to x, coud we do it tidy? 
+
+##         if (cm$transdf$nrrnextq[i] > 0){
+##         inds <- cm$transdf$xrrastart[i]:cm$transdf$xrraend[i]
+##         rrinds <- cm$transdf$rrastart[i]:cm$transdf$rraend[i]
+##         logqnew[,i] <- logqnew[,i] +
+##           X[,inds,drop=FALSE] %**% logrrnext[rrinds]
+##       }
+
+  
+## }
+
+logrrnext_internal <- function(draws, type="posterior", log=FALSE){
+  logrrnext <- V1 <- posterior <- NULL
   if (!is_phaseapprox(draws)) return(NULL)
   if (type=="mode" && !is_mode(draws)) return(NULL)
   td <- tidy_draws(if (type=="posterior") draws else get_mode_draws(draws))
-  value <- td |> gather_rvars(logrra[]) |> pull(".value") |>  t() |>
+  value <- td |> gather_rvars(logrrnext[]) |> pull(".value") |>  t() |>
     as.data.frame() |> rename(posterior=V1) |>  pull(posterior)
   if (type=="mode") value <- as.numeric(draws_of(value))
   value
@@ -426,7 +452,7 @@ npars <- function(draws){
   pm <- attr(draws,"pmodel")
   em <- attr(draws,"emodel")
   if (is_hmm(draws)){
-    qm$npriorq + cm$nxuniq + 2*pm$npastates + qm$noddsnext + cm$nrra + em$nepars
+    qm$npriorq + cm$nxuniq + 2*pm$npastates + qm$noddsnext + cm$nrrnext + em$nepars
   } else {
     qm$nqpars + cm$nxuniq
   }

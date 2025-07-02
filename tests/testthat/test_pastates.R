@@ -84,7 +84,7 @@ test_that("phase-type approximations with covariates on Markov and non-Markov st
 Qid <- rbind(c(0, 1, 1),
              c(0, 0, 1),
              c(0, 0, 0))
-priors <- list(msmprior("loa(1,3)", mean=0, sd=0.3),
+priors <- list(msmprior("logoddsnext(1,3)", mean=0, sd=0.3),
                msmprior("logshape(1)", mean=log(1), sd=0.01),
                msmprior("logscale(1)", mean=log(1), sd=0.01),
                msmprior("q(2,3)", lower=0.98, upper=1.02))
@@ -159,11 +159,11 @@ test_that("phase-type approximations with covariates: error handling",{
                "does not have a phase-type")
 
   expect_error(msmbayes(dat, state="obs_state", Q=Qid, pastates=1,
-                        covariates=list(scale(1) ~ x, rra(1,2) ~ x)),
+                        covariates=list(scale(1) ~ x, rrnext(1,2) ~ x)),
                "first exit state")
 
   expect_error(msmbayes(dat, state="obs_state", Q=Qid, pastates=1,
-                        covariates=list(scale(1) ~ x, rra(1,1) ~ x)),
+                        covariates=list(scale(1) ~ x, rrnext(1,1) ~ x)),
                "not one of the exit states")
   priors <- list(msmprior("loghr(x, 1)", lower=-0.1, upper=0.1))
 
@@ -179,7 +179,7 @@ test_that("phase-type approximations with covariates: error handling",{
 })
 
 test_that("phase-type approximations with multiple exit states and covariates: tight priors reduce to smaller model",{
-  priors <- list(msmprior("loa(1,3)", mean=0, sd=0.3),
+  priors <- list(msmprior("logoddsnext(1,3)", mean=0, sd=0.3),
                  msmprior("logshape(1)", mean=log(1), sd=0.01),
                  msmprior("logscale(1)", mean=log(1), sd=0.01),
                  msmprior("logtaf(x, 1)", mean=0, sd=0.01),
@@ -188,12 +188,12 @@ test_that("phase-type approximations with multiple exit states and covariates: t
 
   mrr <- msmbayes(dat, state="obs_state", Q=Qid, pastates=1,
                   priors=c(priors,
-                           list(msmprior("logrra(x, 1, 3)", mean=0, sd=0.01),
-                                msmprior("logrra(time, 1, 3)", mean=0, sd=0.01))),
+                           list(msmprior("logrrnext(x, 1, 3)", mean=0, sd=0.01),
+                                msmprior("logrrnext(time, 1, 3)", mean=0, sd=0.01))),
                   fit_method="optimize",
                   covariates=list(scale(1) ~ x + time,
-                                  rra(1,3) ~ x + time))
-  expect_equal(med_rvar(logrra(mrr)), c(0,0), tolerance=0.1)
+                                  rrnext(1,3) ~ x + time))
+  expect_equal(med_rvar(logrrnext(mrr)), c(0,0), tolerance=0.1)
 
   mbase <- msmbayes(dat, state="obs_state", Q=Qid, pastates=1,
                     priors=priors, fit_method="optimize",
@@ -204,18 +204,18 @@ test_that("phase-type approximations with multiple exit states and covariates: t
 
   summary(mrr, pars="rra")
   expect_true(is.numeric(summary(mrr, pars = c("shape","scale","rra"))$mode))
-  expect_true(is.numeric(logrra(mrr)$mode))
-  expect_true(is.numeric(rra(mrr)$mode))
+  expect_true(is.numeric(logrrnext(mrr)$mode))
+  expect_true(is.numeric(rrnext(mrr)$mode))
 })
 
 test_that("phase-type approximations with multiple exit states and covariates: errors",{
   expect_error(msmbayes(dat, state="obs_state", Q=Qid, pastates=1,
                         fit_method="optimize",
-                        covariates=list(scale(1) ~ x + time, rra(1,2) ~ x)),
+                        covariates=list(scale(1) ~ x + time, rrnext(1,2) ~ x)),
                "must be one of the other exit states")
   expect_error(msmbayes(dat, state="obs_state", Q=Qid, pastates=1,
-                        priors=list(msmprior("logrra(x, 1, 2)", lower=0.98, upper=1.02)),
+                        priors=list(msmprior("logrrnext(x, 1, 2)", lower=0.98, upper=1.02)),
                         fit_method="optimize",
-                        covariates=list(scale(1) ~ x + time, rra(1,3) ~ x)),
+                        covariates=list(scale(1) ~ x + time, rrnext(1,3) ~ x)),
                "Unknown prior parameter")
 })

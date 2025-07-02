@@ -65,14 +65,14 @@
 #'
 #' In models with phase-type approximations and competing exit states,
 #' covariates on the relative risk of different exit states are
-#' specified with a formula with `rra` on the left hand side.  For
+#' specified with a formula with `rrnext` on the left hand side.  For
 #' example in a model where state 1 has a phase-type approximation,
 #' and the next state could be either 2 or 3, a linear model on the
 #' log relative risk of transition to 3 (relative to the baseline 2)
 #' might be specified as:
 #' 
 #' \code{covariates = list(scale(1) ~ age + sex,
-#'                         rra(1,3) ~ x + time)}
+#'                         rrnext(1,3) ~ x + time)}
 #'
 #' In phase-type models specified with `nphase`, or misclassification
 #' models (specified with `E`), covariates on transition intensities
@@ -438,12 +438,12 @@ has_scale_covariates <- function(draws){
   nrow(cm$tafdf[cm$tafdf$response=="scale",]) > 0
 }
 
-has_rra <- function(draws){
+has_rrnext <- function(draws){
   nrow(attr(draws,"qmodel")$pacrdata) > 0
 }
 
-has_rra_covariates <- function(draws){
-  attr(draws,"cm")$nrra > 0
+has_rrnext_covariates <- function(draws){
+  attr(draws,"cm")$nrrnext > 0
 }
 
 # is hmm.stan model used

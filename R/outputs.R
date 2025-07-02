@@ -587,21 +587,21 @@ phaseapprox_pars <- function(draws, log=FALSE){
 ##' @inheritParams qmatrix
 ##'
 ##' @export
-loabs_pars <- function(draws){
+logoddsnext <- function(draws){
   dest_base <- oldfrom <- oldto <- from <- to <- NULL
-  loa_post <- loabs_pars_internal(draws, type="posterior")
-  loa_mode <- loabs_pars_internal(draws, type="mode")
+  lon_post <- logoddsnext_internal(draws, type="posterior")
+  lon_mode <- logoddsnext_internal(draws, type="mode")
   refs <- attr(draws, "qmodel")$pacrdata |> filter(dest_base)
   pacr <- attr(draws, "qmodel")$pacrdata |> filter(!dest_base) |>
     left_join(refs |> select(oldfrom, ref=oldto), by="oldfrom")
   res <- data.frame(
-    name = "loa",
+    name = "logoddsnext",
     from = pacr$oldfrom,
     to = pacr$oldto,
     refstate = pacr$ref,
-    posterior = loa_post
+    posterior = lon_post
   )
-  if (!is.null(loa_mode)) res$mode <- loa_mode
+  if (!is.null(lon_mode)) res$mode <- lon_mode
   res |> arrange(from, to)
 }
 
@@ -625,8 +625,6 @@ loabs_pars <- function(draws){
 ##' In models with covariates on the transition odds, this currently only presents
 ##' these parameters for covariate values of zero.
 ##'
-##' TODO rename loa, logoddsabs to include "next" ? 
-##'
 ##' @export
 pnext_phaseapprox <- function(draws){
   from <- to <- NULL
@@ -643,7 +641,7 @@ pnext_phaseapprox <- function(draws){
   res |> arrange(from, to)
 }
 
-#' @name rradoc
+#' @name rrnextdoc
 #'
 #' @title Effects of covariates on competing exit transitions in phase type
 #' models
@@ -651,11 +649,11 @@ pnext_phaseapprox <- function(draws){
 #' @details Only applicable to phase-type approximation models,
 #' specified with \code{pastates}.
 #'
-#' \code{logrra} gives the Linear effect of covariates on log relative
+#' \code{logrrnext} gives the Linear effect of covariates on log relative
 #' risk of transition to a competing destination state, relative to
 #' baseline destination state.
 #'
-#' \code{rra} gives the exponential of the linear effect,
+#' \code{rrnext} gives the exponential of the linear effect,
 #' interpretable as a hazard ratio.  See the semi-Markov models
 #' vignette and paper for the mathematical details.
 #'
@@ -666,14 +664,14 @@ pnext_phaseapprox <- function(draws){
 #'
 #' @md
 
-##' @rdname rradoc
-##' @aliases logrra
+##' @rdname rrnextdoc
+##' @aliases logrrnext
 ##' @export
-logrra <- function(draws){
+logrrnext <- function(draws){
   from <- to <- NULL
-  pacr <- attr(draws, "cmodel")$rradf
-  res_post <- logrra_internal(draws, type="posterior")
-  res_mode <- logrra_internal(draws, type="mode")
+  pacr <- attr(draws, "cmodel")$rrnextdf
+  res_post <- logrrnext_internal(draws, type="posterior")
+  res_mode <- logrrnext_internal(draws, type="mode")
   res <- data.frame(
     from = pacr$from, to=pacr$to, name=pacr$name,
     posterior = res_post
@@ -683,11 +681,11 @@ logrra <- function(draws){
 
 }
 
-##' @rdname rradoc
-##' @aliases rra
+##' @rdname rrnextdoc
+##' @aliases rrnext
 ##' @export
-rra <- function(draws){
-  res <- logrra(draws)
+rrnext <- function(draws){
+  res <- logrrnext(draws)
   res$posterior <- exp(res$posterior)
   if (!is.null(res$mode)) res$mode <- exp(res$mode)
   res |> as_msmbres()

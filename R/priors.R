@@ -34,8 +34,8 @@
 #' sojourn time.
 #'
 #' Covariate effects on competing transitions out of semi-Markov
-#' states are specified with `logrra`.  For example,
-#' `"logrra(age,2,3)"` for the effect of `age` on the relative rate of
+#' states are specified with `logrrnext`.  For example,
+#' `"logrrnext(age,2,3)"` for the effect of `age` on the relative rate of
 #' transition from state 2 to state 3, relative to the rate of
 #' transition from state 2 to the first competing destination state.
 #' These parameters are not applicable to semi-Markov states with only
@@ -53,13 +53,13 @@
 #' e.g. `logshape(2)` and `logscale(2)` indicate the log shape and
 #' scale parameter for the sojourn distribution in state 2.
 #'
-#' `"loa"`.  Log odds of transition to a destination state in a
+#' `"logoddsnext"`.  Log odds of transition to a destination state in a
 #' phase-type approximation model with competing destination states.
 #' These parameters are only used in phase-type approximation
 #' models where there are multiple potential states that an individual
 #' could transition to immediately on leaving the state that has a
 #' phase-type approximation sojourn distribution.  These parameters
-#' are defined with two indices.  For example, `loa(1,2)` is the log
+#' are defined with two indices.  For example, `logoddsnext(1,2)` is the log
 #' odds of transition to state 2 on leaving state 1.  The odds
 #' is the probability of transition to state 2 divided by the
 #' probability of transition to the first out of the set of potential
@@ -73,7 +73,7 @@
 #'
 #'
 #'
-#' @param mean Prior mean.  This is only used for the parameters that have direct normal priors, that is `logq`, `loghr`, `logtaf`, `logshape`, `logscale`, `loe`, `loa`.  That is, excluding `time`, `q` and `hr`, whose priors are defined by transformations of a normal distribution.
+#' @param mean Prior mean.  This is only used for the parameters that have direct normal priors, that is `logq`, `loghr`, `logtaf`, `logshape`, `logscale`, `loe`, `logoddsnext`.  That is, excluding `time`, `q` and `hr`, whose priors are defined by transformations of a normal distribution.
 #'
 #' @param sd Prior standard deviation (only for parameters with direct normal priors)
 #'
@@ -189,9 +189,9 @@ transform_mlu <- function(par, mlu){
   "logshape" = c("logshape"),
   "logscale" = c("logscale"),
   "logtaf" = c("logtaf"),
-  "logrra" = c("logrra"),
+  "logrrnext" = c("logrrnext"),
   "loe" = c("loe"),
-  "loa" = c("loa")
+  "logoddsnext" = c("logoddsnext")
 )
 .msmprior_pars_df <- data.frame(
   basename = rep(names(.msmprior_pars), lengths(.msmprior_pars)),
@@ -268,11 +268,11 @@ extraneous_covname_error <- function(res){
   logq = list(mean=-2, sd=2),
   loghr = list(mean=0, sd=10),
   logtaf = list(mean=0, sd=10),
-  logrra = list(mean=0, sd=10),
+  logrrnext = list(mean=0, sd=10),
   logshape = list(mean=0, sd=0.5), # this gets truncated on the supported region in hmm.stan
   logscale = list(mean=2, sd=2), # log inverse of default prior for q, ie rate when shape is 1
   loe = list(mean=0, sd=1),
-  loa = list(mean=0, sd=1)
+  logoddsnext = list(mean=0, sd=1)
 )
 
 #' Assemble prior parameters as data to be passed to Stan
@@ -300,10 +300,10 @@ process_priors <- function(priors, qm, cm, pm, em, qmobs,
   logshapesd <- rep(.default_priors$logshape$sd, pm$npastates)
   logscalemean <- rep(.default_priors$logscale$mean, pm$npastates)
   logscalesd <- rep(.default_priors$logscale$sd, pm$npastates) # ugh? separate function?
-  loamean <- rep(.default_priors$loa$mean, qm$noddsnext)
-  loasd <- rep(.default_priors$loa$sd, qm$noddsnext)
-  logrramean <- rep(.default_priors$logrra$mean, cm$nrra)
-  logrrasd <- rep(.default_priors$logrra$sd, cm$nrra)
+  logoddsnextmean <- rep(.default_priors$logoddsnext$mean, qm$noddsnext)
+  logoddsnextsd <- rep(.default_priors$logoddsnext$sd, qm$noddsnext)
+  logrrnextmean <- rep(.default_priors$logrrnext$mean, cm$nrrnext)
+  logrrnextsd <- rep(.default_priors$logrrnext$sd, cm$nrrnext)
   loemean <- rep(.default_priors$loe$mean, em$nepars)
   loesd <- rep(.default_priors$loe$sd, em$nepars)
   loghr_user <- rep(FALSE, cm$ntafs)
@@ -337,13 +337,13 @@ process_priors <- function(priors, qm, cm, pm, em, qmobs,
     } else if (prior$par_base=="loe"){
       ind <- get_prior_loeindex(prior, em)
       loemean[ind] <- prior$mean; loesd[ind] <- prior$sd
-    } else if (prior$par_base=="loa"){
-      ind <- get_prior_loaindex(prior, qm, pm)
-      loamean[ind] <- prior$mean; loasd[ind] <- prior$sd
-    } else if (prior$par_base=="logrra"){
-      ind <- get_prior_rraindex(prior, cm)
-      logrramean[ind] <- prior$mean
-      logrrasd[ind] <- prior$sd
+    } else if (prior$par_base=="logoddsnext"){
+      ind <- get_prior_logoddsnextindex(prior, qm, pm)
+      logoddsnextmean[ind] <- prior$mean; logoddsnextsd[ind] <- prior$sd
+    } else if (prior$par_base=="logrrnext"){
+      ind <- get_prior_rrnextindex(prior, cm)
+      logrrnextmean[ind] <- prior$mean
+      logrrnextsd[ind] <- prior$sd
     }
   }
   lb <- logshape_bounds(pm)
@@ -353,8 +353,8 @@ process_priors <- function(priors, qm, cm, pm, em, qmobs,
        logshapemean = as.array(logshapemean), logshapesd = as.array(logshapesd),
        logscalemean = as.array(logscalemean), logscalesd = as.array(logscalesd),
        logshapemin = as.array(lb$min), logshapemax = as.array(lb$max),
-       loamean = as.array(loamean), loasd = as.array(loasd),
-       logrramean = as.array(logrramean), logrrasd = as.array(logrrasd),
+       logoddsnextmean = as.array(logoddsnextmean), logoddsnextsd = as.array(logoddsnextsd),
+       logrrnextmean = as.array(logrrnextmean), logrrnextsd = as.array(logrrnextsd),
        loemean = as.array(loemean), loesd = as.array(loesd),
        mle = mle)
 }
@@ -495,9 +495,9 @@ get_prior_tafindex <- function(prior, cm, pm, call=caller_env()){
                   cm$tafdf$name %in% prior$covname]
 }
 
-get_prior_loaindex <- function(prior, qm, pm, call=caller_env()){
+get_prior_logoddsnextindex <- function(prior, qm, pm, call=caller_env()){
   if (is.null(prior$ind2))
-    cli_abort(c("prior for {.var loa} should have two state indices",
+    cli_abort(c("prior for {.var logoddsnext} should have two state indices",
                 "found {.str {prior$username}}"),
               call=call)
   if (!pm$phaseapprox)
@@ -511,14 +511,14 @@ get_prior_loaindex <- function(prior, qm, pm, call=caller_env()){
   ind
 }
 
-get_prior_rraindex <- function(prior, cm, call=caller_env()){
+get_prior_rrnextindex <- function(prior, cm, call=caller_env()){
   if (prior$ind1 == "all_indices"){
-    ind <- seq_len(nrow(cm$rradf))
+    ind <- seq_len(nrow(cm$rrnextdf))
   }
   else
-    ind <- which(cm$rradf$from==prior$ind1 & cm$rradf$to==prior$ind2)
+    ind <- which(cm$rrnextdf$from==prior$ind1 & cm$rrnextdf$to==prior$ind2)
   if (length(ind)==0){
-    if (nrow(cm$rradf)==0)
+    if (nrow(cm$rrnextdf)==0)
       msg <- "the model does not include covariates on competing exit transitions in a {.var pastates} model"
     else
       msg <- "transition {prior$ind1}-{prior$ind2} is not a competing exit transition in a {.var pastates} model"

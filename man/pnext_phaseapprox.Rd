@@ -18,8 +18,6 @@ optimisation).
 
 In models with covariates on the transition odds, this currently only presents
 these parameters for covariate values of zero.
-
-TODO rename loa, logoddsabs to include "next" ?
 }
 \description{
 These are the inverse multinomial logit transforms of the

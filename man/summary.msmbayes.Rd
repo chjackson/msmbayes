@@ -23,6 +23,8 @@
 
 \code{logshape},\code{logscale} corresponding log shape or scale
 
+\code{pnext}, \code{logoddsnext} next-state probabilites (or log odds) in phase-type approximation models
+
 \code{hr}: hazard ratios on transition intensities, including effects on
 scale parameters in phase-type approximation models.
 
@@ -30,7 +32,7 @@ scale parameters in phase-type approximation models.
 
 \code{taf},\code{logtaf}: effects on scale parameters in semi-Markov phase-type approximations.
 
-\code{rra},\code{logrra}: effects on competing risk transition probabilities in semi-Markov phase-type approximations.
+\code{rrnext},\code{logrrnext}: effects on competing risk transition probabilities in semi-Markov phase-type approximations.
 
 \code{e}: misclassification probabilities
 

@@ -30,7 +30,7 @@ test_that("prior_sample with covariates",{
 test_that("prior_sample with pastates, no covariates",{
   priors <- list(msmprior("logshape(1)", median=log(1.1), lower=log(1.06)),
                  msmprior("logscale(1)", median=log(1), lower=log(0.94)),
-                 msmprior("loa(1,3)", mean=0, sd=0.3),
+                 msmprior("logoddsnext(1,3)", mean=0, sd=0.3),
                  msmprior("q(2,3)", lower=1.08, upper=1.12))
   set.seed(1)
   sam <- msmbayes_prior_sample(nsim=1000, data=dat, Q=Q, priors=priors, pastates=1)
@@ -46,7 +46,7 @@ test_that("prior_sample with pastates, no covariates",{
 
 priors <- list(msmprior("logshape(1)", mean=log(1), sd=0.01),
                msmprior("logscale(1)", mean=log(1), sd=0.01),
-               msmprior("loa(1,3)", mean=0, sd=0.3),
+               msmprior("logoddsnext(1,3)", mean=0, sd=0.3),
                msmprior("q(2,3)", lower=1.08, upper=1.12))
 
 test_that("prior_sample with pastates, covariates on scale: priors reflected",{
@@ -95,7 +95,7 @@ test_that("prior_sample with pastates, different covariates on two scales: prior
                   msmprior("logscale(1)", mean=log(1), sd=0.01),
                   msmprior("logshape(2)", mean=log(1), sd=0.01),
                   msmprior("logscale(2)", mean=log(2), sd=0.01),
-                  msmprior("loa(1,3)", mean=-0.5, sd=0.01),
+                  msmprior("logoddsnext(1,3)", mean=-0.5, sd=0.01),
                   msmprior("logtaf(x,1)", median=log(20), lower=log(19.95)),
                   msmprior("logtaf(y,1)", median=log(50), lower=log(49.95)),
                   msmprior("logtaf(x,2)", median=log(10), lower=log(9.95)
@@ -141,29 +141,29 @@ test_that("prior_sample with pastates, covariates on exit probs",{
   dat <- data.frame(subject=rep(1:100, each=10), time=rep(0:9, 100),
                     x=rbinom(1000, 1, 0.5), y=rbinom(1000, 1, 0.5))
   priorsr <- c(priors,
-               list(msmprior("logrra(x,1,3)", median=log(2), lower=log(1.94))))
+               list(msmprior("logrrnext(x,1,3)", median=log(2), lower=log(1.94))))
   expect_error(msmbayes_prior_sample(nsim=1000, data=dat, Q=Q, priors=priorsr, pastates=1),
                "does not include")
   sam <- msmbayes_prior_sample(nsim=1000, data=dat, Q=Q, priors=priorsr, pastates=1,
-                               covariates = list(rra(1,3) ~ x))
-  summ <- summary(sam[["logrra[x,1,3]"]])
+                               covariates = list(rrnext(1,3) ~ x))
+  summ <- summary(sam[["logrrnext[x,1,3]"]])
   expect_gt(summ[["1st Qu."]], log(1.94)); expect_lt(summ[["3rd Qu."]], log(2.06))
 
   set.seed(1)
   dat <- data.frame(subject=rep(1:100, each=10), time=rep(0:9, 100),
                     x=rbinom(1000, 1, 0.5), y=rbinom(1000, 1, 0.5))
   priorsr <- c(priors,
-               list(msmprior("logrra(age10,1,3)", median=log(2), lower=log(1.95))))
+               list(msmprior("logrrnext(age10,1,3)", median=log(2), lower=log(1.95))))
   sam <- msmbayes_priorpred_sample(data=dat, Q=Q, priors=priorsr, pastates=1,
-                                   covariates = list(rra(1,3) ~ x))
+                                   covariates = list(rrnext(1,3) ~ x))
 
   priorsr <- c(priors,
-               list(msmprior("logrra(age10,1,3)", median=log(2), lower=log(0.8))))
+               list(msmprior("logrrnext(age10,1,3)", median=log(2), lower=log(0.8))))
   mod <- msmbayes(data=sam, state="obs_state", Q=Q, pastates=1, priors=priorsr,
-                  covariates = list(rra(1,3) ~ x), fit_method="optimize", seed=1)
-  rra(mod)
-  logrra(mod)
-  expect_true(logrra(mod)$mode > 0)
+                  covariates = list(rrnext(1,3) ~ x), fit_method="optimize", seed=1)
+  rrnext(mod)
+  logrrnext(mod)
+  expect_true(logrrnext(mod)$mode > 0)
 })
 
 

@@ -48,8 +48,8 @@ the risk of the next transition through halving the expected
 sojourn time.
 
 Covariate effects on competing transitions out of semi-Markov
-states are specified with \code{logrra}.  For example,
-\code{"logrra(age,2,3)"} for the effect of \code{age} on the relative rate of
+states are specified with \code{logrrnext}.  For example,
+\code{"logrrnext(age,2,3)"} for the effect of \code{age} on the relative rate of
 transition from state 2 to state 3, relative to the rate of
 transition from state 2 to the first competing destination state.
 These parameters are not applicable to semi-Markov states with only
@@ -67,13 +67,13 @@ The index indicates the state,
 e.g. \code{logshape(2)} and \code{logscale(2)} indicate the log shape and
 scale parameter for the sojourn distribution in state 2.
 
-\code{"loa"}.  Log odds of transition to a destination state in a
+\code{"logoddsnext"}.  Log odds of transition to a destination state in a
 phase-type approximation model with competing destination states.
 These parameters are only used in phase-type approximation
 models where there are multiple potential states that an individual
 could transition to immediately on leaving the state that has a
 phase-type approximation sojourn distribution.  These parameters
-are defined with two indices.  For example, \code{loa(1,2)} is the log
+are defined with two indices.  For example, \code{logoddsnext(1,2)} is the log
 odds of transition to state 2 on leaving state 1.  The odds
 is the probability of transition to state 2 divided by the
 probability of transition to the first out of the set of potential
@@ -84,7 +84,7 @@ the same prior will used for all transitions, or/and all
 covariates.  This can be done with or without the brackets, e.g.
 \code{"logq()"} or \code{"logq"} are both understood.}
 
-\item{mean}{Prior mean.  This is only used for the parameters that have direct normal priors, that is \code{logq}, \code{loghr}, \code{logtaf}, \code{logshape}, \code{logscale}, \code{loe}, \code{loa}.  That is, excluding \code{time}, \code{q} and \code{hr}, whose priors are defined by transformations of a normal distribution.}
+\item{mean}{Prior mean.  This is only used for the parameters that have direct normal priors, that is \code{logq}, \code{loghr}, \code{logtaf}, \code{logshape}, \code{logscale}, \code{loe}, \code{logoddsnext}.  That is, excluding \code{time}, \code{q} and \code{hr}, whose priors are defined by transformations of a normal distribution.}
 
 \item{sd}{Prior standard deviation (only for parameters with direct normal priors)}
 
