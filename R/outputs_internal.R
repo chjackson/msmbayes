@@ -149,11 +149,11 @@ phaseapprox_pars_internal <- function(draws, type="posterior", log=FALSE){
 }
 
 loabs_pars_internal <- function(draws, type="posterior", log=FALSE){
-  V1 <- posterior <- logoddsabs <- NULL
+  V1 <- posterior <- logoddsnext <- NULL
   if (!is_phaseapprox(draws)) return(NULL)
   if (type=="mode" && !is_mode(draws)) return(NULL)
   td <- tidy_draws(if (type=="posterior") draws else get_mode_draws(draws))
-  value <- td |> gather_rvars(logoddsabs[]) |> pull(".value") |>  t() |>
+  value <- td |> gather_rvars(logoddsnext[]) |> pull(".value") |>  t() |>
     as.data.frame() |> rename(posterior=V1) |> pull(posterior)
   if (type=="mode") value <- as.numeric(draws_of(value))
   value
@@ -426,7 +426,7 @@ npars <- function(draws){
   pm <- attr(draws,"pmodel")
   em <- attr(draws,"emodel")
   if (is_hmm(draws)){
-    qm$npriorq + cm$nxuniq + 2*pm$npastates + qm$noddsabs + cm$nrra + em$nepars
+    qm$npriorq + cm$nxuniq + 2*pm$npastates + qm$noddsnext + cm$nrra + em$nepars
   } else {
     qm$nqpars + cm$nxuniq
   }

@@ -51,7 +51,7 @@
 ##'
 ##' `logoddse` Log odds of misclassification in each state in turn, compared to the correct classification.
 ##'
-##' `logoddsabs` Only for phase-type approximation models with competing next states after the phased state: log odds of transition to each potential next state, compared to the first such state in the space.
+##' `logoddsnext` Only for phase-type approximation models with competing next states after the phased state: log odds of transition to each potential next state, compared to the first such state in the space.
 ##'
 ##' @noRd
 ##'
@@ -66,9 +66,9 @@ prior_random_inits <- function(standat, init_scale=5, chain_id=1){
   logshape <- msm::rtnorm(npa, mean=standat$logshapemean, sd=standat$logshapesd / init_scale, upper=standat$logshapemax)
   logscale <- rnorm(npa, mean=standat$logscalemean, sd=standat$logscalesd / init_scale)
   logoddse <- rnorm(length(standat$loemean), mean=standat$loemean, sd=standat$loesd / init_scale)
-  logoddsabs <- rnorm(length(standat$loamean), mean=standat$loamean, sd=standat$loasd / init_scale)
+  logoddsnext <- rnorm(length(standat$loamean), mean=standat$loamean, sd=standat$loasd / init_scale)
   list(logq = as.array(logq), logq_markov = as.array(logq_markov),
        loghr_uniq = as.array(loghr_uniq),
        logshape = as.array(logshape), logscale = as.array(logscale),
-       logoddse = as.array(logoddse), logoddsabs = as.array(logoddsabs))
+       logoddse = as.array(logoddse), logoddsnext = as.array(logoddsnext))
 }

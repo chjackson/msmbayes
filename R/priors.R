@@ -300,8 +300,8 @@ process_priors <- function(priors, qm, cm, pm, em, qmobs,
   logshapesd <- rep(.default_priors$logshape$sd, pm$npastates)
   logscalemean <- rep(.default_priors$logscale$mean, pm$npastates)
   logscalesd <- rep(.default_priors$logscale$sd, pm$npastates) # ugh? separate function?
-  loamean <- rep(.default_priors$loa$mean, qm$noddsabs)
-  loasd <- rep(.default_priors$loa$sd, qm$noddsabs)
+  loamean <- rep(.default_priors$loa$mean, qm$noddsnext)
+  loasd <- rep(.default_priors$loa$sd, qm$noddsnext)
   logrramean <- rep(.default_priors$logrra$mean, cm$nrra)
   logrrasd <- rep(.default_priors$logrra$sd, cm$nrra)
   loemean <- rep(.default_priors$loe$mean, em$nepars)

@@ -75,7 +75,7 @@ form_qmodel <- function(Q,Qfix=NULL){
     qfixrow = qfixrow, qfixcol = qfixcol,
     qfix = qfix,
     nqpars = length(Q[Q>0]),
-    noddsabs = 0) # may be overwritten by phase_expand_qmodel
+    noddsnext = 0) # may be overwritten by phase_expand_qmodel
   res$npriorq <- res$nqpars
   res$priorq_inds <- seq_len(res$npriorq)
   res

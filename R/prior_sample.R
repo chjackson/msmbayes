@@ -127,20 +127,20 @@ prior_sample_logss <- function(priors, nsim, pm){
 }
 
 prior_sample_loa <- function(priors, nsim, qm, pm){
-  noddsabs <- qm$noddsabs
-  if (pm$phaseapprox && noddsabs > 0){
-    loa <- as.data.frame(matrix(nrow=nsim, ncol=noddsabs))
-    names(loa) <- sprintf("logoddsa[%s]", 1:noddsabs) # inconsistent name
-    for (i in 1:noddsabs){
+  noddsnext <- qm$noddsnext
+  if (pm$phaseapprox && noddsnext > 0){
+    loa <- as.data.frame(matrix(nrow=nsim, ncol=noddsnext))
+    names(loa) <- sprintf("logoddsa[%s]", 1:noddsnext) # inconsistent name
+    for (i in 1:noddsnext){
       loa[,i] <- rnorm(nsim, priors$loamean[i], priors$loasd[i])
     }
-    attr(loa, "stan_names") <- sprintf("logoddsabs[%s]", 1:qm$noddsabs)
+    attr(loa, "stan_names") <- sprintf("logoddsnext[%s]", 1:qm$noddsnext)
   } else loa <- as.data.frame(matrix(nrow=nsim, ncol=0))
   loa
 }
 
 prior_sample_logrra <- function(priors, nsim, qm, pm, cm){
-  if (pm$phaseapprox && qm$noddsabs > 0 && cm$nrra > 0){
+  if (pm$phaseapprox && qm$noddsnext > 0 && cm$nrra > 0){
     logrra <- as.data.frame(matrix(nrow=nsim, ncol=cm$nrra))
     for (i in 1:cm$nrra){
       logrra[,i] <- rnorm(nsim, priors$logrramean[i], priors$logrrasd[i])
@@ -238,9 +238,9 @@ msmbayes_priorpred_sample <- function(data, state="state", time="time", subject=
   ## For phaseapprox models, this will have 1 for pa states, real values for others
 
   if (m$pm$phaseapprox){
-    if (m$qm$noddsabs > 0){
-      logoddsabs <- extract_logoddsabs(prior_sample)
-      tprobs <- loabs_to_probs(logoddsabs, m$qm, m$qmobs)
+    if (m$qm$noddsnext > 0){
+      logoddsnext <- extract_logoddsnext(prior_sample)
+      tprobs <- loabs_to_probs(logoddsnext, m$qm, m$qmobs)
       q_prior[tprobs>0] <- q_prior[tprobs>0] * tprobs[tprobs>0]
       ## adjust the 1s for transition probs to absorbing states
     }
@@ -298,7 +298,7 @@ extract_q <- function(prior_sample, Q, i){
   Q
 }
 
-extract_logoddsabs <- function(prior_sample, i=1){
+extract_logoddsnext <- function(prior_sample, i=1){
   loare <- "logoddsa\\[([[:digit:]]+)\\]"
   prior_sample[i,grepl(loare, names(prior_sample))]
 }

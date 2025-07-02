@@ -312,7 +312,7 @@ phase_expand_qmodel <- function(qm, pm){
   }
   qmnew$paratedata <- form_phaseapprox_ratedata(qmnew, pm)
   qmnew$pacrdata <- form_phaseapprox_comprisk_data(qmnew, pm)
-  qmnew$noddsabs <- attr(qmnew$pacrdata, "noddsabs")
+  qmnew$noddsnext <- attr(qmnew$pacrdata, "noddsnext")
   qm$tr$ttype <- ifelse(qm$tr$from %in% pm$phased_states, "phase", "markov")
   attr(qmnew, "qmobs") <- qm
   qmnew
@@ -371,10 +371,10 @@ form_phaseapprox_comprisk_data <- function(qm, pm){
   pdatcr$dest_state <- match(pdatcr$oldfrom, pm$pastates)
   npnext <- length(pdatcr$dest_state)
   pdatcr$dest_base <- !duplicated(pdatcr$dest_state)
-  noddsabs <- sum(!pdatcr$dest_base)
+  noddsnext <- sum(!pdatcr$dest_base)
   pdatcr$loind <- rep(0, npnext)
-  pdatcr$loind[!pdatcr$dest_base] <- seq_len(noddsabs)
-  attr(pdatcr, "noddsabs") <- noddsabs
+  pdatcr$loind[!pdatcr$dest_base] <- seq_len(noddsnext)
+  attr(pdatcr, "noddsnext") <- noddsnext
   attr(pdatcr, "npnext") <- npnext
   pdatcr
 }

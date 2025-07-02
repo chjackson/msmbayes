@@ -98,7 +98,7 @@ make_stan_obsdata <- function(dat, qm=NULL, cm=NULL,
 pa_nulldata <- function(qm){
   dummy <- 1
   list(npaqkl = 0, npastates = 0, priorq_inds = as.array(qm$priorq_inds),
-       noddsabs = qm$noddsabs,
+       noddsnext = qm$noddsnext,
        ntrain = 1, traindat_x = array(dummy, dim=c(1)),
        traindat_y = array(dummy, dim=c(1,0)), traindat_m = array(dummy, dim=c(1,0)),
        traindat_inds = array(dim=c(0,2)),
@@ -157,7 +157,7 @@ form_phaseapprox_standata <- function(qm,pm,qmobs){
          prates_inds = as.array(rdat$prates_inds),
          prate_abs = as.array(rdat$prate_abs),
          dest_inds = as.array(rdat$dest_inds),
-         noddsabs = qm$noddsabs
+         noddsnext = qm$noddsnext
          )
   )
 }

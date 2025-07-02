@@ -243,9 +243,9 @@ data {
   array[npaqall] int<lower=0,upper=1>         prate_abs; // is this a competing absorption rate (no if only one destination)
   array[npaqall] int dest_inds;                          // index from 1:npnext for each of these (or 0 if a prog rate)
 
-  int<lower=0> noddsabs;   // number of odds ratio parameters for transition probs to absorption
-  vector[noddsabs] loamean;  // priors for these log odds ratios
-  vector<lower=0>[noddsabs] loasd;
+  int<lower=0> noddsnext;   // number of odds ratio parameters for transition probs to absorption
+  vector[noddsnext] loamean;  // priors for these log odds ratios
+  vector<lower=0>[noddsnext] loasd;
 }
 
 
@@ -258,7 +258,7 @@ parameters {
 
   array[nepars] real logoddse;  // log(ers/err), error rate log odds
   vector[nxuniq] loghr_uniq;    // log hazard ratios for covariates
-  vector[noddsabs] logoddsabs;  // log odds of competing destinations from phase-type approximated states
+  vector[noddsnext] logoddsnext;  // log odds of competing destinations from phase-type approximated states
   vector[nrra] logrra;          // log RRs for covariate effects on relative risk of competing exit states
 } 
 
@@ -340,7 +340,7 @@ transformed parameters {
 	    odds[i] = 1;
 	    sumoddsa[dest_state[i]] = odds[i];
 	  }  else {
-	    odds[i] = exp(logoddsabs[loind[i]]);
+	    odds[i] = exp(logoddsnext[loind[i]]);
 	    sumoddsa[dest_state[i]] = sumoddsa[dest_state[i]] + odds[i];
 	  }
 	}
@@ -502,9 +502,9 @@ model {
 	logoddse[i] ~ normal(loemean[i], loesd[i]);
       }
     }
-    if (noddsabs > 0){
-      for (i in 1:noddsabs){
-	logoddsabs[i] ~ normal(loamean[i], loasd[i]);
+    if (noddsnext > 0){
+      for (i in 1:noddsnext){
+	logoddsnext[i] ~ normal(loamean[i], loasd[i]);
       }
     }
   }

@@ -177,7 +177,7 @@ prior_logtaf_db <- function(priors, cm){
 
 prior_loa_internal <- function(priors, qm){
   rvar <- loind <- from <- NULL
-  if (qm$noddsabs==0) return(NULL)
+  if (qm$noddsnext==0) return(NULL)
   pa <- qm$pacrdata |> filter(!dest_base)
   res <- data.frame(name = "loa",
                     from = pa |> pull("oldfrom"),
@@ -185,36 +185,36 @@ prior_loa_internal <- function(priors, qm){
                     prior = prior_to_rvar(priors$loamean, priors$loasd, n=1000)
   ) |>
     arrange(from) |>
-    mutate(logoddsabs = prior,
-           oddsabs = exp(prior))
-  res$sumodds <- rvar_rep(rvar_tapply(res$oddsabs, res$from, sum),
+    mutate(logoddsnext = prior,
+           oddsnext = exp(prior))
+  res$sumodds <- rvar_rep(rvar_tapply(res$oddsnext, res$from, sum),
                           table(res$from))
   res
 }
 
 prior_loa_db <- function(priors, qm){
-  if (qm$noddsabs==0) return(NULL)
+  if (qm$noddsnext==0) return(NULL)
   res <- prior_loa_internal(priors, qm) |>
-    rename(rvar = logoddsabs) |>
+    rename(rvar = logoddsnext) |>
     mutate(string = rvar_to_quantile_string(rvar)) |>
     select("name", "from", "to", "rvar", "string")
   res
 }
 
 prior_pnext_db <- function(priors, qm){
-  if (qm$noddsabs==0) return(NULL)
+  if (qm$noddsnext==0) return(NULL)
   pabs <- from <- to <- NULL
   res <- prior_loa_internal(priors, qm)
   odds1 <- res |>
     select("from", "to", "sumodds") |>
     filter(!duplicated(from)) |>
     mutate(to = qm$pacrdata |> arrange(oldfrom) |> filter(dest_base) |> pull(oldto),
-           oddsabs=1)
+           oddsnext=1)
   res |>
-    select("from", "to", "sumodds", "oddsabs") |>
+    select("from", "to", "sumodds", "oddsnext") |>
     rbind(odds1) |>
     mutate(name="pnext",
-           pabs = oddsabs / (1 + sumodds)) |>
+           pabs = oddsnext / (1 + sumodds)) |>
     arrange(from, to) |>
     rename(rvar = pabs) |>
     mutate(string = rvar_to_quantile_string(rvar)) |>
