@@ -369,13 +369,13 @@ form_phaseapprox_comprisk_data <- function(qm, pm){
   pdat <- qm$phasedata
   pdatcr <- unique(pdat[pdat$pabs, c("oldfrom","oldto","oldlab")])
   pdatcr$dest_state <- match(pdatcr$oldfrom, pm$pastates)
-  npadest <- length(pdatcr$dest_state)
+  npnext <- length(pdatcr$dest_state)
   pdatcr$dest_base <- !duplicated(pdatcr$dest_state)
   noddsabs <- sum(!pdatcr$dest_base)
-  pdatcr$loind <- rep(0, npadest)
+  pdatcr$loind <- rep(0, npnext)
   pdatcr$loind[!pdatcr$dest_base] <- seq_len(noddsabs)
   attr(pdatcr, "noddsabs") <- noddsabs
-  attr(pdatcr, "npadest") <- npadest
+  attr(pdatcr, "npnext") <- npnext
   pdatcr
 }
 

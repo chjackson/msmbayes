@@ -159,12 +159,12 @@ loabs_pars_internal <- function(draws, type="posterior", log=FALSE){
   value
 }
 
-padest_pars_internal <- function(draws, type="posterior", log=FALSE){
-  padest <- V1 <- posterior <- NULL
+pnext_phaseapprox_internal <- function(draws, type="posterior", log=FALSE){
+  pnext <- V1 <- posterior <- NULL
   if (!is_phaseapprox(draws)) return(NULL)
   if (type=="mode" && !is_mode(draws)) return(NULL)
   td <- tidy_draws(if (type=="posterior") draws else get_mode_draws(draws))
-  value <- td |> gather_rvars(padest[]) |> pull(".value") |>  t() |>
+  value <- td |> gather_rvars(pnext[]) |> pull(".value") |>  t() |>
     as.data.frame() |> rename(posterior=V1) |>  pull(posterior)
   if (type=="mode") value <- as.numeric(draws_of(value))
   value

@@ -231,17 +231,17 @@ data {
 
   // For phase-type approximations with competing exit states. 
   // NOTE TODO competing exit states not otherwise supported with phase-type models
-  int<lower=0> npadest;    // number of competing destination states out of phaseapprox states, not including where there is only one destination
-  array[npadest] int<lower=0,upper=1> dest_base;  // indicator for the first absorption destination per state
-  array[npadest] int<lower=1> dest_state; // which of the phaseapprox states (1:npastates) we are in
-  array[npadest] int<lower=0> loind;      // index of corresponding logodds (or 0 if first destination)
+  int<lower=0> npnext;    // number of competing destination states out of phaseapprox states, not including where there is only one destination
+  array[npnext] int<lower=0,upper=1> dest_base;  // indicator for the first absorption destination per state
+  array[npnext] int<lower=1> dest_state; // which of the phaseapprox states (1:npastates) we are in
+  array[npnext] int<lower=0> loind;      // index of corresponding logodds (or 0 if first destination)
 
   int npaqall; // total number of rates (out of nqpars) relating to phaseapprox state
   array[npaqall] int<lower=1,upper=nqpars>    paq_inds; // index into q_full for each of these
   array[npaqall] int<lower=1>                 prates_inds; // index into prates for each of these TODO 
   array[npaqall] int<lower=1,upper=npastates> pastate;   // which of 1:npastates these relate to
   array[npaqall] int<lower=0,upper=1>         prate_abs; // is this a competing absorption rate (no if only one destination)
-  array[npaqall] int dest_inds;                          // index from 1:npadest for each of these (or 0 if a prog rate)
+  array[npaqall] int dest_inds;                          // index from 1:npnext for each of these (or 0 if a prog rate)
 
   int<lower=0> noddsabs;   // number of odds ratio parameters for transition probs to absorption
   vector[noddsabs] loamean;  // priors for these log odds ratios
@@ -267,7 +267,7 @@ transformed parameters {
 
   // phaseapprox.stan
   // defines q_full, equiv of exp(logq)
-  // saves shape,scale,padest
+  // saves shape,scale,pnext
   real loglik = 0;
   array[K] vector[K] E = rep_array(rep_vector(0,K), K);    // full matrix of error probs
   array[nepars] real evec; // absolute error probs, for those modelled
@@ -310,7 +310,7 @@ transformed parameters {
   vector[npastates] scale = exp(logscale);
 
   // Parameters for competing transition probabilities out of phaseapprox states
-  vector[npadest] padest;    // transition probabilities from phaseapprox states to competing destinations
+  vector[npnext] pnext;    // transition probabilities from phaseapprox states to competing destinations
     
   vector[nqpars] logq;    
     
@@ -318,7 +318,7 @@ transformed parameters {
   if (npastates > 0)
     {
       vector[npaqall] prates; 
-      vector[npadest] odds;    // transition odds from phaseapprox states
+      vector[npnext] odds;    // transition odds from phaseapprox states
       vector[npastates] sumoddsa;  // sum of competing odds within a state (including 1 for the first destination)
       vector[nqpars] q_full;    
 
@@ -334,8 +334,8 @@ transformed parameters {
       }
 
       // define absorption probs in terms of log odds 
-      if (npadest > 0){
-	for (i in 1:npadest){
+      if (npnext > 0){
+	for (i in 1:npnext){
 	  if (dest_base[i]==1) {
 	    odds[i] = 1;
 	    sumoddsa[dest_state[i]] = odds[i];
@@ -344,15 +344,15 @@ transformed parameters {
 	    sumoddsa[dest_state[i]] = sumoddsa[dest_state[i]] + odds[i];
 	  }
 	}
-	for (i in 1:npadest){
-	  padest[i] = odds[i] / sumoddsa[dest_state[i]];
+	for (i in 1:npnext){
+	  pnext[i] = odds[i] / sumoddsa[dest_state[i]];
 	}
       }
 
       for (i in 1:npaqall){
-	if (npadest > 0 && prate_abs[i]){
+	if (npnext > 0 && prate_abs[i]){
 	  q_full[paq_inds[i]] = prates[prates_inds[i]] * 
-	    padest[dest_inds[i]];
+	    pnext[dest_inds[i]];
 	} else {
 	  q_full[paq_inds[i]] = prates[prates_inds[i]];
 	}

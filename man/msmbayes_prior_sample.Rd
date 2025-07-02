@@ -17,9 +17,7 @@ msmbayes_prior_sample(
   nphase = NULL,
   E = NULL,
   priors = NULL,
-  nsim = 1,
-  expand_q = FALSE,
-  expand_hr = FALSE
+  nsim = 1
 )
 }
 \arguments{
@@ -107,11 +105,6 @@ approximated sojourn distribution in the phased state.  Either a
 vector of the same length as \code{pastates}, or just one to apply to
 all states.}
 
-\item{pamethod}{\verb{"moment", "kl_linear"} or
-\code{"kl_hermite"}. Advanced.  Method of constructing the
-approximations. May remove this argument if one of these turns
-out to be good enough.}
-
 \item{nphase}{Only required for models with phase-type sojourn
 distributions specified directly (not through \code{pastates}).
 \code{nphase} is a vector with one element per state, giving the
@@ -160,20 +153,21 @@ These are equivalent to credible intervals from a Laplace
 approximation to the posterior.}
 
 \item{nsim}{Number of samples to generate}
-
-\item{expand_q}{If \code{TRUE} then parameters for transition rates will refer to states on the latent space.}
-
-\item{expand_hr}{If \code{TRUE} then parameters for transition rates and log hazard ratios on these will refer to states on the latent space,
-and covariate effects on scale parameters are replicated to produce one hazard ratio for each transition on the corresponding space of phases.}
 }
 \value{
 A data frame with one column per model parameter (on a transformed scale, e.g. log intensities), and one row per sample.    The names are in the natural
 format as specified in \code{priors}.
 
-An attribute \code{"post_names"} contains the names of the
+An attribute \code{"stan_names"} contains the names of the
 corresponding parameters in the \code{draws} object that would be
 returned by \code{msmbayes} if this model were to be fitted to data.
-These are less user-interpretable than the natural names.
+These are the names used internally by Stan, and not meant to be
+interpretable by users.
+
+An attribute \code{"expand"} contains the same sample but with
+parameters for covariate effects referring to state transitions
+on the latent space.  Used internally for posterior predictive
+sampling.
 }
 \description{
 Called in the same way as \code{\link{msmbayes}}.  The data should

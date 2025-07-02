@@ -69,10 +69,10 @@ prior_db <- function(priors, qm, cm, pm, qmobs, em){
   papars <- prior_papars_db(priors, pm, qm)
   logtaf <- prior_logtaf_db(priors, cm)
   loa <- prior_loa_db(priors, qm)
-  padest <- prior_padest_db(priors, qm)
+  pnext <- prior_pnext_db(priors, qm)
   logrra <- prior_logrra_db(priors, cm)
   loe <- prior_loe_db(priors, em)
-  res <- rbind(logq, mst, loghr, papars, logtaf, loa, padest, logrra, loe)
+  res <- rbind(logq, mst, loghr, papars, logtaf, loa, pnext, logrra, loe)
   if (pm$phasetype & !pm$phaseapprox){
     res$from <- pm$pdat$label[res$from]
     res$to <- pm$pdat$label[res$to]
@@ -201,7 +201,7 @@ prior_loa_db <- function(priors, qm){
   res
 }
 
-prior_padest_db <- function(priors, qm){
+prior_pnext_db <- function(priors, qm){
   if (qm$noddsabs==0) return(NULL)
   pabs <- from <- to <- NULL
   res <- prior_loa_internal(priors, qm)
@@ -213,7 +213,7 @@ prior_padest_db <- function(priors, qm){
   res |>
     select("from", "to", "sumodds", "oddsabs") |>
     rbind(odds1) |>
-    mutate(name="padest",
+    mutate(name="pnext",
            pabs = oddsabs / (1 + sumodds)) |>
     arrange(from, to) |>
     rename(rvar = pabs) |>

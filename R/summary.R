@@ -74,9 +74,9 @@ print.msmbayes <- function(x,...){
 #' @md
 #' @export
 summary.msmbayes <- function(object, pars=NULL,...){
-  name <- from <- to <- state <- tostate <- posterior <- prior_string <- NULL
+  name <- from <- to <- state <- posterior <- prior_string <- NULL
   if (is.null(pars)){
-    pars <- c("q","mst","hr","shape","scale","taf","padest","rra","e")
+    pars <- c("q","mst","hr","shape","scale","taf","pnext","rra","e")
   }
   colnames <- c("name", "from", "to", "posterior")
   if (is_mode(object)) colnames <- c(colnames, "mode")
@@ -112,13 +112,13 @@ summary.msmbayes <- function(object, pars=NULL,...){
       res <- rbind(res, pa)
     }
     if (has_rra(object)){
-      if ("padest" %in% pars){
-        pa <- padest_pars(object) |> mutate(from=state, to=tostate) |>
+      if ("pnext" %in% pars){
+        pa <- pnext(object) |> 
           select(all_of(colnames))
         res <- rbind(res, pa)
       }
       if ("loa" %in% pars){ # inconsistent naming
-        pa <- loabs_pars(object) |> mutate(from=state, to=tostate) |>
+        pa <- loabs_pars(object) |> 
           select(all_of(colnames))
         res <- rbind(res, pa)
       }
@@ -153,13 +153,13 @@ summary.msmbayes <- function(object, pars=NULL,...){
   }
   if (has_rra_covariates(object) && ("rra" %in% pars)){
     rra_ests <- rra(object, ...) |>
-      mutate(name=sprintf("rra(%s)", name), from=state, to=tostate) |>
+      mutate(name=sprintf("rra(%s)", name)) |>
       select(all_of(colnames))
     res <- rbind(res, rra_ests)
   }
   if (has_rra_covariates(object) && ("logrra" %in% pars)){
     logrra_ests <- logrra(object, ...) |>
-      mutate(name=sprintf("logrra(%s)", name), from=state, to=tostate) |>
+      mutate(name=sprintf("logrra(%s)", name)) |>
       select(all_of(colnames))
     res <- rbind(res, logrra_ests)
   }

@@ -12,5 +12,5 @@ phaseapprox_pars(draws, log = FALSE)
 \item{log}{Return parameters on log scale}
 }
 \description{
-Summarise posteriors for shape and scale parameters for the sojourn distribution in a semi-Markov msmbayes model
+In models with covariates on the scale parameter, this currently only presents these parameters for covariate values of zero.
 }

@@ -106,11 +106,6 @@ approximated sojourn distribution in the phased state.  Either a
 vector of the same length as \code{pastates}, or just one to apply to
 all states.}
 
-\item{pamethod}{\verb{"moment", "kl_linear"} or
-\code{"kl_hermite"}. Advanced.  Method of constructing the
-approximations. May remove this argument if one of these turns
-out to be good enough.}
-
 \item{nphase}{Only required for models with phase-type sojourn
 distributions specified directly (not through \code{pastates}).
 \code{nphase} is a vector with one element per state, giving the

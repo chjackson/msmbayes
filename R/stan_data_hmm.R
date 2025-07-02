@@ -102,7 +102,7 @@ pa_nulldata <- function(qm){
        ntrain = 1, traindat_x = array(dummy, dim=c(1)),
        traindat_y = array(dummy, dim=c(1,0)), traindat_m = array(dummy, dim=c(1,0)),
        traindat_inds = array(dim=c(0,2)),
-       pamethod = 1, pafamily = array(dim=0), npadest =  0,
+       pamethod = 1, pafamily = array(dim=0), npnext =  0,
        dest_base = array(dim=0), dest_state = array(dim=0),
        loind = array(dim=0), npaqall=0, paq_inds = array(dim=0),
        prates_inds = array(dim=0),
@@ -141,7 +141,7 @@ form_phaseapprox_standata <- function(qm,pm,qmobs){
          pamethod = match(pm$pamethod, c("moment", "kl_linear","kl_hermite")),
          pafamily = as.array(match(pm$pafamily, c("gamma","weibull"))),
 
-         npadest = nrow(crdat),
+         npnext = nrow(crdat),
          dest_base = as.array(as.numeric(crdat$dest_base)),
          dest_state = as.array(crdat$dest_state),
          loind = as.array(crdat$loind),

@@ -111,9 +111,9 @@ test_that("phase-type approximations with multiple exit states: transition probs
   expect_equal(med_rvar(qmatrix(fitpa)["2","3"]),
                med_rvar(qmatrix(fitm)[2,3]), tolerance=0.01)
 
-  pa <- padest_pars(fitpa)
+  pa <- pnext(fitpa)
   expect_true(is.numeric(pa$mode))
-  expect_equal(sum(pa$mode[pa$state==1]), 1)
+  expect_equal(sum(pa$mode[pa$from==1]), 1)
   summary(fitpa)
   summary(fitpa, pars=c("scale","padest"))
 })

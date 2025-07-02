@@ -13,7 +13,6 @@ msmbayes(
   covariates = NULL,
   pastates = NULL,
   pafamily = "weibull",
-  pamethod = "moment",
   panphase = NULL,
   E = NULL,
   Efix = NULL,
@@ -116,16 +115,9 @@ approximated sojourn distribution in the phased state.  Either a
 vector of the same length as \code{pastates}, or just one to apply to
 all states.}
 
-\item{pamethod}{\verb{"moment", "kl_linear"} or
-\code{"kl_hermite"}. Advanced.  Method of constructing the
-approximations. May remove this argument if one of these turns
-out to be good enough.}
-
 \item{panphase}{Number of phases to use for each state given a
 phase-type Gamma or Weibull approximation.  Vector of same length
-as \code{pastates}. More phases allow a wider range of shape parameters.
-Only applicable for \code{pamethod="moment"}.  For the spline-based
-methods, 5 phases are always used.}
+as \code{pastates}. More phases allow a wider range of shape parameters.}
 
 \item{E}{By default, \code{msmbayes} fits a (non-hidden) Markov model.
 If \code{E} is supplied, then a Markov model with misclassification is

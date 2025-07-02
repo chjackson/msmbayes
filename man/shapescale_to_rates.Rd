@@ -24,7 +24,7 @@ shapescale_to_rates(
 
 \item{canonical}{Return the phase-type parameters in canonical form (phase 1 sojourn rate, sojourn rate increments in subsequent states, absorption probabilities).  If \code{FALSE} then phase transition rates are returned.}
 
-\item{method}{TODO decide whether to keep the spline method.}
+\item{method}{(Deprecated)}
 
 \item{nphase}{Number of phases.}
 

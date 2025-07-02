@@ -15,3 +15,7 @@ Log odds of transition to a competing destination state, relative
 to baseline destination state.  Only applicable to phase-type
 approximation models, specified with \code{pastates}.
 }
+\details{
+In models with covariates on the transition odds, this currently only presents
+these parameters for covariate values of zero.
+}

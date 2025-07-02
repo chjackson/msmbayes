@@ -588,7 +588,7 @@ phaseapprox_pars <- function(draws, log=FALSE){
 ##'
 ##' @export
 loabs_pars <- function(draws){
-  dest_base <- oldfrom <- oldto <- state <- tostate <- NULL
+  dest_base <- oldfrom <- oldto <- from <- to <- NULL
   loa_post <- loabs_pars_internal(draws, type="posterior")
   loa_mode <- loabs_pars_internal(draws, type="mode")
   refs <- attr(draws, "qmodel")$pacrdata |> filter(dest_base)
@@ -596,13 +596,13 @@ loabs_pars <- function(draws){
     left_join(refs |> select(oldfrom, ref=oldto), by="oldfrom")
   res <- data.frame(
     name = "loa",
-    state = pacr$oldfrom,
-    tostate = pacr$oldto,
+    from = pacr$oldfrom,
+    to = pacr$oldto,
     refstate = pacr$ref,
     posterior = loa_post
   )
   if (!is.null(loa_mode)) res$mode <- loa_mode
-  res |> arrange(state, tostate)
+  res |> arrange(from, to)
 }
 
 ## This might be generalised to handle all next-state probabilities,
@@ -625,24 +625,22 @@ loabs_pars <- function(draws){
 ##' In models with covariates on the transition odds, this currently only presents
 ##' these parameters for covariate values of zero.
 ##'
-##' padest stands for probability of absorption (from phase system) in
-##' destination state ... TODO clearer name?  pcomprisk? pnext? pnextstate? we also
-##' have loa, logoddsabs
+##' TODO rename loa, logoddsabs to include "next" ? 
 ##'
 ##' @export
-padest_pars <- function(draws){
-  state <- tostate <- NULL
-  padest_post <- padest_pars_internal(draws, type="posterior")
-  padest_mode <- padest_pars_internal(draws, type="mode")
+pnext_phaseapprox <- function(draws){
+  from <- to <- NULL
+  pnext_post <- pnext_phaseapprox_internal(draws, type="posterior")
+  pnext_mode <- pnext_phaseapprox_internal(draws, type="mode")
   pacr <- attr(draws, "qmodel")$pacrdata
   res <- data.frame(
-    name = "padest",
-    state = pacr$oldfrom,
-    tostate = pacr$oldto,
-    posterior = padest_post
+    name = "pnext",
+    from = pacr$oldfrom,
+    to = pacr$oldto,
+    posterior = pnext_post
   )
-  if (!is.null(padest_mode)) res$mode <- padest_mode
-  res |> arrange(state, tostate)
+  if (!is.null(pnext_mode)) res$mode <- pnext_mode
+  res |> arrange(from, to)
 }
 
 #' @name rradoc
@@ -672,16 +670,16 @@ padest_pars <- function(draws){
 ##' @aliases logrra
 ##' @export
 logrra <- function(draws){
-  state <- tostate <- NULL
+  from <- to <- NULL
   pacr <- attr(draws, "cmodel")$rradf
   res_post <- logrra_internal(draws, type="posterior")
   res_mode <- logrra_internal(draws, type="mode")
   res <- data.frame(
-    state = pacr$from, tostate=pacr$to, name=pacr$name,
+    from = pacr$from, to=pacr$to, name=pacr$name,
     posterior = res_post
   )
   if (!is.null(res_mode)) res$mode <- res_mode
-  res |> arrange(state, tostate) |> as_msmbres()
+  res |> arrange(from, to) |> as_msmbres()
 
 }
 
@@ -725,4 +723,41 @@ logLik.msmbayes <- function(object, ...){
   if (is_mode(object)) res <- ll$mode else res <- ll$posterior
   attr(res, "df") <- ll$npars
   res
+}
+
+##' Probabilities for the next state in a multi-state model
+##'
+##' Given an individual is currently in state \eqn{r}, these are the
+##' probabilities that when leaving state \eqn{r}, the individual will
+##' move to a particular state \eqn{s}.
+##'
+##' Defined as the transition intensity from \eqn{r} to \eqn{s}
+##' divided by the sum of all transition intensities out of \eqn{r}.
+##'
+##' As the models in \code{msmbayes} work in continuous time, the
+##' next-state probability is different from the transition
+##' probability.  The transition probability is the probability that
+##' the individual is in state \eqn{s} at a specific time in the
+##' future, and can be obtained from an \code{msmbayes} model with the
+##' functions \code{\link{pdf}}, \code{\link{pmatrix}}.
+##'
+##' Currently only supported for covariate values of zero. 
+##' 
+##' @export
+pnext <- function(draws){
+  state <- posterior <- mode <- NULL
+  if (is_phaseapprox(draws)){
+    pn <- pnext_phaseapprox(draws) # todo rename, handle covariates
+  } else {
+    q <- qdf(draws) # covs
+    ms <- mean_sojourn(draws) # might be cleaner to have a function for diag(Q)? 
+    pn <- q |>
+      left_join(ms |> select(from=state, ms_post=posterior, ms_mode=mode), # .. and covs 
+                by="from") |>
+      mutate(posterior = posterior*ms_post,
+             mode = mode*ms_mode) |>
+      select(-ms_post,-ms_mode)
+    pn
+  }
+  pn
 }

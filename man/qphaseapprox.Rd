@@ -36,7 +36,7 @@ Ignored if \code{nphase} is supplied.}
 
 \item{family}{parametric family approximated by the phase-type distribution: \code{"weibull"} or \code{"gamma"}}
 
-\item{method}{TODO decide whether to keep the spline method.}
+\item{method}{(Deprecated)}
 
 \item{att}{keep attributes indicating progression and absorption states}
 }
