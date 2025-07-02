@@ -361,7 +361,7 @@ process_priors <- function(priors, qm, cm, pm, em, qmobs,
 
 check_repeated_prior <- function(tafind, cm, loghr_user){
   cids <- setdiff(which(loghr_user &
-                        (cm$tafdf$consid == cm$tafdf$consid[tafind])), tafind)
+                        (cm$tafdf$consid %in% cm$tafdf$consid[tafind])), tafind)
   if (length(cids) > 0){
     bad_eff <- sprintf("loghr(%s,%s,%s)",cm$tafdf$name[tafind],
                        cm$tafdf$fromobs[tafind], cm$tafdf$toobs[tafind])
