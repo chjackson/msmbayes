@@ -14,4 +14,4 @@ vignettes/articles
 src/*.o
 src/*.so
 src/*.dll
-
+src/*.h
