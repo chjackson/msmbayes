@@ -126,13 +126,16 @@ form_covariates <- function(covariates, data, constraint, qm, pm, em, qmobs,
 
     ## ...For semi-Markov next-state relative risk parameters
     if (length(mod_rrnext) > 0){
-      qindr <- sapply(mod_rrnext, function(x)x$qind)
+      qindr <- lapply(mod_rrnext, function(x)x$qind)
+      nqr <- lengths(qindr)
+      lapply(mod_rrnext, function(x)x$qind)
       nxr1 <- sapply(mod_rrnext, function(x)x$ncovs)
-      nrrnextq[qindr] <- nxr1
-      rrnextstart[qindr] <- cumsum(c(0,nxr1[-length(nxr1)])) + 1
-      rrnextend[qindr] <- cumsum(nxr1)
-      xrrnextstart[qindr] <- rrnextstart[qindr] + NCOL(Xq) + NCOL(Xscale)
-      xrrnextend[qindr]   <- rrnextend[qindr]   + NCOL(Xq) + NCOL(Xscale)
+      uq <- unlist(qindr)
+      nrrnextq[uq] <- rep(nxr1, nqr)
+      rrnextstart[uq] <- rep(cumsum(c(0,nxr1[-length(nxr1)])) + 1, nqr)
+      rrnextend[uq] <- rep(cumsum(nxr1), nqr) # TESTME
+      xrrnextstart[uq] <- rrnextstart[uq] + NCOL(Xq) + NCOL(Xscale)
+      xrrnextend[uq]   <- rrnextend[uq]   + NCOL(Xq) + NCOL(Xscale)
     }
 
     ## Table with one row per allowed latent transition, giving covariate model for this

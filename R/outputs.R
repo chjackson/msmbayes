@@ -82,7 +82,7 @@ qdf <- function(draws, new_data=NULL, keep_covid=FALSE){
   qvecmode <- qvector(draws, new_data, type="mode")
   qm <- attr(draws, "qmodel")
   if (!has_covariates(draws)) new_data <- NULL
-  mode <- vecbycovs_to_df(qvecmode, new_data)$posterior
+  mode <- vecbycovs_to_df(qvecmode, new_data)$mode
   vecbycovs_to_df(qvec, new_data, keep_covid=keep_covid) |>
     mutate(from = qm$qrow[vecid],
            to = qm$qcol[vecid],
@@ -132,7 +132,7 @@ edf <- function(draws){
     cli_abort("No modelled misclassification probabilities: all are fixed")
   evec <- evector(draws)
   evecmode <- evector(draws, type="mode")
-  mode <- vecbycovs_to_df(evecmode, new_data=NULL)$posterior
+  mode <- vecbycovs_to_df(evecmode, new_data=NULL)$mode
   vecbycovs_to_df(evec, new_data=NULL) |>
     mutate(from = em$erow[vecid],  # should we just name these $row, $col,
            to = em$ecol[vecid],    #  if we need to work with e matrix form?
@@ -284,7 +284,8 @@ mean_sojourn <- function(draws, new_data=NULL, states="obs"){
     mutate(state = (1:nstates)[vecid]) |>
     select(-vecid) |>
     relocate(state, posterior)
-  mst$mode <- vecbycovs_to_df(mstmode, new_data)$posterior
+  if (is_mode(draws))
+    mst$mode <- vecbycovs_to_df(mstmode, new_data)$mode
   if (states=="phase"){
     mst <- mst |>
       relabel_phase_states(draws) |>
@@ -455,7 +456,7 @@ totlos <- function(draws, t, new_data=NULL, fromt=0, pstart=NULL, discount=0,
     mutate(state = (1:nst)[vecid]) |>
     select(-vecid)
   if (!is.null(Qmode))
-    res$mode <- vecbycovs_to_df(totlos_mode, new_data)$posterior
+    res$mode <- vecbycovs_to_df(totlos_mode, new_data)$mode
   if (is_phasetype(draws)){
     if (states=="obs"){
       res$state <- attr(draws,"pmodel")$pdat$oldinds[res$state]
@@ -579,35 +580,34 @@ phaseapprox_pars <- function(draws, log=FALSE){
 ##'
 ##' Log odds of transition to a competing destination state, relative
 ##' to baseline destination state.  Only applicable to phase-type
-##' approximation models, specified with \code{pastates}.
-##'
-##' In models with covariates on the transition odds, this currently only presents
-##' these parameters for covariate values of zero.
+##' approximation models, specified with \code{pastates}. 
 ##'
 ##' @inheritParams qmatrix
 ##'
+##' @seealso pnext
+##'
 ##' @export
-logoddsnext <- function(draws){
-  dest_base <- oldfrom <- oldto <- from <- to <- NULL
-  lon_post <- logoddsnext_internal(draws, type="posterior")
-  lon_mode <- logoddsnext_internal(draws, type="mode")
+logoddsnext <- function(draws, new_data=NULL, keep_covid=FALSE){
+  if (!is_phaseapprox(draws))
+    cli_abort("Not a phase-type approximation model") # or we could transform pnext, if anyone needs this
+  dest_base <- oldfrom <- oldto <- from <- to <- vecid <- NULL
+  lon_post <- logoddsnext_internal(draws, new_data, type="posterior")
+  lon_mode <- logoddsnext_internal(draws, new_data, type="mode")
+  mode <- vecbycovs_to_df(lon_mode, new_data)$mode
   refs <- attr(draws, "qmodel")$pacrdata |> filter(dest_base)
-  pacr <- attr(draws, "qmodel")$pacrdata |> filter(!dest_base) |>
-    left_join(refs |> select(oldfrom, ref=oldto), by="oldfrom")
-  res <- data.frame(
-    name = "logoddsnext",
-    from = pacr$oldfrom,
-    to = pacr$oldto,
-    refstate = pacr$ref,
-    posterior = lon_post
-  )
-  if (!is.null(lon_mode)) res$mode <- lon_mode
-  res |> arrange(from, to)
+  pacr <- attr(draws, "qmodel")$pacrdata |>
+    filter(!dest_base) |>
+    left_join(refs |> select(oldfrom, ref=oldto), by=c("oldfrom"))
+  res <- vecbycovs_to_df(lon_post, new_data, keep_covid=keep_covid) |>
+    mutate(
+      name = "logoddsnext",
+      from = pacr$oldfrom[vecid],
+      to = pacr$oldto[vecid],
+      refstate = pacr$ref[vecid]
+    )
+  if (!is.null(lon_mode)) res$mode <- mode
+  res |> arrange(from, to) |> select(-vecid) |> relocate(name, posterior)
 }
-
-## This might be generalised to handle all next-state probabilities,
-## as pnext in msm (or could call them transition probabilities for
-## embedded discrete-time chain)
 
 ##' Probabilities of competing exit destination states in phase type
 ##' models
@@ -729,8 +729,15 @@ logLik.msmbayes <- function(object, ...){
 ##' probabilities that when leaving state \eqn{r}, the individual will
 ##' move to a particular state \eqn{s}.
 ##'
-##' Defined as the transition intensity from \eqn{r} to \eqn{s}
-##' divided by the sum of all transition intensities out of \eqn{r}.
+##' In a Markov model, this is defined as the transition intensity
+##' from \eqn{r} to \eqn{s} divided by the sum of all transition
+##' intensities out of \eqn{r}.
+##'
+##' In semi-Markov models, this quantity is a model parameter in
+##' itself.  In phase-type approximation models, the parameters
+##' consist of the parameters of the sojourn distribution and the
+##' next-state probabilities, which (as in a Markov model) are assumed
+##' to be independent of the sojourn time.
 ##'
 ##' As the models in \code{msmbayes} work in continuous time, the
 ##' next-state probability is different from the transition
@@ -739,23 +746,49 @@ logLik.msmbayes <- function(object, ...){
 ##' future, and can be obtained from an \code{msmbayes} model with the
 ##' functions \code{\link{pdf}}, \code{\link{pmatrix}}.
 ##'
-##' Currently only supported for covariate values of zero. 
-##' 
+##' @inheritParams qmatrix
+##'
 ##' @export
-pnext <- function(draws){
+pnext <- function(draws, new_data=NULL){
   state <- posterior <- mode <- NULL
-  if (is_phaseapprox(draws)){
-    pn <- pnext_phaseapprox(draws) # todo rename, handle covariates
+    if (is_phaseapprox(draws)){
+    pn <- pnext_from_logoddsnext(draws,new_data)
   } else {
-    q <- qdf(draws) # covs
-    ms <- mean_sojourn(draws) # might be cleaner to have a function for diag(Q)? 
+    q <- qdf(draws,new_data)
+    ms <- mean_sojourn(draws,new_data) # might be cleaner to have a function for diag(Q)?
+    if (!is_mode(draws)) q$mode <- ms$mode <- NA
     pn <- q |>
-      left_join(ms |> select(from=state, ms_post=posterior, ms_mode=mode), # .. and covs 
-                by="from") |>
+      left_join(ms |> select(from=state, ms_post=posterior, ms_mode=mode), 
+                by=c("from","covid")) |>
       mutate(posterior = posterior*ms_post,
              mode = mode*ms_mode) |>
       select(-ms_post,-ms_mode)
+    if (!is_mode(draws)) pn$mode <- NULL
     pn
   }
   pn
+}
+
+pnext_from_logoddsnext <- function(draws, new_data=NULL){
+  lon <- logoddsnext(draws, new_data, keep_covid=TRUE)
+  lonref <- lon |>
+    filter(!duplicated(paste(from, refstate, covid))) |>
+    mutate(to=refstate, posterior = rvar(0))
+  do_mode <- !is.null(lon[["mode"]])
+  if (do_mode) lonref$mode <- 0
+  lon <- lon |> rbind(lonref) |>
+    arrange(from, to, covid)
+  if (!do_mode) lon$mode <- NA
+  lon_sum <- lon |>
+    group_by(from,covid) |>
+    summarise(psum = rvar_sum(exp(posterior)),
+              msum = sum(exp(mode)))
+  res <- lon |>
+    left_join(lon_sum,by=c("from","covid")) |>
+    mutate(posterior = exp(posterior) / psum)
+  if (do_mode)
+    res <- res |> mutate(mode = exp(mode)/msum)
+  else res <- res |> select(-mode)
+  res <- res |> select(-covid,-psum,-msum)
+  res
 }

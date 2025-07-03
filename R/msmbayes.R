@@ -438,7 +438,7 @@ has_scale_covariates <- function(draws){
   nrow(cm$tafdf[cm$tafdf$response=="scale",]) > 0
 }
 
-has_rrnext <- function(draws){
+has_pnext <- function(draws){
   nrow(attr(draws,"qmodel")$pacrdata) > 0
 }
 

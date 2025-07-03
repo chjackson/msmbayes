@@ -15,12 +15,7 @@ qvector <- function(draws, new_data=NULL, X=NULL, type="posterior", drop=FALSE){
   if (type=="mode" && !is_mode(draws)) return(NULL)
   td <- tidy_draws(if (type=="posterior") draws else get_mode_draws(draws))
   logq <- td |> gather_rvars(logq[]) |> pull(".value")
-  if (!has_covariates(draws)){
-    if (!is.null(new_data))
-      cli_warn("Ignoring `new_data`, because there are no covariates in the model")
-    if (!is.null(X))
-      cli_warn("Ignoring `X`, because there are no covariates in the model")
-  }
+  check_nd_no_covariates(draws, new_data, X)
   if (!has_covariates(draws) ||
       (is.null(new_data) && is.null(X))){
     logqnew <- logq
@@ -33,9 +28,7 @@ qvector <- function(draws, new_data=NULL, X=NULL, type="posterior", drop=FALSE){
     else loghr <- td |>  gather_rvars(loghr[]) |>  pull(".value")
     if (cm$nrrnext > 0)
       logrrnext <- td |>  gather_rvars(logrrnext[]) |>  pull(".value")
-    if (is.null(X))
-      X <- new_data_to_X(new_data, draws)
-    else check_X(X, draws)
+    X <- make_X(draws, new_data, X)
     ncovvals <- nrow(X)
     logqnew <- rvar(array(dim=c(ndraws(logq), ncovvals, nqpars(draws))))
     for (i in 1:nqpars(draws)){
@@ -46,8 +39,8 @@ qvector <- function(draws, new_data=NULL, X=NULL, type="posterior", drop=FALSE){
           X[,inds,drop=FALSE] %**% loghr[inds]  # %**% from library(posterior)
       }
       if (cm$transdf$nrrnextq[i] > 0){
-        inds <- cm$transdf$xrrastart[i]:cm$transdf$xrraend[i]
-        rrinds <- cm$transdf$rrastart[i]:cm$transdf$rraend[i]
+        inds <- cm$transdf$xrrnextstart[i]:cm$transdf$xrrnextend[i]
+        rrinds <- cm$transdf$rrnextstart[i]:cm$transdf$rrnextend[i]
         logqnew[,i] <- logqnew[,i] +
           X[,inds,drop=FALSE] %**% logrrnext[rrinds]
       }
@@ -55,12 +48,11 @@ qvector <- function(draws, new_data=NULL, X=NULL, type="posterior", drop=FALSE){
   }
   qvec <- exp(logqnew)
   if (isTRUE(attr(new_data, "std"))){
-    qvec <- standardise_qvector(qvec)
+    qvec <- standardise_pars(qvec)
     ncovvals <- 1
   }
   if (type=="mode"){
-    ## mean() only necessary here when standardising
-    qvec <- array(apply(draws_of(qvec), c(2,3), mean), dim=c(ncovvals, nqpars(draws)))
+    qvec <- rvarmat_means(qvec) # note when standardising, this takes mean of 1 number
   }
   if (type=="posterior" && is_mode(draws))
     attr(qvec, "mode") <- qvector(draws, new_data, type="mode", drop=TRUE)
@@ -69,13 +61,12 @@ qvector <- function(draws, new_data=NULL, X=NULL, type="posterior", drop=FALSE){
   qvec
 }
 
-check_X <- function(X,draws){
-  if (!is.matrix(X)) cli_abort("{.var X} should be a matrix")
-  if (!is.numeric(X)) cli_abort("{.var X} should be numeric")
-  ncoveffs <- attr(draws,"cm")$nx
-  if (ncol(X) != ncoveffs) {
-    cli_abort(c("Number of columns of {.var X} should be {ncoveffs}, the number of covariate effect parameters in the model",
-                "Supplied {.var X} has {ncol(X)} columns"))
+check_nd_no_covariates <- function(draws, new_data=NULL, X=NULL){
+  if (!has_covariates(draws)){
+    if (!is.null(new_data))
+      cli_warn("Ignoring `new_data`, because there are no covariates in the model")
+    if (!is.null(X))
+      cli_warn("Ignoring `X`, because there are no covariates in the model")
   }
 }
 
@@ -86,16 +77,16 @@ combine_draws <- function(x) {
   rvar(array(dx, dim=c(length(dx),1,1)))
 }
 
-#' input array of nvars with ncovs rows, nqpars cols
-#' output array of nvars with 1 row, nqpars cols
+#' input array of nvars with ncovs rows, npars cols
+#' output array of nvars with 1 row, npars cols
 #' formed from concatenating the posterior samples
 #' to represent sample from marginal output
 #'
 #' For modes, take the average of point estimates over covariates
 #'
 #' @noRd
-standardise_qvector <- function(qvec, type="posterior"){
-  post <- t(posterior::rvar_apply(qvec, 2, combine_draws))
+standardise_pars <- function(pars, type="posterior"){
+  post <- t(posterior::rvar_apply(pars, 2, combine_draws))
   if (type=="mode") post <- mean(post)
   post
 }
@@ -148,17 +139,6 @@ phaseapprox_pars_internal <- function(draws, type="posterior", log=FALSE){
   value
 }
 
-logoddsnext_internal <- function(draws, type="posterior", log=FALSE){
-  V1 <- posterior <- logoddsnext <- NULL
-  if (!is_phaseapprox(draws)) return(NULL)
-  if (type=="mode" && !is_mode(draws)) return(NULL)
-  td <- tidy_draws(if (type=="posterior") draws else get_mode_draws(draws))
-  value <- td |> gather_rvars(logoddsnext[]) |> pull(".value") |>  t() |>
-    as.data.frame() |> rename(posterior=V1) |> pull(posterior)
-  if (type=="mode") value <- as.numeric(draws_of(value))
-  value
-}
-
 pnext_phaseapprox_internal <- function(draws, type="posterior", log=FALSE){
   pnext <- V1 <- posterior <- NULL
   if (!is_phaseapprox(draws)) return(NULL)
@@ -170,31 +150,62 @@ pnext_phaseapprox_internal <- function(draws, type="posterior", log=FALSE){
   value
 }
 
-## TODO add covariates to this.
-## Extract logoddsnext and logrrnext internally but how do they combine, is it 
-## log(prs / pr1) = logoddsnext + logrrnext*x   ?
-## logrrnext multiplies the transition rate on top of the scale effect 
-## gamma = exp(gamma0 + logrrnext*x)
-## so q = q0 * beta * exp(gamma0 + logrrnext*x)
-## then logoddsnext is log(pnext) - log(p1) = log(qnext) - log(q1) = log(qnext/q1)
-## gamma does not apply to q1 
-## pnext_bycovs_internal <- function(draws, type="posterior"){
-##   cm <- attr(draws,"cmodel")
-##   qm <- attr(draws,"qmodel")
 
-##   logoddsnext <- td |> gather_rvars(logoddsnext[]) |> pull(".value") # add pacr$oldfrom, oldto
-##   logrrnext <- td |> gather_rvars(logrrnext[]) |> pull(".value") # todo add pacr$from, to , name
-## then how to include covs. newdata to x, coud we do it tidy? 
+##' @return data frame ncovvals x noddsnext of rvars or numerics
+##' Code is similar to \code{qvector}.  Low-level model quantity by covariates
+##' @noRd
+logoddsnext_internal <- function(draws, new_data=NULL, type="posterior",drop=FALSE){
+  if (type=="mode" && !is_mode(draws)) return(NULL)
+  td <- tidy_draws(if (type=="posterior") draws else get_mode_draws(draws))
+  logoddsnext <- td |> gather_rvars(logoddsnext[]) |> pull(".value") # add pacr$oldfrom, oldto
+  check_nd_no_covariates(draws, new_data)
+  cm <- attr(draws,"cmodel")
+  qm <- attr(draws,"qmodel")
+  if (!has_rrnext_covariates(draws) || is.null(new_data)){
+    ncovvals <- 1
+    lonew <- array(logoddsnext, dim=c(ncovvals, qm$noddsnext))
+  } else {
+    logrrnext <- td |> gather_rvars(logrrnext[]) |> pull(".value") # todo add pacr$from, to , name
+    X <- make_X(draws, new_data)
+    ncovvals <- nrow(X)
+    pd <- qm$pacrdata[!qm$pacrdata$dest_base,] |>
+      left_join(
+        cm$transdf |>
+          mutate(oldlab=paste0(fromobs,"-",toobs)) |>
+          filter(!duplicated(oldlab)) |>
+          select(oldlab,rrnextstart,rrnextend,xrrnextstart,xrrnextend),
+        by="oldlab")
+    lonew <- rvar(array(dim=c(ndraws(logoddsnext), ncovvals, qm$noddsnext)))
+    for (i in 1:qm$noddsnext) {
+      xinds <- pd$xrrnextstart[i]:pd$xrrnextend[i]
+      rrinds <- pd$rrnextstart[i]:pd$rrnextend[i]
+      lonew[,i] <- logoddsnext[i]  +  X[,xinds,drop=FALSE] %*% logrrnext[rrinds]
+      ## ncovvals        scalar         (ncovvals x ncovs)     ncovs
+    }
+  }
+  if (isTRUE(attr(new_data, "std"))){
+    lonew <- standardise_pars(lonew)
+    ncovvals <- 1
+  }
+  if (type=="mode") lonew <- rvarmat_means(lonew)
+  if (type=="posterior" && is_mode(draws))
+    attr(lonew, "mode") <- logoddsnext_internal(draws, new_data, type="mode", drop=TRUE)
+  if (drop && ncovvals==1) lonew <- lonew[1,]
+  attr(lonew, "ncovvals") <- ncovvals
+  lonew
+}
 
-##         if (cm$transdf$nrrnextq[i] > 0){
-##         inds <- cm$transdf$xrrastart[i]:cm$transdf$xrraend[i]
-##         rrinds <- cm$transdf$rrastart[i]:cm$transdf$rraend[i]
-##         logqnew[,i] <- logqnew[,i] +
-##           X[,inds,drop=FALSE] %**% logrrnext[rrinds]
-##       }
-
-  
-## }
+#' @param rvar matrix of rvars
+#' @return numeric 2d matrix with mean of each rvar
+#'
+#' Note this is used to convert type of posterior modes matrix, where
+#' rvars all have just one draw
+#'
+#' @noRd
+rvarmat_means <- function(rvar){
+  arr <- draws_of(rvar)
+  array(apply(arr, c(2,3), mean), dim=dim(arr)[2:3])
+}
 
 logrrnext_internal <- function(draws, type="posterior", log=FALSE){
   logrrnext <- V1 <- posterior <- NULL
@@ -242,7 +253,10 @@ qvec_to_mst <- function(qvec, qm){
   -1 / diag(Q)
 }
 
-#' @param rvarmat An rvar matrix with one row per covariate value.
+#' @param rvarmat An rvar (or numeric) matrix with one row per
+#'   covariate value.  If it is numeric it will contain posterior
+#'   modes.  If there are no covariates it is still a matrix with one
+#'   row, not a vector.
 #'
 #' Rows of the matrix represent some vector of outputs from Stan
 #'
@@ -258,8 +272,7 @@ qvec_to_mst <- function(qvec, qm){
 #' Ordered by \code{vecid} within \code{covid}.
 #'
 #' @noRd
-vecbycovs_to_df <- function(rvarmat, new_data, mode=FALSE,
-                            keep_covid=FALSE){
+vecbycovs_to_df <- function(rvarmat, new_data, keep_covid=FALSE){
   covid <- vecid <- value <- NULL
   if (is.null(rvarmat)) return(NULL)
   ncovvals <- dim(rvarmat)[1]
@@ -270,8 +283,9 @@ vecbycovs_to_df <- function(rvarmat, new_data, mode=FALSE,
     mutate(covid = 1:ncovvals) |>
     tidyr::pivot_longer(cols=matches("vecid"), names_to="vecid",
                         names_prefix = "vecid",
-                        names_transform=list(vecid=as.integer)) |>
-    rename(posterior = value)
+                        names_transform=list(vecid=as.integer))
+  if (is.numeric(rvarmat)) res <- res |> rename(mode = value)
+  else res <- res |> rename(posterior = value)
   if (!is.null(new_data) && !isTRUE(attr(new_data, "std"))){
     res <- res |>
       left_join(new_data |> mutate(covid=1:n()), by="covid")
@@ -332,7 +346,22 @@ mean_sojourn_phase <- function(qvec, tdat, state) {
   rvarn_sum(mx$mixprob * mx$mst)
 }
 
+make_X <- function(draws, new_data=NULL, X=NULL){
+  if (is.null(X))
+    X <- new_data_to_X(new_data, draws)
+  else check_X(X, draws)
+  X
+}
 
+check_X <- function(X,draws){
+  if (!is.matrix(X)) cli_abort("{.var X} should be a matrix")
+  if (!is.numeric(X)) cli_abort("{.var X} should be numeric")
+  ncoveffs <- attr(draws,"cm")$nx
+  if (ncol(X) != ncoveffs) {
+    cli_abort(c("Number of columns of {.var X} should be {ncoveffs}, the number of covariate effect parameters in the model",
+                "Supplied {.var X} has {ncol(X)} columns"))
+  }
+}
 
 #' Convert user-supplied prediction data to a matrix formed by
 #' cbinding together all the design matrices for the different
@@ -357,8 +386,8 @@ new_data_to_X <- function(new_data, draws, call=caller_env()){
   }
   Xq <- X[cm$cmodeldf$response=="Q"]
   Xs <- X[cm$cmodeldf$response=="scale"]
-  Xrr <- X[cm$cmodeldf$response=="rra"]
-  X <- as.matrix(do.call("cbind", c(Xq, Xs, Xrr))) # dim 0, 20, 30
+  Xrr <- X[cm$cmodeldf$response=="rrnext"]
+  X <- as.matrix(do.call("cbind", c(Xq, Xs, Xrr)))
   X
 }
 
@@ -400,7 +429,7 @@ soj_prob_phase <- function(draws, t, state, new_data=NULL,
                                      method = method)
     }
   }
-  mode <- vecbycovs_to_df(surv_mode, new_data)$posterior
+  mode <- vecbycovs_to_df(surv_mode, new_data)$mode
   res <- data.frame(time = rep(t, ncovvals),
                     posterior = as.vector(rvar(surv)),
                     mode = mode) |>
@@ -425,7 +454,7 @@ soj_prob_nonphase <- function(draws, t, state, new_data=NULL){
     surv[,,i] <- pexp(t[i], rate = qv, lower.tail=FALSE)
     if (is_mode(draws)) surv_mode[,i] <- pexp(t[i], rate = qv_mode, lower.tail=FALSE)
   }
-  mode <- vecbycovs_to_df(surv_mode, new_data)$posterior
+  mode <- vecbycovs_to_df(surv_mode, new_data)$mode
   res <- rvar(surv) |>
     vecbycovs_to_df(new_data) |>
     mutate(mode = mode) |>

@@ -113,7 +113,7 @@ summary.msmbayes <- function(object, pars=NULL,...){
         select(all_of(colnames))
       res <- rbind(res, pa)
     }
-    if (has_rrnext(object)){
+    if (has_pnext(object)){
       if ("pnext" %in% pars){
         pa <- pnext(object) |> 
           select(all_of(colnames))
