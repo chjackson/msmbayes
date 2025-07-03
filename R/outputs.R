@@ -288,8 +288,8 @@ mean_sojourn <- function(draws, new_data=NULL, states="obs", keep_covid=FALSE){
     mst$mode <- vecbycovs_to_df(mstmode, new_data)$mode
   if (states=="phase"){
     mst <- mst |>
-      relabel_phase_states(draws) |>
-      filter(state %in% transient_states(qm))
+      filter(state %in% transient_states(qm)) |>
+      relabel_phase_states(draws)
   }
   else {
     mst <- mst |>
