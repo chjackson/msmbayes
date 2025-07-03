@@ -248,7 +248,7 @@ pmatrixdf <- function(draws, t=1, new_data=NULL){
 #' See \code{\link{qdf}} for notes on this format and how to summarise.
 #'
 #' @export
-mean_sojourn <- function(draws, new_data=NULL, states="obs"){
+mean_sojourn <- function(draws, new_data=NULL, states="obs", keep_covid=FALSE){
   vecid <- state <- posterior <- NULL
   Q <- qmatrix(draws, new_data, drop=FALSE)
   Qmode <- qmatrix(draws, new_data, drop=FALSE, type="mode")
@@ -280,7 +280,7 @@ mean_sojourn <- function(draws, new_data=NULL, states="obs"){
     }
   }
 
-  mst <- vecbycovs_to_df(mst, new_data) |>
+  mst <- vecbycovs_to_df(mst, new_data, keep_covid=keep_covid) |>
     mutate(state = (1:nstates)[vecid]) |>
     select(-vecid) |>
     relocate(state, posterior)
@@ -289,11 +289,11 @@ mean_sojourn <- function(draws, new_data=NULL, states="obs"){
   if (states=="phase"){
     mst <- mst |>
       relabel_phase_states(draws) |>
-      slice(transient_states(qm))
+      filter(state %in% transient_states(qm))
   }
   else {
     mst <- mst |>
-      slice(transient_states(qmobs))
+      filter(state %in% transient_states(qmobs))
   }
   mst
 }
@@ -580,7 +580,7 @@ phaseapprox_pars <- function(draws, log=FALSE){
 ##'
 ##' Log odds of transition to a competing destination state, relative
 ##' to baseline destination state.  Only applicable to phase-type
-##' approximation models, specified with \code{pastates}. 
+##' approximation models, specified with \code{pastates}.
 ##'
 ##' @inheritParams qmatrix
 ##'
@@ -754,19 +754,20 @@ pnext <- function(draws, new_data=NULL){
     if (is_phaseapprox(draws)){
     pn <- pnext_from_logoddsnext(draws,new_data)
   } else {
-    q <- qdf(draws,new_data)
-    ms <- mean_sojourn(draws,new_data) # might be cleaner to have a function for diag(Q)?
+    q <- qdf(draws,new_data,keep_covid=TRUE)
+    ms <- mean_sojourn(draws,new_data,keep_covid=TRUE)
+    ## might be cleaner to have a function for diag(Q)?
     if (!is_mode(draws)) q$mode <- ms$mode <- NA
     pn <- q |>
-      left_join(ms |> select(from=state, ms_post=posterior, ms_mode=mode), 
+      left_join(ms |> select(from=state, covid, ms_post=posterior, ms_mode=mode),
                 by=c("from","covid")) |>
       mutate(posterior = posterior*ms_post,
              mode = mode*ms_mode) |>
-      select(-ms_post,-ms_mode)
+      select(-ms_post,-ms_mode,-covid)
     if (!is_mode(draws)) pn$mode <- NULL
     pn
   }
-  pn
+  pn |> mutate(name="pnext") |> relocate(name)
 }
 
 pnext_from_logoddsnext <- function(draws, new_data=NULL){
@@ -789,6 +790,7 @@ pnext_from_logoddsnext <- function(draws, new_data=NULL){
   if (do_mode)
     res <- res |> mutate(mode = exp(mode)/msum)
   else res <- res |> select(-mode)
-  res <- res |> select(-covid,-psum,-msum)
+  res <- res |> mutate(name="pnext") |>
+    relocate(name) |> select(-covid,-psum,-msum)
   res
 }
