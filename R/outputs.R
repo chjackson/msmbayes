@@ -777,7 +777,8 @@ pnext_from_logoddsnext <- function(draws, new_data=NULL){
     mutate(to=refstate, posterior = rvar(0))
   do_mode <- !is.null(lon[["mode"]])
   if (do_mode) lonref$mode <- 0
-  lon <- lon |> rbind(lonref) |>
+  lon <- lon |>
+    rbind(lonref) |>
     arrange(from, to, covid)
   if (!do_mode) lon$mode <- NA
   lon_sum <- lon |>
@@ -791,6 +792,12 @@ pnext_from_logoddsnext <- function(draws, new_data=NULL){
     res <- res |> mutate(mode = exp(mode)/msum)
   else res <- res |> select(-mode)
   res <- res |> mutate(name="pnext") |>
-    relocate(name) |> select(-covid,-psum,-msum)
+    relocate(name,from,to) |>
+    select(-covid,-refstate,-psum,-msum)
   res
 }
+
+## TODO
+## Piecewise constant covariates in pmatrix (and dependents: totlos)
+## msm doesn't do this for mean_sojourn
+## syntax for new_data, split pmatrix calls and combine.

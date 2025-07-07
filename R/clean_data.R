@@ -1,12 +1,12 @@
-## what does form_covariates need from the data exactly?
-## to have a nrow, to be understood by hardhat::mold.
-## so needs basic checks eg data frame, variables exist
-
-## then the rest is applying column names and dropping missing data
-
-## what does msmhist need from the data
-## standard col names, but is it OK with missing data?
-
+##' Basic checks needed before form_covariates: data frame, variables
+##' exist (needed by hardhat::mold)
+##'
+##' Also check state in 1,,.K
+##'
+##' Other checks (missing data) done after covariate data read in, in
+##' \code{clean_data}
+##' 
+##' @noRd
 check_data <- function(dat, state="state", time="time", subject="subject",
                        obstype=NULL, obstrue=NULL,
                        qm=NULL, censor_states, prior_sample=FALSE, call=caller_env()){

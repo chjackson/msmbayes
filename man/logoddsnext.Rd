@@ -5,17 +5,18 @@
 \title{Summarise posteriors for log odds of transitions from phase-type
 states}
 \usage{
-logoddsnext(draws)
+logoddsnext(draws, new_data = NULL, keep_covid = FALSE)
 }
 \arguments{
 \item{draws}{Object returned by \code{\link{msmbayes}}.}
+
+\item{new_data}{Data frame with covariate values to predict for}
 }
 \description{
 Log odds of transition to a competing destination state, relative
 to baseline destination state.  Only applicable to phase-type
 approximation models, specified with \code{pastates}.
 }
-\details{
-In models with covariates on the transition odds, this currently only presents
-these parameters for covariate values of zero.
+\seealso{
+pnext
 }

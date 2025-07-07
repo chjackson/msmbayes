@@ -23,23 +23,15 @@
 #' level, e.g. `"loghr(sexMALE,2,3)"` for level `"MALE"` of factor
 #' `"sex"`.
 #'
-#' `"logtaf"`. Covariate effect on the sojourn time in states
-#' given a semi-Markov models with a phase-type approximation.  This
-#' is specified with only one index, indicating the state,
+#' `"logtaf"`. Covariate effect on the sojourn time in states given a
+#' semi-Markov model with a phase-type approximation.  This is
+#' specified with only one index, indicating the state,
 #' e.g. `"loghr(age,2)"`.  Note this is interpreted as a log hazard
 #' ratio for times to transitions on the latent space, but for the
-#' sojourn time on the observable space, this is interpreted as a time
-#' acceleration factor, such that an coefficent of log(2) increases
-#' the risk of the next transition through halving the expected
-#' sojourn time.
-#'
-#' Covariate effects on competing transitions out of semi-Markov
-#' states are specified with `logrrnext`.  For example,
-#' `"logrrnext(age,2,3)"` for the effect of `age` on the relative rate of
-#' transition from state 2 to state 3, relative to the rate of
-#' transition from state 2 to the first competing destination state.
-#' These parameters are not applicable to semi-Markov states with only
-#' one potential next destination state.
+#' sojourn time on the observable space, this is a
+#' "time acceleration factor", such that an coefficent of log(2)
+#' increases the risk of the next transition through halving the
+#' expected sojourn time.
 #'
 #' `"hr"`. Hazard ratio.
 #'
@@ -65,12 +57,18 @@
 #' probability of transition to the first out of the set of potential
 #' destination states.
 #'
+#' Covariate effects on competing transitions out of semi-Markov
+#' states are specified with `logrrnext`.  For example,
+#' `"logrrnext(age,2,3)"` for the effect of `age` on the relative rate of
+#' transition from state 2 to state 3, relative to the rate of
+#' transition from state 2 to the first competing destination state.
+#' These parameters are not applicable to semi-Markov states with only
+#' one potential next destination state.
 #'
-#' The indices or the covariate name can be omitted to indicate that
+#' In general, the indices or the covariate name can be omitted to indicate that
 #' the same prior will used for all transitions, or/and all
 #' covariates.  This can be done with or without the brackets, e.g.
 #' `"logq()"` or `"logq"` are both understood.
-#'
 #'
 #'
 #' @param mean Prior mean.  This is only used for the parameters that have direct normal priors, that is `logq`, `loghr`, `logtaf`, `logshape`, `logscale`, `loe`, `logoddsnext`.  That is, excluding `time`, `q` and `hr`, whose priors are defined by transformations of a normal distribution.
@@ -272,7 +270,7 @@ extraneous_covname_error <- function(res){
   logshape = list(mean=0, sd=0.5), # this gets truncated on the supported region in hmm.stan
   logscale = list(mean=2, sd=2), # log inverse of default prior for q, ie rate when shape is 1
   loe = list(mean=0, sd=1),
-  logoddsnext = list(mean=0, sd=1)
+  logoddsnext = list(mean=0, sd=2.3)
 )
 
 #' Assemble prior parameters as data to be passed to Stan

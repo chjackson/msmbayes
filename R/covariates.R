@@ -200,7 +200,7 @@ form_covariates <- function(covariates, data, constraint, qm, pm, em, qmobs,
   }
 
   cm <- cm_form_consdf(constraint, cm, qmobs, pm, qm, call=call)
-  cm <- cm_form_tafdf(cm, pm)
+  cm <- cm_form_tafdf(cm, pm) # in constraint.R
 
   if (cm$nx != sum(cm$transdf$nxq)) cli_abort("Internal error in form_covariates: report a bug")
   if (cm$nrrnext != sum(cm$cmodeldf$ncovs[cm$cmodeldf$response=="rrnext"]))

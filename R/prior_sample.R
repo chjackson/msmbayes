@@ -66,6 +66,9 @@ msmbayes_prior_sample <- function(data, state="state", time="time", subject="sub
   res
 }
 
+## TODO way to convert the Stan names to real names for the model draws output
+## though just for output, not for initial values 
+
 prior_sample_logq <- function(priors, nsim, qm, pm, em){
   if (qm$npriorq > 0){
     logq <- matrix(nrow=nsim, ncol=qm$npriorq)

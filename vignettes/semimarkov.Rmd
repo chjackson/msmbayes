@@ -23,21 +23,138 @@ Non-Markov models have traditionally been difficult for intermittently observed 
 `msmbayes` can fit multi-state models where the sojourn distribution in any state has a special two-parameter distribution.   This relaxes the Markov assumption, producing a semi-Markov model, where the transition rate out of a state depends on how long the individual has spent in the state.   The sojourn distribution used for these models is a _phase-type approximation to a shape-scale distribution_, introduced by [Titman, 2014](https://doi.org/10.1007/s11222-012-9360-6).
 
 
-## Phase-type shape-scale distributions
+# Phase-type shape-scale distributions
 
 The distribution has two parameters: shape $a$ and scale $b$.  The probability distribution function is defined by 
 
 \[ F(x | a, b) = F_p(x | \lambda  = b*h(a)) \]
 
-where $F_p(x | \lambda)$ is a phase-type distribution with 5 phases and transition rates $\lambda$.   The shape and scale are mapped to the phase-type transition rates through a function $h()$, determined so that the phase-type distribution approximates either a Weibull or a Gamma over a wide range of shape parameters.  This function is pre-determined and stored in the `msmbayes` package.
+where $F_p(x | \lambda)$ is a phase-type distribution with 5 phases and transition rates $\lambda$.   The shape and scale are mapped to the phase-type transition rates through a function $h()$, determined so that the first three moments of the phase-type distribution are the same as those of the Weibull or a Gamma, for a wide range of shape parameters.  This function is pre-determined (using the formulae from [Bobbio et al.](https://doi.org/10.1081/STM-200056210)) and stored in the `msmbayes` package.   A default 5 phases is used.  This process will be described more formally in a forthcoming paper, but for now, the code is in the package source (`phaseapprox` branch).
 
-Essentially $h()$ is determined by minimising the Kullback-Leibler discrepancy between the phase-type distribution and the Weibull, for a series of points on a fine grid.  The optimal solutions are interpolated using a Hermite cubic spline, and extended beyond the grid boundaries with a constant, to define a full time-to-event distribution function for positive times $x$.  This is done for a scale parameter of $b=1$, then generalised to other values of $b$ through the accelerated failure time property of the Weibull or Gamma and phase-type models.  This process will be described more formally in a forthcoming paper, but for now, the code is in `data-raw/kl_pointwise.R` in the package source.
+* Covariates can be applied to the scale parameter $b$, in the typical fashion as a linear model on $\log(b)$. 
 
-* Covariates are applied to the scale parameter $b$, in the typical fashion as a linear model on $\log(b)$. 
+* When this model is used as a sojourn distribution in some state $r$, additional assumptions are needed if there are multiple alternative states $s$ that an individual can transition to immediately on leaving $r$.   In `msmbayes`, this transition is governed by a constant "next state" probability $\pi_{rs}$, as is done in [Titman, 2014](https://doi.org/10.1007/s11222-012-9360-6). This assumes that the transition probability does not depend on the length of time spent in state $r$ --- the supplementary material to [Titman, 2014](https://doi.org/10.1007/s11222-012-9360-6) discusses some more flexible alternatives.
 
-* When this model is used as a sojourn distribution in some state $r$, additional assumptions are needed if there are multiple alternative states $s$ that an individual can transition to immediately on leaving $r$.   In `msmbayes`, this transition is governed by a constant transition probability $\pi_{rs}$, as is done in [Titman, 2014](https://doi.org/10.1007/s11222-012-9360-6). This assumes that the transition probability does not depend on the length of time spent in state $r$ --- the supplementary material to [Titman, 2014](https://doi.org/10.1007/s11222-012-9360-6) discusses some more flexible alternatives.
+* Covariates can also be applied to $\pi_{rs}$ via a multiplicative model on the odds of transition 
 
 
-## Implementation in msmbayes 
+# Implementation in msmbayes 
 
 Some worked examples will appear here soon, including prior specification, model fitting, and summarising the sojourn distribution. 
+
+Use the infection/recovery example again, with a death state where relevant 
+
+
+## Model specification 
+
+To specify the states given a semi-Markov model, specify the `pastates` argument to `msmbayes`, say `pastates=2` if this is state 2, or `pastates=c(1,2)` if both states 1 and 2 are semi-Markov model.   By default, the Weibull distribution will be used as the basis of the phase-type approximation.  To use the Gamma, add a `pafamily` argument, say `pafamily="gamma"` here.  Or if there is more than one state given a semi-Markov model, different distributions can be used for different states, e.g `pastates=c(1,2), pafamily=c("weibull","gamma")`. 
+
+Without covariates
+
+To start with, we fit a two-state infection model to the basic data `infsim2`  from the [Examples](examples.html) vignette.   This is now made into a semi-Markov model.  A phase-type approximation to the Weibull is (arbitrarily) assumed for the time in the first state (time until next infection), and a Gamma approximation is used for the time in state 2, that is a period with the infection. 
+
+The Bayesian model is fitted using posterior mode optimisation and Laplace approximation (MCMC would be safer but slower - avoiding risk of finding a local optimum or underestimating uncertainty)
+
+```{r}
+Q <- rbind(c(0,1), c(1,0))
+draws <- msmbayes(data=infsim2, state="state", time="months", subject="subject",
+                  pastates=1:2,
+                  Q=Q, fit_method="optimize")
+phaseapprox_pars(draws)
+```
+
+Shape parameters around 1.0 (exponential distribution) are supported for state 1, and around 0.4 for state 2 (despite the data being simulated from an exponential).  Scale: 2 months in state 1, 0.2 months in state 2 
+
+With covariates on the scale parameter for the distribution in both states 
+
+```{r}
+drawsc <- msmbayes(data=infsim2, state="state", time="months", subject="subject",
+                   pastates=1:2,
+                   covariates = list(scale(1) ~ male, scale(2) ~ male),
+                   Q=Q, fit_method="optimize")
+taf(drawsc)
+```
+
+Log likelihood to compare between Weibull and Gamma - Gamma seems to fit slightly better, with 
+shape parameters encompassing 1 as expected. 
+
+The fitted shape parameter of the Weibull is questionable.  Should the Gamma be the default?  It
+is a better approximation over a range of shapes - see the paper. 
+
+```{r}
+drawsg <- msmbayes(data=infsim2, state="state", time="months", subject="subject",
+                   pastates=1:2, pafamily=c("gamma","gamma"),
+                   Q=Q, fit_method="optimize")
+loglik(drawsg)
+loglik(draws)
+phaseapprox_pars(drawsg)
+```
+
+### Prior specification 
+
+The above demonstration just used the default priors (see TODO help page).  These should be specified more thoughtfully in a real application. 
+
+The parameters of the semi-Markov model are harder to interpret than those of the Markov model.  The recommend approach is to draw random samples from priors and transform these to more interpretable quantities (e.g. the mean sojourn time) to determine what priors a given choice implies for those interpretable quantities - starting with the defaults, and modifying by trial and error if necessary.
+
+Guide in the appendix showing how to elicit 
+
+
+## Outputs from fitted models 
+
+Mean sojourn time - (technical note - this refers to the mean of the phase-type distribution, not the Gamma or Weibull, but these should be the same, have we checked? 
+
+```{r}
+mean_sojourn(draws) # 
+summary(mean_sojourn(draws)) # extreme mean! 
+mean_sojourn(draws,states="phase") # WTF? Wacky phase type approximation 
+mean_sojourn(drawsg,states="phase") # That is more sensible.
+mean_sojourn(draws,states="obs")
+```
+
+
+Covariate effects as time acceleration factors.  Not much data about any effect, note the wide credible interval for the time acceleration factor. 
+
+```{r}
+taf(drawsc)
+summary(taf(drawsc), ~quantile(.x,c(0.025, 0.5, 0.975)))
+```
+
+All other standard multistate model outputs suppported as for Markov models.  For example, the total length of time spent in each state over 12 months, here computed for two different covariate values (men and women).
+
+```{r}
+nd <- data.frame(male=c(0,1))
+tl <- totlos(drawsc, t=12, new_data=nd)
+```
+
+Or for a standard population consisting of half men and half women (i.e. the observed distribution in the data frame `nd`) 
+
+```{r}
+tl <- totlos(drawsc, t=12, new_data=standardise_to(nd))
+```
+
+
+
+## Models with competing risks 
+
+An extra state representing death is added. 
+
+Covariates modify both the scale parameter for the sojourn time in age 2, 
+and the chance of moving to 3 (rather than 1) on leaving 2. 
+
+```{r}
+draws <- msmbayes(data=infsim, state="state", time="months", subject="subject",
+                  pastates=2,
+                  covariates = list(Q(1,2) ~ age,
+                                    scale(2) ~ age,
+                                    rrnext(2,3) ~ age),
+                  Q=Q, fit_method="optimize")
+```
+
+
+
+: easier to compare absolute outcomes between covariate values, rather than raw parameter values. 
+
+To determine the "significance" of covariate effects in a Bayesian approach, we could obtain the posterior distribution of the difference in an absolute outcome of interest, and summarise the posterior probability that this difference takes a value of practical interest.   For example: 
+
+Standardised population 
+

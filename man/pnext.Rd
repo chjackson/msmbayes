@@ -4,7 +4,12 @@
 \alias{pnext}
 \title{Probabilities for the next state in a multi-state model}
 \usage{
-pnext(draws)
+pnext(draws, new_data = NULL)
+}
+\arguments{
+\item{draws}{Object returned by \code{\link{msmbayes}}.}
+
+\item{new_data}{Data frame with covariate values to predict for}
 }
 \description{
 Given an individual is currently in state \eqn{r}, these are the
@@ -12,8 +17,15 @@ probabilities that when leaving state \eqn{r}, the individual will
 move to a particular state \eqn{s}.
 }
 \details{
-Defined as the transition intensity from \eqn{r} to \eqn{s}
-divided by the sum of all transition intensities out of \eqn{r}.
+In a Markov model, this is defined as the transition intensity
+from \eqn{r} to \eqn{s} divided by the sum of all transition
+intensities out of \eqn{r}.
+
+In semi-Markov models, this quantity is a model parameter in
+itself.  In phase-type approximation models, the parameters
+consist of the parameters of the sojourn distribution and the
+next-state probabilities, which (as in a Markov model) are assumed
+to be independent of the sojourn time.
 
 As the models in \code{msmbayes} work in continuous time, the
 next-state probability is different from the transition
@@ -21,6 +33,4 @@ probability.  The transition probability is the probability that
 the individual is in state \eqn{s} at a specific time in the
 future, and can be obtained from an \code{msmbayes} model with the
 functions \code{\link{pdf}}, \code{\link{pmatrix}}.
-
-Currently only supported for covariate values of zero.
 }

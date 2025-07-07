@@ -37,23 +37,15 @@ effect of \code{age} on the log hazard ratio of transitioning from state
 level, e.g. \code{"loghr(sexMALE,2,3)"} for level \code{"MALE"} of factor
 \code{"sex"}.
 
-\code{"logtaf"}. Covariate effect on the sojourn time in states
-given a semi-Markov models with a phase-type approximation.  This
-is specified with only one index, indicating the state,
+\code{"logtaf"}. Covariate effect on the sojourn time in states given a
+semi-Markov model with a phase-type approximation.  This is
+specified with only one index, indicating the state,
 e.g. \code{"loghr(age,2)"}.  Note this is interpreted as a log hazard
 ratio for times to transitions on the latent space, but for the
-sojourn time on the observable space, this is interpreted as a time
-acceleration factor, such that an coefficent of log(2) increases
-the risk of the next transition through halving the expected
-sojourn time.
-
-Covariate effects on competing transitions out of semi-Markov
-states are specified with \code{logrrnext}.  For example,
-\code{"logrrnext(age,2,3)"} for the effect of \code{age} on the relative rate of
-transition from state 2 to state 3, relative to the rate of
-transition from state 2 to the first competing destination state.
-These parameters are not applicable to semi-Markov states with only
-one potential next destination state.
+sojourn time on the observable space, this is a
+"time acceleration factor", such that an coefficent of log(2)
+increases the risk of the next transition through halving the
+expected sojourn time.
 
 \code{"hr"}. Hazard ratio.
 
@@ -79,7 +71,15 @@ is the probability of transition to state 2 divided by the
 probability of transition to the first out of the set of potential
 destination states.
 
-The indices or the covariate name can be omitted to indicate that
+Covariate effects on competing transitions out of semi-Markov
+states are specified with \code{logrrnext}.  For example,
+\code{"logrrnext(age,2,3)"} for the effect of \code{age} on the relative rate of
+transition from state 2 to state 3, relative to the rate of
+transition from state 2 to the first competing destination state.
+These parameters are not applicable to semi-Markov states with only
+one potential next destination state.
+
+In general, the indices or the covariate name can be omitted to indicate that
 the same prior will used for all transitions, or/and all
 covariates.  This can be done with or without the brackets, e.g.
 \code{"logq()"} or \code{"logq"} are both understood.}

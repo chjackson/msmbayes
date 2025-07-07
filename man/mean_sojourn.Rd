@@ -4,7 +4,7 @@
 \alias{mean_sojourn}
 \title{Mean sojourn times from an msmbayes model}
 \usage{
-mean_sojourn(draws, new_data = NULL, states = "obs")
+mean_sojourn(draws, new_data = NULL, states = "obs", keep_covid = FALSE)
 }
 \arguments{
 \item{draws}{Object returned by \code{\link{msmbayes}}.}

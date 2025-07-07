@@ -1,3 +1,6 @@
+## Not used in the package 
+
+
 ##' Derivative of Exp(tQ) with respect to a specified off-diagonal
 ##' entry of Q, evaluated at the supplied Q
 ##'

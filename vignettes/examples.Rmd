@@ -18,13 +18,12 @@ vignette: >
 
 This article demonstrates the basic use of the `msmbayes` package to fit Bayesian multi-state models to longitudinal data consisting of intermittent observations of a state.
 
-* It shows that `msmbayes` can reproduce the true parameter values for a simulated dataset, within an expected margin of simulation error, and gives similar results to `msm`.
+`msmbayes` essentially fits Bayesian versions of some of the models in `msm`.   However `msmbayes` has more limited features - see the front page for a more detailed comparison.
 
-* It gives some general hints and warnings about Bayesian implementation of these models, e.g. priors, computational challenges.  Though this is the subject of ongoing research.
+This article shows the potential benefits of a Bayesian approach compared to the frequentist approach in the  `msm` package, and gives some general hints and warnings about Bayesian implementation of these models, e.g. priors, computational challenges.
 
 A general introduction to the theory and practice of multi-state modelling is given in the documentation and course notes for the [`msm` package](https://chjackson.github.io/msm/).
 
-`msmbayes` essentially fits Bayesian versions of some of the models in `msm`.   However `msmbayes` has more limited features - see the front page for a more detailed comparison.
 
 
 # Simulated infection testing data {#sec-simdata}
@@ -259,7 +258,7 @@ For any priors for log hazard ratios not specified through `priors`, a default n
 	the posterior in a slightly more sophisticated way than the Laplace method.  If the approximation is poor, then a warning message referring to the "Pareto k value" 
 	will be printed when the model is fitted. 
 
-* This example works with Stan's default MCMC initial values, which are sampled from the priors.  Users could also supply the `init` argument to `msmbayes`, which is passed to Stan.
+* Initial values are determined by sampling from the prior but with a tighter (0.2 times) prior standard deviation.   If an error message referring to the initial value is given (e.g. non-finite gradient, zero likelihood) then the same model might work with a different random number seed (use `set.seed` so that the seed is reproducible).  Consider whether the priors are too vague, but the prior should be justified by background information - do not make the prior tighter just to make it converge. 
 
 * If the model fits the data badly, then the sampling may be bad with any method.
 

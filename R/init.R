@@ -3,11 +3,11 @@
 ##' Initial values in msmbayes models 
 ##'
 ##' In most cases it should not be necessary to supply explicit
-##' initial values when fitting a model msmbayes.
+##' initial values when fitting a model in msmbayes.
 ##'
 ##' For Bayesian estimation, msmbayes will draw initial values from
-##' the priors, with a standard deviation shrunk by an arbitrary
-##' factor of 5.  The recommendation is that the priors are chosen
+##' the priors, with a standard deviation shrunk by arbitrarily dividing by 5.
+##' The recommendation is that the priors are chosen
 ##' thoughtfully based on background information, e.g. to bound
 ##' parameter values within a rough order of magnitude.  The
 ##' auto-drawn initial values will then naturally be plausible.
@@ -49,9 +49,11 @@
 ##'
 ##' `logscale` Log scale parameter for states with phase-type approximations as sojourn distributions.
 ##'
-##' `logoddse` Log odds of misclassification in each state in turn, compared to the correct classification.
-##'
 ##' `logoddsnext` Only for phase-type approximation models with competing next states after the phased state: log odds of transition to each potential next state, compared to the first such state in the space.
+##'
+##' `logrrnext` Log relative risks describing covariate effects on relative risk (or odds) of transition to each potential next state.
+##' 
+##' `logoddse` Log odds of misclassification in each state in turn, compared to the correct classification.
 ##'
 ##' @noRd
 ##'
