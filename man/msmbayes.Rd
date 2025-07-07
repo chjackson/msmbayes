@@ -12,7 +12,7 @@ msmbayes(
   Q,
   covariates = NULL,
   pastates = NULL,
-  pafamily = "weibull",
+  pafamily = "gamma",
   panphase = NULL,
   E = NULL,
   Efix = NULL,
