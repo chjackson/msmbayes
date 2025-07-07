@@ -267,7 +267,8 @@ extraneous_covname_error <- function(res){
   loghr = list(mean=0, sd=10),
   logtaf = list(mean=0, sd=10),
   logrrnext = list(mean=0, sd=10),
-  logshape = list(mean=0, sd=0.5), # this gets truncated on the supported region in hmm.stan
+  logshape = list("weibull" = list(mean=0, sd=0.25), # these get truncated on the supported region in hmm.stan
+                  "gamma" = list(mean=0, sd=0.5)),
   logscale = list(mean=2, sd=2), # log inverse of default prior for q, ie rate when shape is 1
   loe = list(mean=0, sd=1),
   logoddsnext = list(mean=0, sd=2.3)
@@ -294,10 +295,10 @@ process_priors <- function(priors, qm, cm, pm, em, qmobs,
   loghrsd <- rep(.default_priors$loghr$sd, cm$nxuniq)
   logtafmean <- rep(.default_priors$logtaf$mean, cm$nxuniq)
   logtafsd <- rep(.default_priors$logtaf$sd, cm$nxuniq)
-  logshapemean <- rep(.default_priors$logshape$mean, pm$npastates)
-  logshapesd <- rep(.default_priors$logshape$sd, pm$npastates)
+  logshapemean <- as.numeric(sapply(.default_priors$logshape[pm$pafamily], function(x)x$mean))
+  logshapesd <- as.numeric(sapply(.default_priors$logshape[pm$pafamily], function(x)x$sd))
   logscalemean <- rep(.default_priors$logscale$mean, pm$npastates)
-  logscalesd <- rep(.default_priors$logscale$sd, pm$npastates) # ugh? separate function?
+  logscalesd <- rep(.default_priors$logscale$sd, pm$npastates)
   logoddsnextmean <- rep(.default_priors$logoddsnext$mean, qm$noddsnext)
   logoddsnextsd <- rep(.default_priors$logoddsnext$sd, qm$noddsnext)
   logrrnextmean <- rep(.default_priors$logrrnext$mean, cm$nrrnext)
