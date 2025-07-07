@@ -269,6 +269,8 @@ transformed parameters {
   // defines q_full, equiv of exp(logq)
   // saves shape,scale,pnext
   real loglik = 0;
+  real logprior = 0;
+  real logpost = 0;
   array[K] vector[K] E = rep_array(rep_vector(0,K), K);    // full matrix of error probs
   array[nepars] real evec; // absolute error probs, for those modelled
 
@@ -475,39 +477,44 @@ transformed parameters {
     }
   }
 
-} 
-
-model {
   
   if (!mle){
     for (i in 1:npriorq){
-      logq_markov[i] ~ normal(logqmean[i], logqsd[i]); // or could be gamma
+      logprior += normal_lpdf(logq_markov[i] | logqmean[i], logqsd[i]); // or could be gamma
     }
     for (i in 1:npastates){
-      logshape[i] ~ normal(logshapemean[i], logshapesd[i])T[logshapemin[i],logshapemax[i]];
-      logscale[i] ~ normal(logscalemean[i], logscalesd[i]);
+      logprior += normal_lpdf(logshape[i] | logshapemean[i], logshapesd[i]) - 
+	log(normal_cdf(logshapemax[i] | logshapemean[i], logshapesd[i]) -
+	    normal_cdf(logshapemin[i] | logshapemean[i], logshapesd[i]));
+      // i.e. logshape[i] ~ normal(logshapemean[i], logshapesd[i])T[logshapemin[i],logshapemax[i]];
+
+      logprior += normal_lpdf(logscale[i] | logscalemean[i], logscalesd[i]);
     }  
     if (nxuniq > 0){
       for (i in 1:nxuniq){
-	loghr_uniq[i] ~ normal(loghrmean[i], loghrsd[i]);
+	logprior += normal_lpdf(loghr_uniq[i] | loghrmean[i], loghrsd[i]);
       }
     }
     if (nrrnext > 0){
       for (i in 1:nrrnext){
-	logrrnext[i] ~ normal(logrrnextmean[i], logrrnextsd[i]);
+	logprior += normal_lpdf(logrrnext[i] | logrrnextmean[i], logrrnextsd[i]);
       }
     }
     if (nepars > 0){
       for (i in 1:nepars){
-	logoddse[i] ~ normal(loemean[i], loesd[i]);
+	logprior += normal_lpdf(logoddse[i] | loemean[i], loesd[i]);
       }
     }
     if (noddsnext > 0){
       for (i in 1:noddsnext){
-	logoddsnext[i] ~ normal(logoddsnextmean[i], logoddsnextsd[i]);
+	logprior += normal_lpdf(logoddsnext[i] | logoddsnextmean[i], logoddsnextsd[i]);
       }
     }
   }
 
-  target += loglik;
+  logpost = logprior + loglik;
+} 
+
+model {
+  target += logpost;
 }

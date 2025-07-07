@@ -695,21 +695,23 @@ rrnext <- function(draws){
 ##' @rdname loglik
 ##' @aliases logLik.msmbayes
 ##'
-##' @return A data frame with columns indicating
+##' @return For \code{loglik}, a data frame with rows for the log likelihood, log prior density and log posterior density,
+##' and columns for the posterior (as an `rvar` object) and the mode (only if optimisation was used to fit the model, rather than MCMC).
 ##'
-##' `posterior`: the posterior distribution of the log likelihood (as an `rvar` object).
+##' If `msmbayes` was called with `priors="mle"`, the maximised log posterior and log likelihood should be the same.
 ##'
-##' `mode` the posterior mode of the log likelihood (only if optimisation was used to fit the model, rather than MCMC).  If `msmbayes` was called `priors="mle"`, this is the maximised log likelihood.
-##'
+##' For \code{logLik} (note the different capitalisation), just the likelihood (mode if available, or posterior if not) is returned.  This is a
+##' method for the generic \code{logLik} function in the \code{stats} package. 
 ##'
 ##' @export
 loglik <- function(draws){
   name <- posterior <- from <- to <- tafid <- NULL
   qm <- attr(draws,"qmodel")
-  res <- data.frame(variable = "loglik") |>
-    mutate(posterior = loglik_internal(draws),
-           mode = loglik_internal(draws, type="mode"),
-           npars = npars(draws))
+  res <- data.frame(name=c("loglik", "logprior", "logpost")) |>
+    mutate(posterior = loglik_internal(draws))
+  if (is_mode(draws))
+    res$mode <- loglik_internal(draws, type="mode")
+  attr(res,"npars") <- npars(draws)
   as_msmbres(res)
 }
 
@@ -717,9 +719,9 @@ loglik <- function(draws){
 ##' @aliases loglik
 ##' @export
 logLik.msmbayes <- function(object, ...){
-  ll <- loglik(object)
+  ll <- loglik(object) |> filter(name=="loglik")
   if (is_mode(object)) res <- ll$mode else res <- ll$posterior
-  attr(res, "df") <- ll$npars
+  attr(res, "df") <- attr(ll,"npars")
   res
 }
 

@@ -175,6 +175,7 @@ summary.msmbayes <- function(object, pars=NULL,...){
     res$rhat <- summary(res, rhat)[,c("rhat")]
   if (!is_mle(object))
     res <- res |> attach_priors(object)
+  if (all(is.na(res$to))) res$to <- NULL
   class(res) <- c("msmbres", class(res))
   res
 }

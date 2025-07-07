@@ -91,21 +91,11 @@ parameters {
 
 transformed parameters {
   real loglik = 0;  // save loglik for use in priorsense, but keep other variables local here
-  array[nqpars] real prior_logq;
-  array[nxuniq] real prior_loghr;
+  real logprior = 0;
+  real logpost = 0;
 
   vector[nx] loghr;     // log hazard ratios for covariates after replicating constrained ones 
   for (i in 1:nx){  loghr[i] = loghr_uniq[consid[i]];  }
-
-  for (i in 1:nqpars){
-    prior_logq[i] = normal_lpdf(logq[i] | logqmean[i], logqsd[i]); 
-  }
-
-  if (nxuniq > 0){
-    for (i in 1:nxuniq){
-      prior_loghr[i] = normal_lpdf(loghr_uniq[i] | loghrmean[i], loghrsd[i]);
-    }
-  }
 
   {
     // transition intensity matrix, with some entries fixed to zero
@@ -173,18 +163,19 @@ transformed parameters {
     }  
 
   }
-}
-
-model {
   if (!mle){
     for (i in 1:nqpars){
-      target += prior_logq[i];
+      logprior += normal_lpdf(logq[i] | logqmean[i], logqsd[i]); 
     }
     if (nxuniq > 0){
       for (i in 1:nxuniq){
-	target += prior_loghr[i];
+	logprior += normal_lpdf(loghr_uniq[i] | loghrmean[i], loghrsd[i]);
       }
     }
   }
-  target += loglik;
+  logpost = logprior + loglik;
+}
+
+model {
+  target += logpost;
 }

@@ -469,10 +469,16 @@ loglik_internal <- function(draws, type="posterior"){
   if (type=="mode" && !is_mode(draws)) return(NULL)
   td <- tidy_draws(if (type=="posterior") draws else get_mode_draws(draws))
   loglik <- td |> gather_rvars(loglik[]) |> pull(".value")
-  if (type=="mode") loglik <- as.numeric(draws_of(loglik))
+  logprior <- td |> gather_rvars(logprior[]) |> pull(".value")
+  logpost <- td |> gather_rvars(logpost[]) |> pull(".value")
+  if (type=="mode") {
+    loglik <- as.numeric(draws_of(loglik))
+    logprior <- as.numeric(draws_of(logprior))
+    logpost <- as.numeric(draws_of(logpost))
+  }
   if (!is_hmm(draws))
     loglik <- loglik - attr(draws,"standat")$multinom_const
-  loglik
+  c(loglik, logprior, logpost)
 }
 
 npars <- function(draws){
