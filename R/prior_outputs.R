@@ -35,7 +35,7 @@ prior_to_rvar <- function(mean, sd, n=1000){
 rvar_to_quantile_string <- function(rvar){
   df <- summary(rvar, ~quantile(.x, probs=c(0.025, 0.5, 0.975)))
   for (i in c("50%","2.5%","97.5%"))
-    df[[i]] <- format(round(df[[i]],digits=8), digits=2)
+    df[[i]] <- trimws(format(round(df[[i]],digits=8), digits=2))
   sprintf("%s (%s, %s)", df[["50%"]], df[["2.5%"]], df[["97.5%"]])
 }
 
@@ -221,7 +221,7 @@ prior_pnext_db <- function(priors, qm){
     select("name", "from", "to", "rvar", "string")
 }
 
-### TESTME 
+### TESTME
 prior_logrrnext_db <- function(priors, cm){
   prior <- name <- xname <- NULL
   cmdf <- cm$cmodeldf[cm$cmodeldf$response %in% c("rrnext"),]
