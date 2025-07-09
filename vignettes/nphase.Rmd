@@ -71,7 +71,7 @@ Here we extend the 2-state model for the simulated infection data to give state 
 library(msmbayes)
 ```
 
-```{r,cache=TRUE,results="hide"}
+```{r,results="hide"}
 Q <- rbind(c(0, 1), 
            c(1, 0))
 draws <- msmbayes(infsim2, state="state", time="months", subject="subject",
@@ -120,7 +120,7 @@ for speed of demonstration, but in practice we would generally want to cross-che
 The posterior distributions for these models are likely to have a skewed and multimodal 
 shape which is not represented well by a normal approximation.
 
-```{r,cache=TRUE,results="hide",warning=FALSE,error=FALSE,message=FALSE}
+```{r,results="hide",warning=FALSE,error=FALSE,message=FALSE}
 #| fig.alt: >
 #|   Posterior density estimates
 Q3 <- rbind(c(0,1,1),c(0,0,1),c(0,0,0))
@@ -136,7 +136,7 @@ to these initial values would be needed to confirm that the reported estimates a
 the global maximum likelihood estimates, rather than one of the local maxima or
 saddle points.
 
-```{r,cache=TRUE,results="hide"}
+```{r,results="hide"}
 Q3 <- rbind(c(0,0.5,0.5),c(0,0,0.5),c(0,0,0))
 s.msm <- msm(obs ~ time, subject=subject, data=sim.df, phase.states=1, qmatrix=Q3,
              phase.inits=list(list(trans=0.05,  # seems to need these

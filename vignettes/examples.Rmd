@@ -162,12 +162,14 @@ The mean sojourn times are estimated to be (within estimation error) close to th
 Set `time=TRUE` to summarise the $1/q_{rs}$ (mean times to event, ignoring competing events, as described above) and their priors.  If there are no competing risks, as here, these are equal to the mean sojourn times.  Or set `log=TRUE` to summarise the $\log(q_{rs})$.
 
 ```{r}
-summary(draws, time=TRUE)
+summary(draws, pars="time")
 ```
 
 The `summary` output also gives the "Rhat" convergence diagnostic, which should be close to 1.0 if the MCMC estimation has converged ([see here](https://mc-stan.org/rstan/reference/Rhat.html) for more explanation.)
 
 See also `qdf()` to get just the intensities, or `qmatrix()` for the same quantities in a matrix rather than data frame format, and `mean_sojourn()` to get just the mean sojourn times.
+
+### rvar objects {#rvar}
 
 The `value` column of data frames returned by these functions is of type `rvar`.  This data type is from the `posterior` package. It is designed to contain random variables, such as uncertain quantities in Bayesian models.  Instead of a single value, it stores a sample from the quantity's distribution.  Here this is the posterior distribution.  It is printed here as a posterior mean $\pm$ one standard deviation.
 
