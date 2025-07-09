@@ -12,7 +12,7 @@ test_that("msmbayes: basic input validation",{
                         state="state", time="time", subject=c("subject","baz"), Q=Q),
                "character string of length 1")
   expect_error(msmbayes(dat = data.frame(x=1:3), Q=Q),
-               "\"time\" is not a variable in `dat`")
+               "\"time\" is not a variable in the data")
   expect_error(msmbayes(dat = dat_simple,
                         state="state", time="time", subject="subject"),
                "argument \"Q\" is missing")
@@ -84,21 +84,21 @@ test_that("missing values",{
     state = c(1,1,2,1,2,2,2), time = c(1,2,3,NA,NA,3,4),
     subject = c(1,1,1,2,2,2,2), cov1 = c(1,2,3,1,3,4,4))
   expect_warning(
-    msmbayes(dat = data_na, state="state", time="time", subject="subject", Q=Q),
+    msmbayes(dat = data_na, state="state", time="time", subject="subject", Q=Q, chains=1, iter=1),
     "missing time")
 
   data_na <- data.frame(
     state = c(1,1,2,1,2,2), time = c(1,2,3,1,2,3),
     subject = c(1,1,1,2,NA,2), cov1 = c(1,2,3,1,3,4))
   expect_warning(
-    msmbayes(dat = data_na, state="state", time="time", subject="subject", Q=Q),
+    msmbayes(dat = data_na, state="state", time="time", subject="subject", Q=Q, chains=1, iter=1),
     "missing subject")
 
   data_na <- data.frame(
     state = c(1,NA,2,1,2,2), time = c(1,2,3,1,2,3),
     subject = c(1,1,1,2,2,2), cov1 = c(1,2,3,1,3,4))
   expect_warning(
-    msmbayes(dat = data_na, state="state", time="time", subject="subject", Q=Q),
+    msmbayes(dat = data_na, state="state", time="time", subject="subject", Q=Q, chains=1, iter=1),
     "missing state")
 
   data_na <- data.frame(
@@ -106,7 +106,7 @@ test_that("missing values",{
     subject = c(1,1,1,2,2,2), cov1 = c(1,NA,3,1,3,4))
   expect_warning(
     msmbayes(dat = data_na, state="state", time="time", subject="subject", Q=infsimQ,
-             covariates = list(Q(1,2) ~ cov1), algorithm = "Fixed_param"),
+             covariates = list(Q(1,2) ~ cov1), algorithm = "Fixed_param", chains=1, iter=1),
     "missing covariate values")
 
   data_na_cov_last_obs <- data.frame(

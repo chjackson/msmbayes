@@ -22,7 +22,7 @@ check_data <- function(dat, state="state", time="time", subject="subject",
 
 check_data_frame <- function(dat, call=caller_env()){
   if (!is.data.frame(dat))
-    cli_abort(c("{.var dat} argument must be a data frame",
+    cli_abort(c("{.var data} argument must be a data frame",
                      "Found an object of class {.cls {class(dat)}}"),
                    call=call)
 }
@@ -53,7 +53,7 @@ check_varnames_quoted <- function(...,call=caller_env()){
 
 check_character <- function(x, xname, call=caller_env()){
   if (!is.character(x)){
-    cli_abort(c("{.var {xname}} argument must be a character string indicating the name of a variable in {.var dat}",
+    cli_abort(c("{.var {xname}} argument must be a character string indicating the name of a variable in the data",
                 "Found an object of mode {.cls {mode(x)}}"),
               call=call)
   }
@@ -69,7 +69,7 @@ check_scalar <- function(x, xname, call=caller_env()){
 
 check_variable_in_data <- function(dat, x, call=caller_env()){
   if (!(x %in% names(dat))){
-    cli_abort("{.str {x}} is not a variable in `dat`", call=call)
+    cli_abort("{.str {x}} is not a variable in the data", call=call)
   }
 }
 
