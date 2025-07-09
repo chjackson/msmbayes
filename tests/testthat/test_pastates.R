@@ -103,9 +103,9 @@ test_that("phase-type approximations with multiple exit states: transition probs
   fitm <- msmbayes(dat, state="obs_state", Q=Qid, fit_method="optimize",
                    priors = priorsm)
 
-  expect_equal(med_rvar(pmatrix(fitpa)["1p1","2"]),
+  expect_equal(med_rvar(pmatrix(fitpa,states="phase")["1p1","2"]),
                med_rvar(pmatrix(fitm)[1,2]), tolerance=0.1)
-  expect_equal(med_rvar(pmatrix(fitpa)["1p1","3"]),
+  expect_equal(med_rvar(pmatrix(fitpa,states="phase")["1p1","3"]),
                med_rvar(pmatrix(fitm)[1,3]), tolerance=0.05)
 
   expect_equal(med_rvar(qmatrix(fitpa)["2","3"]),

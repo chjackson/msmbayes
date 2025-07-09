@@ -31,14 +31,13 @@ msmbayes_prior_sample <- function(data, state="state", time="time", subject="sub
                                   covariates = NULL,
                                   pastates = NULL,
                                   pafamily = "weibull",
-                                  pamethod = "moment",
                                   nphase = NULL,
                                   E = NULL,
                                   priors = NULL,
                                   nsim = 1){
   m <- msmbayes_form_internals(data=data, state=state, time=time, subject=subject,
                                Q=Q, covariates=covariates, pastates=pastates,
-                               pafamily=pafamily, pamethod=pamethod, E=E,
+                               pafamily=pafamily, pamethod="moment", E=E,
                                nphase=nphase, priors=priors,
                                prior_sample = TRUE)
   qm <- m$qm; pm <- m$pm; priors <- m$priors; cm <- m$cm; em <- m$em; data <- m$data; qmobs <- m$qmobs
@@ -143,6 +142,7 @@ prior_sample_logoddsnext <- function(priors, nsim, qm, pm){
 }
 
 prior_sample_logrrnext <- function(priors, nsim, qm, pm, cm){
+  from <- to <- fromobs <- toobs <- modelid <- name <- from.y <- to.y <- value <- NULL
   if (pm$phaseapprox && qm$noddsnext > 0 && cm$nrrnext > 0){
     logrrnext <- as.data.frame(matrix(nrow=nsim, ncol=cm$nrrnext))
     for (i in 1:cm$nrrnext){
@@ -215,7 +215,6 @@ msmbayes_priorpred_sample <- function(data, state="state", time="time", subject=
                                       covariates = NULL,
                                       pastates = NULL,
                                       pafamily = "weibull",
-                                      pamethod = "moment",
                                       nphase = NULL,
                                       E = NULL,
                                       priors = NULL,
@@ -224,12 +223,12 @@ msmbayes_priorpred_sample <- function(data, state="state", time="time", subject=
                                       ){
   prior_sample <- msmbayes_prior_sample(data=data, state=state, time=time, subject=subject,
                                         Q=Q, covariates=covariates,
-                                        pastates=pastates, pafamily=pafamily, pamethod=pamethod,
+                                        pastates=pastates, pafamily=pafamily, 
                                         nphase=nphase, E=E, priors=priors,
                                         nsim = 1)
   m <- msmbayes_form_internals(data=data, state=state, time=time, subject=subject,
                                Q=Q, covariates=covariates, pastates=pastates,
-                               pafamily=pafamily, pamethod=pamethod, E=E,
+                               pafamily=pafamily, pamethod="moment", E=E,
                                nphase=nphase, priors=priors,
                                prior_sample = TRUE)
   data_orig <- data
@@ -251,7 +250,7 @@ msmbayes_priorpred_sample <- function(data, state="state", time="time", subject=
     scales <- exp(unlist(prior_sample[grep("logscale",names(prior_sample),value=TRUE)]))
     q_pred <- qphaseapprox(qmatrix=q_prior,
                            shape = shapes, scale=scales,
-                           pastates=pastates, family=pafamily, method=pamethod)
+                           pastates=pastates, family=pafamily)
     ematrix <- m$em$E
   } else ematrix <- NULL   # TESTME
 
@@ -348,6 +347,7 @@ logoddsnext_to_probs <- function(logoddsnext, qm, qmobs){
 ##'
 ##' @noRd
 form_simmsm_beta <- function(prior_sample, qm, cm, qmatrix=NULL, i=1){
+  name <- from <- to <- betagamma <- NULL
   if (cm$nx + cm$nrrnext==0) return(NULL)
   bdf <- extract_beta_df(prior_sample, i)
   rrdf <- extract_logrrnext_df(prior_sample, cm, i)

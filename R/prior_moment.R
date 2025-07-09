@@ -23,5 +23,5 @@ prior_mean_gamma <- function(prior_shape, prior_scale, nphase=5, n=1000000){
                             upper=shape_ubound(nphase=nphase,
                                                family="gamma")))
   rscale <- exp(rnorm(n, prior_scale$mean, prior_scale$sd))
-  rvar(scale*shape)
+  rvar(rscale*rshape)
 }

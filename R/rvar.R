@@ -19,6 +19,13 @@ rvarn_numeric <- function(n, ndraws=NULL){
   res
 }
 
+rvarn_apply <- function(x,...){
+  if (inherits(x, "rvar"))
+    rvar_apply(x,...)
+  else if (is.numeric(x))
+    apply(x, ...)
+  else cli_abort("x should be a numeric or an rvar")
+}
 
 ## Functions that always return rvars
 rvar_tapply <- rfun(tapply, "X")

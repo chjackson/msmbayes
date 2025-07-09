@@ -3,7 +3,7 @@ msmbayes_form_internals <- function(data, state="state", time="time", subject="s
                                     Q, covariates=NULL, obstype=NULL, deathexact=FALSE,
                                     obstrue=NULL, censor_states=NULL,
                                     pastates=NULL, pafamily="weibull",
-                                    panphase=NULL, pamethod="hermite",
+                                    panphase=NULL, pamethod="moment",
                                     E=NULL, Efix=NULL,
                                     constraint=NULL, nphase=NULL,
                                     priors=NULL, soj_priordata=NULL,

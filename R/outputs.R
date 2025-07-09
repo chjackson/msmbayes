@@ -146,10 +146,17 @@ edf <- function(draws){
 #' Transition probability matrix from an msmbayes model
 #'
 #' @inheritParams qmatrix
+#' @inheritParams mean_sojourn
 #'
 #' @param t prediction time or vector of prediction times
 #'
 #' @return Array or matrix of `rvar` objects giving the transition probability matrix at each requested prediction time and covariate value.  See \code{\link{qdf}} for notes on the `rvar` format.
+#'
+#' For phase-type models, if `states="obs"`, so that we want
+#' transition probabilities on the observable space, this returns the
+#' probability of transition to any phase of each "destination" state,
+#' for an individual who is in the first phase of each "starting"
+#' state.
 #'
 #' @importFrom tidybayes tidy_draws gather_rvars
 #' @importFrom dplyr pull
@@ -161,7 +168,8 @@ edf <- function(draws){
 #'
 #' @md
 #' @export
-pmatrix <- function(draws,t=1,new_data=NULL,X=NULL,drop=TRUE,type="posterior"){
+pmatrix <- function(draws,t=1,new_data=NULL,states="obs",
+                    X=NULL,drop=TRUE,type="posterior"){
   if (type=="mode" && !is_mode(draws)) return(NULL)
   check_t(t)
   ntimes <- length(t)
@@ -190,9 +198,34 @@ pmatrix <- function(draws,t=1,new_data=NULL,X=NULL,drop=TRUE,type="posterior"){
       }
     }
   }
+
+  if (states %in% .states_arg_names[["obs"]]){
+    P <- pmatrix_aggregate_phases(P,draws)
+  }
+
   if (is.null(new_data) && (ntimes==1) && drop)
     P <- if (type=="posterior") P[,,,drop=TRUE] else P[,,,,drop=TRUE]
   P
+}
+
+## todo emsure rvar_apply works with mode,
+## todo combine with pmatrix
+
+pmatrix_aggregate_phases <- function(P, draws){
+  if (!is_phasetype(draws)) return(P)
+  pm <- attr(draws,"pmodel")$pdat
+  entry_states <- which(pm$type %in% c("firstphase","markov"))
+  ret <- rvarn_apply(P[,,entry_states,,drop=FALSE], 1:3,
+             function(x){
+               pml <- split(x, pm$oldinds)
+               do.call("c",lapply(pml, rvarn_sum))
+             }
+             )
+  ## When P is numeric, apply ends up permuting the dims
+  if (is.numeric(P)) ret <- aperm(ret,c(2,3,4,1))
+  fromto_dims <- c(length(dim(ret)) - 1, length(dim(ret)))
+  dimnames(ret)[fromto_dims] <- dimnames(attr(draws,"qmobs")$Q)
+  ret
 }
 
 check_t <- function(t, scalar=FALSE, name="t"){
@@ -211,12 +244,19 @@ check_t <- function(t, scalar=FALSE, name="t"){
 #' @return A data frame containing samples from the posterior distribution.
 #' See \code{\link{qdf}} for notes on this format and how to summarise.
 #'
+#' For phase-type models, if `states="obs"`, so that we want
+#' transition probabilities on the observable space, this returns the
+#' probability of transition to any phase of each "destination" state,
+#' for an individual who is in the first phase of each "starting"
+#' state.
+#'
 #' @export
-pmatrixdf <- function(draws, t=1, new_data=NULL){
-  covid <- NULL
+pmatrixdf <- function(draws, t=1, new_data=NULL, states="obs"){
+  covid <- from <- to <- tid <- NULL
   if (!has_covariates(draws)) new_data <- NULL
-  P <- pmatrix(draws, t, new_data, drop=FALSE)
-  Pmode <- pmatrix(draws, t, new_data, drop=FALSE, type="mode")
+  P <- pmatrix(draws, t=t, new_data=new_data, states=states, drop=FALSE)
+  Pmode <- pmatrix(draws, t=t, new_data=new_data, states=states,
+                   drop=FALSE, type="mode")
   pdf <- expand.grid(1:dim(P)[1], 1:dim(P)[2], 1:dim(P)[3], 1:dim(P)[4]) |>
     setNames(c("covid", "tid", "from", "to")) |>
     mutate(t = t[tid],
@@ -225,23 +265,31 @@ pmatrixdf <- function(draws, t=1, new_data=NULL){
   if (!is.null(new_data))
     pdf <- pdf |>
       left_join(new_data |> mutate(covid=1:n()), by="covid")
-  pdf |>
+  pdf <- pdf |>
     as_msmbres() |>
-    select(-covid, -tid) |>
-    relabel_phase_states(draws)
+    arrange(t, covid, from, to) |>
+    select(-covid, -tid)
+  if (states %in% .states_arg_names[["phase"]])
+    pdf <- pdf |> relabel_phase_states(draws)
+  pdf
 }
+
+.states_arg_names <- list(
+  obs = c("obs","observed"),
+  latent = c("latent","phase","true")
+)
 
 #' Mean sojourn times from an msmbayes model
 #'
-#' @inheritParams qmatrix
+#' @inheritParams qdf
 #'
-#' @param states If \code{states="obs"} then this describes mean sojourn times in
+#' @param states If \code{states="obs"} (or `"observed"`) then this describes mean sojourn times in
 #'   the observable states.  For phase-type models this is not
 #'   generally equal to the sum of the phase-specific mean sojourn
 #'   times, because an individual may transition out of the state
 #'   before progressing to the next phase.
 #'
-#'   If \code{states="phase"} then for phase-type models, this describes mean sojourn times
+#'   If \code{states="phase"} (or `"true"`, or `"latent"`) then for phase-type models, this describes mean sojourn times
 #'   in the latent state space.
 #'
 #' @return A data frame containing samples from the posterior distribution.
@@ -258,11 +306,11 @@ mean_sojourn <- function(draws, new_data=NULL, states="obs", keep_covid=FALSE){
   qm <- attr(draws, "qmodel")
   qmobs <- attr(draws, "qmobs")
   ncovvals <- dim(Q)[1]
-  nstates <- if ((states=="phase") || !is_phasetype(draws)) qm$K else pm$nstates_orig
+  nstates <- if ((states %in% .states_arg_names[["latent"]]) || !is_phasetype(draws)) qm$K else pm$nstates_orig
   mst <- rdo(matrix(nrow=ncovvals, ncol=nstates), ndraws=ndraws(Q))
   mstmode <- matrix(nrow=ncovvals, ncol=nstates)
   for (i in 1:ncovvals){
-    if ((states=="phase") || !is_phasetype(draws)){
+    if ((states %in% .states_arg_names[["latent"]]) || !is_phasetype(draws)){
       mst[i,] <- -1 / diag(Q[i,,,drop=TRUE])
       if (is_mode(draws)) mstmode[i,] <- -1 / diag(Qmode[i,,])
     }
@@ -286,7 +334,7 @@ mean_sojourn <- function(draws, new_data=NULL, states="obs", keep_covid=FALSE){
     relocate(state, posterior)
   if (is_mode(draws))
     mst$mode <- vecbycovs_to_df(mstmode, new_data)$mode
-  if (states=="phase"){
+  if (states %in% .states_arg_names[["latent"]]){
     mst <- mst |>
       filter(state %in% transient_states(qm)) |>
       relabel_phase_states(draws)
@@ -314,7 +362,7 @@ mean_sojourn <- function(draws, new_data=NULL, states="obs", keep_covid=FALSE){
 ##'
 ##' @export
 loghr <- function(draws){
-  name <- posterior <- from <- to <- tafid <- mode <- NULL
+  fromobs <- toobs <- name <- posterior <- response <- NULL
   cm <- attr(draws,"cmodel")
   qm <- attr(draws,"qmodel")
   if (cm$nx==0)
@@ -337,6 +385,8 @@ loghr <- function(draws){
 ##'  See \code{loghr} for effects of covariates on transitions out of Markov states,
 ##'  which are log hazard ratios.
 ##'
+##' @inheritParams qdf
+##'
 ##' @return A data frame containing samples from the posterior distribution.
 ##' See \code{\link{qdf}} for notes on this format and how to summarise.
 ##'
@@ -346,7 +396,7 @@ loghr <- function(draws){
 ##' @aliases taf
 ##' @export
 logtaf <- function(draws){
-  name <- posterior <- from <- to <- tafid <- mode <- NULL
+  name <- posterior <- fromobs <- to <- tafid <- mode <- response <- NULL
   cm <- attr(draws,"cmodel")
   qm <- attr(draws,"qmodel")
   if (!has_scale_covariates(draws))
@@ -582,12 +632,13 @@ phaseapprox_pars <- function(draws, log=FALSE){
 ##' to baseline destination state.  Only applicable to phase-type
 ##' approximation models, specified with \code{pastates}.
 ##'
-##' @inheritParams qmatrix
+##' @inheritParams qdf
 ##'
 ##' @seealso pnext
 ##'
 ##' @export
 logoddsnext <- function(draws, new_data=NULL, keep_covid=FALSE){
+  from <- to <- name <- posterior <- NULL
   if (!is_phaseapprox(draws))
     cli_abort("Not a phase-type approximation model") # or we could transform pnext, if anyone needs this
   dest_base <- oldfrom <- oldto <- from <- to <- vecid <- NULL
@@ -607,38 +658,6 @@ logoddsnext <- function(draws, new_data=NULL, keep_covid=FALSE){
     )
   if (!is.null(lon_mode)) res$mode <- mode
   res |> arrange(from, to) |> select(-vecid) |> relocate(name, posterior)
-}
-
-##' Probabilities of competing exit destination states in phase type
-##' models
-##'
-##' These are the inverse multinomial logit transforms of the
-##' log odds of transition, relative to the first potential exit state.
-##'
-##' @inheritParams qmatrix
-##'
-##' @return A dataframe with one row per probability, and colums for
-##'   (from) state, to-state, posterior distribution (as an `rvar`
-##'   object) and posterior mode (if the model was fitted by mode
-##'   optimisation).
-##'
-##' In models with covariates on the transition odds, this currently only presents
-##' these parameters for covariate values of zero.
-##'
-##' @export
-pnext_phaseapprox <- function(draws){
-  from <- to <- NULL
-  pnext_post <- pnext_phaseapprox_internal(draws, type="posterior")
-  pnext_mode <- pnext_phaseapprox_internal(draws, type="mode")
-  pacr <- attr(draws, "qmodel")$pacrdata
-  res <- data.frame(
-    name = "pnext",
-    from = pacr$oldfrom,
-    to = pacr$oldto,
-    posterior = pnext_post
-  )
-  if (!is.null(pnext_mode)) res$mode <- pnext_mode
-  res |> arrange(from, to)
 }
 
 #' @name rrnextdoc
@@ -695,13 +714,15 @@ rrnext <- function(draws){
 ##' @rdname loglik
 ##' @aliases logLik.msmbayes
 ##'
+##' @inheritParams qmatrix
+##'
 ##' @return For \code{loglik}, a data frame with rows for the log likelihood, log prior density and log posterior density,
 ##' and columns for the posterior (as an `rvar` object) and the mode (only if optimisation was used to fit the model, rather than MCMC).
 ##'
 ##' If `msmbayes` was called with `priors="mle"`, the maximised log posterior and log likelihood should be the same.
 ##'
 ##' For \code{logLik} (note the different capitalisation), just the likelihood (mode if available, or posterior if not) is returned.  This is a
-##' method for the generic \code{logLik} function in the \code{stats} package. 
+##' method for the generic \code{logLik} function in the \code{stats} package.
 ##'
 ##' @export
 loglik <- function(draws){
@@ -717,9 +738,11 @@ loglik <- function(draws){
 
 ##' @rdname loglik
 ##' @aliases loglik
+##' @inheritParams summary.msmbayes
 ##' @export
 logLik.msmbayes <- function(object, ...){
-  ll <- loglik(object) |> filter(name=="loglik")
+  ll <- loglik(object)
+  ll <- ll[ll$name=="loglik",,drop=FALSE]
   if (is_mode(object)) res <- ll$mode else res <- ll$posterior
   attr(res, "df") <- attr(ll,"npars")
   res
@@ -752,8 +775,8 @@ logLik.msmbayes <- function(object, ...){
 ##'
 ##' @export
 pnext <- function(draws, new_data=NULL){
-  state <- posterior <- mode <- NULL
-    if (is_phaseapprox(draws)){
+  state <- posterior <- mode <- name <- covid <- ms_post <- ms_mode <- NULL
+  if (is_phaseapprox(draws)){
     pn <- pnext_from_logoddsnext(draws,new_data)
   } else {
     q <- qdf(draws,new_data,keep_covid=TRUE)
@@ -773,6 +796,7 @@ pnext <- function(draws, new_data=NULL){
 }
 
 pnext_from_logoddsnext <- function(draws, new_data=NULL){
+  from <- to <- refstate <- covid <- posterior <- psum <- msum <- name <- NULL
   lon <- logoddsnext(draws, new_data, keep_covid=TRUE)
   lonref <- lon |>
     filter(!duplicated(paste(from, refstate, covid))) |>

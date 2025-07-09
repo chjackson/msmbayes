@@ -14,7 +14,7 @@ test_that("summary attaches prior database",{
     summary_priors(draws)
     summary(draws)
 
-    draws <- msmbayes(illdeath_data, state="obs_state", Q=illdeath_Q, pastates=1,
+    draws <- msmbayes(illdeath_data, state="state", Q=illdeath_Q, pastates=1,
                       algorithm="Fixed_param", chains=1, iter=1)
     summary(draws)
 

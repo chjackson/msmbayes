@@ -14,7 +14,7 @@ test_that("msmbayes with flat priors: mode agrees with MLE from msm",{
   expect_true(inherits(pmatrix(fitb)[1,1], "rvar"))
   expect_true(is.numeric(pmatrix(fitb, type="mode")[1,1]))
   expect_true(inherits(pmatrixdf(fitb)$posterior[1],"rvar"))
-  expect_equal(as.numeric(pmatrix(fitb, type="mode")),
+  expect_equal(as.numeric(t(pmatrix(fitb, type="mode"))),
                pmatrixdf(fitb)$mode)
   expect_equal(as.numeric(qmatrix(fitb, type="mode")[2,1]),
                qdf(fitb)$mode[2])

@@ -176,7 +176,7 @@ prior_logtaf_db <- function(priors, cm){
 }
 
 prior_logoddsnext_internal <- function(priors, qm){
-  rvar <- loind <- from <- NULL
+  from <- dest_base <- prior <- NULL
   if (qm$noddsnext==0) return(NULL)
   pa <- qm$pacrdata |> filter(!dest_base)
   res <- data.frame(name = "logoddsnext",
@@ -202,6 +202,7 @@ prior_logoddsnext_db <- function(priors, qm){
 }
 
 prior_pnext_db <- function(priors, qm){
+  oldfrom <- oldto <- dest_base <- oddsnext <- sumodds <- NULL
   if (qm$noddsnext==0) return(NULL)
   pabs <- from <- to <- NULL
   res <- prior_logoddsnext_internal(priors, qm)
