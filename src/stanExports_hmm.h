@@ -30,7 +30,7 @@ stan::math::profile_map profiles__;
 static constexpr std::array<const char*, 514> locations_array__ =
   {" (found before start of program)",
   " (in 'string', line 226, column 2 to column 30)",
-  " (in 'string', line 228, column 2 to column 29)",
+  " (in 'string', line 228, column 2 to column 66)",
   " (in 'string', line 229, column 2 to column 29)",
   " (in 'string', line 230, column 2 to column 30)",
   " (in 'string', line 231, column 2 to column 28)",
@@ -415,7 +415,7 @@ static constexpr std::array<const char*, 514> locations_array__ =
   " (in 'string', line 223, column 18 to column 27)",
   " (in 'string', line 223, column 2 to column 43)",
   " (in 'string', line 226, column 9 to column 16)",
-  " (in 'string', line 228, column 9 to column 18)",
+  " (in 'string', line 228, column 46 to column 55)",
   " (in 'string', line 229, column 9 to column 18)",
   " (in 'string', line 230, column 8 to column 14)",
   " (in 'string', line 231, column 9 to column 15)",
@@ -2482,8 +2482,15 @@ public:
         Eigen::Matrix<local_scalar_t__,-1,1>::Constant(npastates,
           DUMMY_VAR__);
       current_statement__ = 2;
-      logshape = in__.template read<
-                   Eigen::Matrix<local_scalar_t__,-1,1>>(npastates);
+      logshape = in__.template read_constrain_lub<
+                   Eigen::Matrix<local_scalar_t__,-1,1>,
+                   jacobian__>(logshapemin, logshapemax, lp__, npastates);
+      current_statement__ = 2;
+      stan::math::check_matching_dims("constraint", "logshape", logshape,
+        "lower", logshapemin);
+      current_statement__ = 2;
+      stan::math::check_matching_dims("constraint", "logshape", logshape,
+        "upper", logshapemax);
       Eigen::Matrix<local_scalar_t__,-1,1> logscale =
         Eigen::Matrix<local_scalar_t__,-1,1>::Constant(npastates,
           DUMMY_VAR__);
@@ -3418,8 +3425,15 @@ public:
         Eigen::Matrix<double,-1,1>::Constant(npastates,
           std::numeric_limits<double>::quiet_NaN());
       current_statement__ = 2;
-      logshape = in__.template read<
-                   Eigen::Matrix<local_scalar_t__,-1,1>>(npastates);
+      logshape = in__.template read_constrain_lub<
+                   Eigen::Matrix<local_scalar_t__,-1,1>,
+                   jacobian__>(logshapemin, logshapemax, lp__, npastates);
+      current_statement__ = 2;
+      stan::math::check_matching_dims("constraint", "logshape", logshape,
+        "lower", logshapemin);
+      current_statement__ = 2;
+      stan::math::check_matching_dims("constraint", "logshape", logshape,
+        "upper", logshapemax);
       Eigen::Matrix<double,-1,1> logscale =
         Eigen::Matrix<double,-1,1>::Constant(npastates,
           std::numeric_limits<double>::quiet_NaN());
@@ -4380,7 +4394,7 @@ public:
       stan::model::assign(logshape,
         in__.read<Eigen::Matrix<local_scalar_t__,-1,1>>(npastates),
         "assigning variable logshape");
-      out__.write(logshape);
+      out__.write_free_lub(logshapemin, logshapemax, logshape);
       Eigen::Matrix<local_scalar_t__,-1,1> logscale =
         Eigen::Matrix<local_scalar_t__,-1,1>::Constant(npastates,
           DUMMY_VAR__);
@@ -4492,7 +4506,7 @@ public:
           pos__ = (pos__ + 1);
         }
       }
-      out__.write(logshape);
+      out__.write_free_lub(logshapemin, logshapemax, logshape);
       Eigen::Matrix<local_scalar_t__,-1,1> logscale =
         Eigen::Matrix<local_scalar_t__,-1,1>::Constant(npastates,
           DUMMY_VAR__);

@@ -11,6 +11,9 @@ logoddsnext(draws, new_data = NULL, keep_covid = FALSE)
 \item{draws}{Object returned by \code{\link{msmbayes}}.}
 
 \item{new_data}{Data frame with covariate values to predict for}
+
+\item{keep_covid}{(logical) Keep the integer column \code{covid} identifying unique
+covariate combinations.}
 }
 \description{
 Log odds of transition to a competing destination state, relative

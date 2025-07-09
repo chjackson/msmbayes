@@ -8,6 +8,7 @@ pmatrix(
   draws,
   t = 1,
   new_data = NULL,
+  states = "obs",
   X = NULL,
   drop = TRUE,
   type = "posterior"
@@ -19,6 +20,15 @@ pmatrix(
 \item{t}{prediction time or vector of prediction times}
 
 \item{new_data}{Data frame with covariate values to predict for}
+
+\item{states}{If \code{states="obs"} (or \code{"observed"}) then this describes mean sojourn times in
+the observable states.  For phase-type models this is not
+generally equal to the sum of the phase-specific mean sojourn
+times, because an individual may transition out of the state
+before progressing to the next phase.
+
+If \code{states="phase"} (or \code{"true"}, or \code{"latent"}) then for phase-type models, this describes mean sojourn times
+in the latent state space.}
 
 \item{X}{Lower-level alternative to specifying \code{new_data}, for
 developer use only.  \code{X} is a numeric matrix formed from
@@ -37,6 +47,12 @@ with posterior mode optimisation).}
 }
 \value{
 Array or matrix of \code{rvar} objects giving the transition probability matrix at each requested prediction time and covariate value.  See \code{\link{qdf}} for notes on the \code{rvar} format.
+
+For phase-type models, if \code{states="obs"}, so that we want
+transition probabilities on the observable space, this returns the
+probability of transition to any phase of each "destination" state,
+for an individual who is in the first phase of each "starting"
+state.
 }
 \description{
 Transition probability matrix from an msmbayes model

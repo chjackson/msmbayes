@@ -11,14 +11,17 @@ mean_sojourn(draws, new_data = NULL, states = "obs", keep_covid = FALSE)
 
 \item{new_data}{Data frame with covariate values to predict for}
 
-\item{states}{If \code{states="obs"} then this describes mean sojourn times in
+\item{states}{If \code{states="obs"} (or \code{"observed"}) then this describes mean sojourn times in
 the observable states.  For phase-type models this is not
 generally equal to the sum of the phase-specific mean sojourn
 times, because an individual may transition out of the state
 before progressing to the next phase.
 
-If \code{states="phase"} then for phase-type models, this describes mean sojourn times
+If \code{states="phase"} (or \code{"true"}, or \code{"latent"}) then for phase-type models, this describes mean sojourn times
 in the latent state space.}
+
+\item{keep_covid}{(logical) Keep the integer column \code{covid} identifying unique
+covariate combinations.}
 }
 \value{
 A data frame containing samples from the posterior distribution.

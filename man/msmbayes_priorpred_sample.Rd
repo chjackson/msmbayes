@@ -13,7 +13,6 @@ msmbayes_priorpred_sample(
   covariates = NULL,
   pastates = NULL,
   pafamily = "weibull",
-  pamethod = "moment",
   nphase = NULL,
   E = NULL,
   priors = NULL,

@@ -9,6 +9,14 @@ loglik(draws)
 
 \method{logLik}{msmbayes}(object, ...)
 }
+\arguments{
+\item{draws}{Object returned by \code{\link{msmbayes}}.}
+
+\item{object}{Object returned by \code{\link{msmbayes}}.}
+
+\item{...}{Further arguments passed to both \code{\link{qdf}},
+\code{\link{hr}}, \code{\link{loghr}} and \code{\link{edf}}.}
+}
 \value{
 For \code{loglik}, a data frame with rows for the log likelihood, log prior density and log posterior density,
 and columns for the posterior (as an \code{rvar} object) and the mode (only if optimisation was used to fit the model, rather than MCMC).

@@ -9,6 +9,9 @@ logtaf(draws)
 
 taf(draws)
 }
+\arguments{
+\item{draws}{Object returned by \code{\link{msmbayes}}.}
+}
 \value{
 A data frame containing samples from the posterior distribution.
 See \code{\link{qdf}} for notes on this format and how to summarise.
