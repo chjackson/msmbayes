@@ -300,8 +300,8 @@ getobs_msm <- function(sim, obstimes, death=FALSE, drop.absorb=TRUE)
 #'                  c(0.05,   -0.15,  0.1 ),
 #'                  c(0.02,   0.07, -0.09))
 #' simmulti.msm(sim.df, qmatrix)
-#' 
-#' @export simmulti.msm
+#'
+#' @noRd 
 simmulti.msm <- function(data,           # data frame with subject, times, covariates...
                          qmatrix,        # intensity matrix
                          covariates=NULL,  # initial values
@@ -489,6 +489,24 @@ simmisc.msm <- function(state, ematrix, beta, misccovs)
     ostate
 }
 
+.msm.INVLINK <- c(identity="identity", log="exp", qlogis="plogis")
+
+### Parameter in each distribution that can have covariates on it
+.msm.LOCPARS <- c(categorical="p", identity=NA, uniform=NA, normal="mean", lognormal="meanlog",
+                  exponential="rate", gamma="rate", weibull="scale",
+                  poisson="rate", binomial="prob", betabinomial="meanp", truncnorm="mean",
+                  metruncnorm="meanerr", meuniform="meanerr", nbinom="prob", beta=NA, t="mean")
+
+
+msm.check.hmodel <- function(hmodel, nstates)
+  {
+      if (!is.list(hmodel)) stop("Hidden model should be a list")
+      if (length(hmodel) != nstates) stop("hmodel of length ", length(hmodel), ", expected ", nstates)
+      for (i in hmodel) {
+          if (!inherits(i, "hmmdist")) stop("hmodel should be a list of HMM distribution objects")
+      }
+  }
+
 ## Simulate HMM outcome conditionally on an underlying state
 
 simhidden.msm <- function(state, hmodel, nstates, beta=NULL, x=NULL)
@@ -524,75 +542,6 @@ simhidden.msm <- function(state, hmodel, nstates, beta=NULL, x=NULL)
 ### Used for parametric bootstrap in pearson.msm
 
 
-
-#' Simulate from a Markov model fitted using msm
-#' 
-#' Simulate a dataset from a Markov model fitted using \code{\link{msm}}, using
-#' the maximum likelihood estimates as parameters, and the same observation
-#' times as in the original data.
-#' 
-#' This function is a wrapper around \code{\link{simmulti.msm}}, and only
-#' simulates panel-observed data.  To generate datasets with the exact times of
-#' transition, use the lower-level \code{\link{sim.msm}}.
-#' 
-#' Markov models with misclassified states fitted through the \code{ematrix}
-#' option to \code{\link{msm}} are supported, but not general hidden Markov
-#' models with \code{hmodel}.  For misclassification models, this function
-#' includes misclassification in the simulated states.
-#' 
-#' This function is used for parametric bootstrapping to estimate the null
-#' distribution of the test statistic in \code{\link{pearson.msm}}.
-#' 
-#' @param x A fitted multi-state model object as returned by \code{\link{msm}}.
-#' @param drop.absorb Should repeated observations in an absorbing state be
-#' omitted.  Use the default of \code{TRUE} to avoid warnings when using the
-#' simulated dataset for further \code{\link{msm}} fits.  Or set to
-#' \code{FALSE} if exactly the same number of observations as the original data
-#' are needed.
-#' @param drop.pci.imp In time-inhomogeneous models fitted using the \code{pci}
-#' option to \code{\link{msm}}, censored observations are inserted into the
-#' data by \code{\link{msm}} at the times where the intensity changes, but
-#' dropped by default when simulating from the fitted model using this
-#' function. Set this argument to \code{FALSE} to keep these observations and
-#' the corresponding indicator variable.
-#' @return A dataset with variables as described in \code{\link{simmulti.msm}}.
-#' @author C. H. Jackson \email{chris.jackson@@mrc-bsu.cam.ac.uk}
-#' @seealso \code{\link{simmulti.msm}}, \code{\link{sim.msm}},
-#' \code{\link{pearson.msm}}, \code{\link{msm}}.
-#' @keywords models
-#' @export simfitted.msm
-simfitted.msm <- function(x, drop.absorb=TRUE, drop.pci.imp=TRUE){
-    sim.df <- x$data$mf
-    x$data <- expand.data(x)
-    sim.df$"cens" <- ifelse(sim.df$"(state)" %in% 1:x$qmodel$nstates, 0, sim.df$"(state)") # 0 if not censored, cens indicator if censored, so that censoring is retained in simulated data
-    if (x$qcmodel$ncovs > 0) {
-        sim.df <- cbind(sim.df, x$data$mm.cov)
-        cov.effs <- lapply(x$Qmatrices, function(y)t(y)[t(x$qmodel$imatrix)==1])[x$qcmodel$covlabels]
-    } else cov.effs <- NULL
-    if (x$ecmodel$ncovs > 0) {
-        sim.df <- cbind(sim.df, x$data$mm.mcov)
-        misccov.effs <- lapply(x$Ematrices, function(y)t(y)[t(x$emodel$imatrix)==1])[x$ecmodel$covlabels]
-    } else misccov.effs <- NULL
-    names(sim.df) <- replace(names(sim.df), match(c("(time)","(subject)"), names(sim.df)),
-                             c("time","subject"))
-    if (!is.null(sim.df$"(subject.weights)")) names(sim.df)[names(sim.df)=="(subject.weights)"] = "subject.weights"
-    sim.df$state <- NULL # replace observed with simulated state
-    if (any(union(names(cov.effs), names(misccov.effs)) %in% c("state","time","subject","cens")))
-        stop("Not supported with covariates named \"state\", \"time\", \"subject\" or \"cens\"") # 
-    boot.df <- simmulti.msm(data=sim.df,
-                            qmatrix=qmatrix.msm(x, covariates=0, ci="none"),
-                            covariates=cov.effs,
-                            death=FALSE,
-                            ematrix=ematrix.msm(x, covariates=0, ci="none"),
-                            misccovariates=misccov.effs,
-                            drop.absorb=drop.absorb
-                            )
-    if (drop.pci.imp & !is.null(boot.df$"(pci.imp)")) {
-        boot.df <- boot.df[!boot.df$"(pci.imp)",]
-        boot.df$"(pci.imp)" <- NULL
-    }
-    boot.df
-}
 
 absorbing.msm <- function(x=NULL, qmatrix=NULL)
 {
@@ -639,3 +588,90 @@ rpexp <- function(n=1, rate=1, t=0, start=min(t))
     i <- findInterval(e,H)
     return(t[i]+(e-H[i])/rate[i])
 }
+
+
+rtnorm <- function (n, mean = 0, sd = 1, lower = -Inf, upper = Inf) {
+    if (length(n) > 1)
+        n <- length(n)
+    mean <- rep(mean, length=n)
+    sd <- rep(sd, length=n)
+    lower <- rep(lower, length=n)
+    upper <- rep(upper, length=n)
+    ret <- numeric(n)
+    ind <- seq(length.out=n)
+
+    sdzero <- sd < .Machine$double.eps
+    ## return the mean, unless mean is outside the range, then return nan 
+    sdna <- sdzero & ((mean < lower) | (mean > upper))
+
+    lower <- (lower - mean) / sd ## Algorithm works on mean 0, sd 1 scale
+    upper <- (upper - mean) / sd
+    nas <- is.na(mean) | is.na(sd) | is.na(lower) | is.na(upper) | sdna
+    if (any(nas)) warning("NAs produced")
+    ## Different algorithms depending on where upper/lower limits lie.
+    alg <- ifelse(
+                  ((lower > upper) | nas),
+                  -1,# return NaN
+                  ifelse(
+                         sdzero, 
+                         4, # SD zero, so set the sampled value to the mean. 
+                         ifelse(
+                         ((lower < 0 & upper == Inf) |
+                          (lower == -Inf & upper > 0) |
+                          (is.finite(lower) & is.finite(upper) & (lower < 0) & (upper > 0) & (upper-lower > sqrt(2*pi)))
+                          ),
+                         0, # standard "simulate from normal and reject if outside limits" method. Use if bounds are wide.
+                         ifelse(
+                                (lower >= 0 & (upper > lower + 2*sqrt(exp(1)) /
+                                 (lower + sqrt(lower^2 + 4)) * exp((lower*2 - lower*sqrt(lower^2 + 4)) / 4))),
+                                1, # rejection sampling with exponential proposal. Use if lower >> mean
+                                ifelse(upper <= 0 & (-lower > -upper + 2*sqrt(exp(1)) /
+                                       (-upper + sqrt(upper^2 + 4)) * exp((upper*2 - -upper*sqrt(upper^2 + 4)) / 4)),
+                                       2, # rejection sampling with exponential proposal. Use if upper << mean.
+                                       3))))) # rejection sampling with uniform proposal. Use if bounds are narrow and central.
+
+    ind.nan <- ind[alg==-1]; ind.no <- ind[alg==0]; ind.expl <- ind[alg==1]; ind.expu <- ind[alg==2]; ind.u <- ind[alg==3]
+    ind.sd0 <- ind[alg==4]; 
+    ret[ind.nan] <- NaN
+    ret[ind.sd0] <- 0  # SD zero, so set the sampled value to the mean.
+    while (length(ind.no) > 0) {
+        y <- rnorm(length(ind.no))
+        done <- which(y >= lower[ind.no] & y <= upper[ind.no])
+        ret[ind.no[done]] <- y[done]
+        ind.no <- setdiff(ind.no, ind.no[done])
+    }
+    stopifnot(length(ind.no) == 0)
+    while (length(ind.expl) > 0) {
+        a <- (lower[ind.expl] + sqrt(lower[ind.expl]^2 + 4)) / 2
+        z <- rexp(length(ind.expl), a) + lower[ind.expl]
+        u <- runif(length(ind.expl))
+        done <- which((u <= exp(-(z - a)^2 / 2)) & (z <= upper[ind.expl]))
+        ret[ind.expl[done]] <- z[done]
+        ind.expl <- setdiff(ind.expl, ind.expl[done])
+    }
+    stopifnot(length(ind.expl) == 0)
+    while (length(ind.expu) > 0) {
+        a <- (-upper[ind.expu] + sqrt(upper[ind.expu]^2 +4)) / 2
+        z <- rexp(length(ind.expu), a) - upper[ind.expu]
+        u <- runif(length(ind.expu))
+        done <- which((u <= exp(-(z - a)^2 / 2)) & (z <= -lower[ind.expu]))
+        ret[ind.expu[done]] <- -z[done]
+        ind.expu <- setdiff(ind.expu, ind.expu[done])
+    }
+    stopifnot(length(ind.expu) == 0)
+    while (length(ind.u) > 0) {
+        z <- runif(length(ind.u), lower[ind.u], upper[ind.u])
+        rho <- ifelse(lower[ind.u] > 0,
+                      exp((lower[ind.u]^2 - z^2) / 2), ifelse(upper[ind.u] < 0,
+                                                            exp((upper[ind.u]^2 - z^2) / 2),
+                                                            exp(-z^2/2)))
+        u <- runif(length(ind.u))
+        done <- which(u <= rho)
+        ret[ind.u[done]] <- z[done]
+        ind.u <- setdiff(ind.u, ind.u[done])
+    }
+    stopifnot(length(ind.u) == 0)
+    ret*sd + mean
+}
+
+

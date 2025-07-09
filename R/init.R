@@ -65,7 +65,7 @@ prior_random_inits <- function(standat, init_scale=5, chain_id=1){
   nhr <- length(standat$loghrmean)
   loghr_uniq <- rnorm(nhr, mean=standat$loghrmean, sd=standat$loghrsd / init_scale)
   npa <- length(standat$logshapemean)
-  logshape <- msm::rtnorm(npa, mean=standat$logshapemean, sd=standat$logshapesd / init_scale, upper=standat$logshapemax)
+  logshape <- rtnorm(npa, mean=standat$logshapemean, sd=standat$logshapesd / init_scale, upper=standat$logshapemax)
   logscale <- rnorm(npa, mean=standat$logscalemean, sd=standat$logscalesd / init_scale)
   logoddse <- rnorm(length(standat$loemean), mean=standat$loemean, sd=standat$loesd / init_scale)
   logoddsnext <- rnorm(length(standat$logoddsnextmean), mean=standat$logoddsnextmean, sd=standat$logoddsnextsd / init_scale)
