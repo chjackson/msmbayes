@@ -253,7 +253,7 @@ parameters {
   vector[npriorq] logq_markov; // vector of Markov transition intensities
 
   // log shape/scale parameters for phase-type shape/scale models 
-  vector[npastates] logshape;
+  vector<lower=logshapemin,upper=logshapemax>[npastates] logshape;
   vector[npastates] logscale;
 
   array[nepars] real logoddse;  // log(ers/err), error rate log odds
