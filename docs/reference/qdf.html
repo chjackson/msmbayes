@@ -17,7 +17,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">msmbayes</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.2</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.3</span>
       </span>
     </div>
 
@@ -72,7 +72,7 @@
     </div>
 
     <div id="ref-usage">
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">qdf</span><span class="op">(</span><span class="va">draws</span>, new_data <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">qdf</span><span class="op">(</span><span class="va">draws</span>, new_data <span class="op">=</span> <span class="cn">NULL</span>, keep_covid <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div id="arguments">
@@ -86,11 +86,16 @@
 <dt id="arg-new-data">new_data<a class="anchor" aria-label="anchor" href="#arg-new-data"></a></dt>
 <dd><p>Data frame with covariate values to predict for</p></dd>
 
+
+<dt id="arg-keep-covid">keep_covid<a class="anchor" aria-label="anchor" href="#arg-keep-covid"></a></dt>
+<dd><p>(logical) Keep the integer column <code>covid</code> identifying unique
+covariate combinations.</p></dd>
+
 </dl></div>
     <div id="value">
     <h2>Value</h2>
     <p>A data frame with one row per from-state / to-state / covariate value.</p>
-<p>Column <code>value</code> is in the <code>rvar</code> format of the
+<p>Column <code>posterior</code> is in the <code>rvar</code> format of the
 <span class="pkg">posterior</span> package, representing a sample from a posterior
 distribution.  Use the <code>summary</code> function on the data frame to
 produce summary statistics such as the posterior median or mean (see
@@ -104,32 +109,32 @@ produce summary statistics such as the posterior median or mean (see
     <div id="ref-examples">
     <h2>Examples</h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu">qdf</span><span class="op">(</span><span class="va">infsim_model</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 2 × 3</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    from    to        value</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;rvar[1d]&gt;</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span>     1     2  0.74 <span style="color: #949494;">± 0.34</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span>     2     1  4.26 <span style="color: #949494;">± 1.98</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 2 × 4</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    from    to    posterior  mode</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;rvar[1d]&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span>     1     2  0.74 <span style="color: #949494;">± 0.34</span> 0.666</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span>     2     1  4.26 <span style="color: #949494;">± 1.98</span> 3.86 </span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="fu">qdf</span><span class="op">(</span><span class="va">infsim_model</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   from to      mean    median        sd       mad        q5      q95      rhat</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1    1  2 0.7386393 0.6628834 0.3413701 0.2793395 0.3238488 1.393055 0.9997840</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2    2  1 4.2616952 3.8638645 1.9795293 1.6670112 1.8419289 7.931371 0.9997983</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ess_bulk ess_tail</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1 3828.292 4002.698</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2 3788.614 3964.572</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   from to      mode      mean    median        sd       mad        q5      q95</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1    1  2 0.6661191 0.7396011 0.6623418 0.3435138 0.2831664 0.3238362 1.407096</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2    2  1 3.8606438 4.2635807 3.8764643 1.9757256 1.6720749 1.8415761 7.972412</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        rhat ess_bulk ess_tail</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 0.9998919 3891.378 4018.977</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2 0.9999342 3893.001 3960.449</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="fu">qdf</span><span class="op">(</span><span class="va">infsim_model</span><span class="op">)</span>, <span class="va">median</span>, <span class="op">~</span><span class="fu"><a href="https://rdrr.io/r/stats/quantile.html" class="external-link">quantile</a></span><span class="op">(</span><span class="va">.x</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.025</span>, <span class="fl">0.975</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   from to    median      2.5%    97.5%</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1    1  2 0.6628834 0.2791034 1.601683</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2    2  1 3.8638645 1.6060798 9.027934</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   from to      mode    median      2.5%    97.5%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1    1  2 0.6661191 0.6623418 0.2775348 1.618714</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2    2  1 3.8606438 3.8764643 1.6053720 9.078582</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="fu">qdf</span><span class="op">(</span><span class="va">infsim_modelc</span>,</span></span>
 <span class="r-in"><span>    new_data <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>sex<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"female"</span>,<span class="st">"male"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 4 × 4</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    from    to        value sex   </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;rvar[1d]&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span>     1     2  0.70 <span style="color: #949494;">± 0.35</span> female</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span>     1     2  0.78 <span style="color: #949494;">± 0.38</span> male  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span>     2     1  4.24 <span style="color: #949494;">± 1.94</span> female</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span>     2     1  4.24 <span style="color: #949494;">± 1.94</span> male  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 4 × 5</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    from    to    posterior sex     mode</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;rvar[1d]&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span>     1     2  0.69 <span style="color: #949494;">± 0.34</span> female 0.623</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span>     1     2  0.78 <span style="color: #949494;">± 0.37</span> male   0.704</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span>     2     1  4.20 <span style="color: #949494;">± 1.89</span> female 3.84 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span>     2     1  4.20 <span style="color: #949494;">± 1.89</span> male   3.84 </span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>
@@ -145,7 +150,7 @@ produce summary statistics such as the posterior median or mean (see
 </div>
 
 <div class="pkgdown">
-  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.1.</p>
+  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.3.</p>
 </div>
 
       </footer></div>

@@ -74,7 +74,7 @@ as a tidy data frame</p>
     </div>
 
     <div id="ref-usage">
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">pmatrixdf</span><span class="op">(</span><span class="va">draws</span>, t <span class="op">=</span> <span class="fl">1</span>, new_data <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">pmatrixdf</span><span class="op">(</span><span class="va">draws</span>, t <span class="op">=</span> <span class="fl">1</span>, new_data <span class="op">=</span> <span class="cn">NULL</span>, states <span class="op">=</span> <span class="st">"obs"</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div id="arguments">
@@ -92,11 +92,26 @@ as a tidy data frame</p>
 <dt id="arg-new-data">new_data<a class="anchor" aria-label="anchor" href="#arg-new-data"></a></dt>
 <dd><p>Data frame with covariate values to predict for</p></dd>
 
+
+<dt id="arg-states">states<a class="anchor" aria-label="anchor" href="#arg-states"></a></dt>
+<dd><p>If <code>states="obs"</code> (or <code>"observed"</code>) then this describes mean sojourn times in
+the observable states.  For phase-type models this is not
+generally equal to the sum of the phase-specific mean sojourn
+times, because an individual may transition out of the state
+before progressing to the next phase.</p>
+<p>If <code>states="phase"</code> (or <code>"true"</code>, or <code>"latent"</code>) then for phase-type models, this describes mean sojourn times
+in the latent state space.</p></dd>
+
 </dl></div>
     <div id="value">
     <h2>Value</h2>
     <p>A data frame containing samples from the posterior distribution.
 See <code><a href="qdf.html">qdf</a></code> for notes on this format and how to summarise.</p>
+<p>For phase-type models, if <code>states="obs"</code>, so that we want
+transition probabilities on the observable space, this returns the
+probability of transition to any phase of each "destination" state,
+for an individual who is in the first phase of each "starting"
+state.</p>
     </div>
 
   </div>
@@ -111,7 +126,7 @@ See <code><a href="qdf.html">qdf</a></code> for notes on this format and how to 
 </div>
 
 <div class="pkgdown">
-  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.1.</p>
+  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.3.</p>
 </div>
 
       </footer></div>

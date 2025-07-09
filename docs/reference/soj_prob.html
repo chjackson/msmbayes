@@ -17,7 +17,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">msmbayes</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.2</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.3</span>
       </span>
     </div>
 
@@ -96,18 +96,17 @@
 
 
 <dt id="arg-method">method<a class="anchor" aria-label="anchor" href="#arg-method"></a></dt>
-<dd><p>If <code>"analytic"</code> then for <code>nphase</code> 5 or less, an
-analytic solution to the matrix exponential is employed in the
-calculation.  For <code>nphase</code> 6 or more, or if <code>method="mexp"</code> the
-matrix exponential is determined using numerical methods, via
-<code><a href="https://rdrr.io/pkg/expm/man/expm.html" class="external-link">expm::expm()</a></code>.</p></dd>
+<dd><p>Only applicable to phase-type models. Method for computing
+the matrix exponential involved in the phase-type sojourn distribution.
+See <code><a href="nphase.html">pnphase</a></code>.</p></dd>
 
 </dl></div>
     <div id="value">
     <h2>Value</h2>
-    <p>A data frame with column <code>value</code> giving the probability of
-remaining in <code>state</code> by time <code>t</code> since state entry, as an <code>rvar</code>
-object. Other columns give the time and any covariate values.</p>
+    <p>A data frame with column <code>posterior</code> giving the posterior
+distribution for the probability of remaining in <code>state</code> by time
+<code>t</code> since state entry, as an <code>rvar</code> object. Other columns give
+the time and any covariate values.</p>
 <p>See <code><a href="qdf.html">qdf</a></code> for notes on the <code>rvar</code> format.</p>
     </div>
 
@@ -123,7 +122,7 @@ object. Other columns give the time and any covariate values.</p>
 </div>
 
 <div class="pkgdown">
-  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.1.</p>
+  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.3.</p>
 </div>
 
       </footer></div>

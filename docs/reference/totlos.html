@@ -18,7 +18,7 @@ calculate this.  The analytic formula is used, not numerical integration."><!-- 
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">msmbayes</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.2</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.3</span>
       </span>
     </div>
 
@@ -74,7 +74,15 @@ calculate this.  The analytic formula is used, not numerical integration.</p>
     </div>
 
     <div id="ref-usage">
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">totlos</span><span class="op">(</span><span class="va">draws</span>, <span class="va">t</span>, new_data <span class="op">=</span> <span class="cn">NULL</span>, fromt <span class="op">=</span> <span class="fl">0</span>, pstart <span class="op">=</span> <span class="cn">NULL</span>, discount <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">totlos</span><span class="op">(</span></span>
+<span>  <span class="va">draws</span>,</span>
+<span>  <span class="va">t</span>,</span>
+<span>  new_data <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  fromt <span class="op">=</span> <span class="fl">0</span>,</span>
+<span>  pstart <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  discount <span class="op">=</span> <span class="fl">0</span>,</span>
+<span>  states <span class="op">=</span> <span class="st">"obs"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div id="arguments">
@@ -105,6 +113,16 @@ length of stay in each state</p></dd>
 <dt id="arg-discount">discount<a class="anchor" aria-label="anchor" href="#arg-discount"></a></dt>
 <dd><p>Discount rate in continuous time</p></dd>
 
+
+<dt id="arg-states">states<a class="anchor" aria-label="anchor" href="#arg-states"></a></dt>
+<dd><p>If <code>states="obs"</code> (or <code>"observed"</code>) then this describes mean sojourn times in
+the observable states.  For phase-type models this is not
+generally equal to the sum of the phase-specific mean sojourn
+times, because an individual may transition out of the state
+before progressing to the next phase.</p>
+<p>If <code>states="phase"</code> (or <code>"true"</code>, or <code>"latent"</code>) then for phase-type models, this describes mean sojourn times
+in the latent state space.</p></dd>
+
 </dl></div>
     <div id="value">
     <h2>Value</h2>
@@ -125,7 +143,7 @@ forecast interval.</p>
 </div>
 
 <div class="pkgdown">
-  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.1.</p>
+  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.3.</p>
 </div>
 
       </footer></div>

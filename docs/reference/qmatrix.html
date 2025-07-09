@@ -17,7 +17,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">msmbayes</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.2</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.3</span>
       </span>
     </div>
 
@@ -72,7 +72,7 @@
     </div>
 
     <div id="ref-usage">
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">qmatrix</span><span class="op">(</span><span class="va">draws</span>, new_data <span class="op">=</span> <span class="cn">NULL</span>, X <span class="op">=</span> <span class="cn">NULL</span>, drop <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">qmatrix</span><span class="op">(</span><span class="va">draws</span>, new_data <span class="op">=</span> <span class="cn">NULL</span>, X <span class="op">=</span> <span class="cn">NULL</span>, drop <span class="op">=</span> <span class="cn">TRUE</span>, type <span class="op">=</span> <span class="st">"posterior"</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div id="arguments">
@@ -100,10 +100,16 @@ in turn.</p></dd>
 <code>nstates</code> x <code>nstates</code> matrix, or if <code>drop=FALSE</code>
 this returns a 3D array with first dimension <code>ncovs=1</code>.</p></dd>
 
+
+<dt id="arg-type">type<a class="anchor" aria-label="anchor" href="#arg-type"></a></dt>
+<dd><p><code>"posterior"</code> to return <code>rvar</code> objects containing posterior samples.</p>
+<p><code>"mode"</code> to return posterior modes (only applicable if model was fitted
+with posterior mode optimisation).</p></dd>
+
 </dl></div>
     <div id="value">
     <h2>Value</h2>
-    <p>An array or matrix of <code>rvar</code> objects containing the
+    <p>An array or matrix of <code>rvar</code> objects or numbers, representing the
 transition intensity matrix for each new prediction data point</p>
     </div>
     <div id="see-also">
@@ -123,18 +129,18 @@ tidy data frame format</p></div>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 4 × 10</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   variable         mean median    sd   mad     q5    q95  rhat ess_bulk ess_tail</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>           <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> qmatrix(infsi… -<span style="color: #BB0000;">0.739</span> -<span style="color: #BB0000;">0.663</span> 0.341 0.279 -<span style="color: #BB0000;">1.39</span>  -<span style="color: #BB0000;">0.324</span>  1.00    <span style="text-decoration: underline;">3</span>828.    <span style="text-decoration: underline;">4</span>003.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> qmatrix(infsi…  4.26   3.86  1.98  1.67   1.84   7.93   1.00    <span style="text-decoration: underline;">3</span>789.    <span style="text-decoration: underline;">3</span>965.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> qmatrix(infsi…  0.739  0.663 0.341 0.279  0.324  1.39   1.00    <span style="text-decoration: underline;">3</span>828.    <span style="text-decoration: underline;">4</span>003.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> qmatrix(infsi… -<span style="color: #BB0000;">4.26</span>  -<span style="color: #BB0000;">3.86</span>  1.98  1.67  -<span style="color: #BB0000;">7.93</span>  -<span style="color: #BB0000;">1.84</span>   1.00    <span style="text-decoration: underline;">3</span>789.    <span style="text-decoration: underline;">3</span>965.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> qmatrix(infsi… -<span style="color: #BB0000;">0.740</span> -<span style="color: #BB0000;">0.662</span> 0.344 0.283 -<span style="color: #BB0000;">1.41</span>  -<span style="color: #BB0000;">0.324</span> 1.000    <span style="text-decoration: underline;">3</span>891.    <span style="text-decoration: underline;">4</span>019.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> qmatrix(infsi…  4.26   3.88  1.98  1.67   1.84   7.97  1.000    <span style="text-decoration: underline;">3</span>893.    <span style="text-decoration: underline;">3</span>960.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> qmatrix(infsi…  0.740  0.662 0.344 0.283  0.324  1.41  1.000    <span style="text-decoration: underline;">3</span>891.    <span style="text-decoration: underline;">4</span>019.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> qmatrix(infsi… -<span style="color: #BB0000;">4.26</span>  -<span style="color: #BB0000;">3.88</span>  1.98  1.67  -<span style="color: #BB0000;">7.97</span>  -<span style="color: #BB0000;">1.84</span>  1.000    <span style="text-decoration: underline;">3</span>893.    <span style="text-decoration: underline;">3</span>960.</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="fu">qmatrix</span><span class="op">(</span><span class="va">infsim_model</span><span class="op">)</span>, <span class="va">median</span>, <span class="op">~</span><span class="fu"><a href="https://rdrr.io/r/stats/quantile.html" class="external-link">quantile</a></span><span class="op">(</span><span class="va">.x</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.025</span>, <span class="fl">0.975</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 4 × 4</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   variable                   median `2.5%` `97.5%`</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                       <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> qmatrix(infsim_model)[1,1] -<span style="color: #BB0000;">0.663</span> -<span style="color: #BB0000;">1.60</span>   -<span style="color: #BB0000;">0.279</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> qmatrix(infsim_model)[2,1]  3.86   1.61    9.03 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> qmatrix(infsim_model)[1,2]  0.663  0.279   1.60 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> qmatrix(infsim_model)[2,2] -<span style="color: #BB0000;">3.86</span>  -<span style="color: #BB0000;">9.03</span>   -<span style="color: #BB0000;">1.61</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> qmatrix(infsim_model)[1,1] -<span style="color: #BB0000;">0.662</span> -<span style="color: #BB0000;">1.62</span>   -<span style="color: #BB0000;">0.278</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> qmatrix(infsim_model)[2,1]  3.88   1.61    9.08 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> qmatrix(infsim_model)[1,2]  0.662  0.278   1.62 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> qmatrix(infsim_model)[2,2] -<span style="color: #BB0000;">3.88</span>  -<span style="color: #BB0000;">9.08</span>   -<span style="color: #BB0000;">1.61</span> </span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>
@@ -150,7 +156,7 @@ tidy data frame format</p></div>
 </div>
 
 <div class="pkgdown">
-  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.1.</p>
+  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.3.</p>
 </div>
 
       </footer></div>

@@ -17,7 +17,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">msmbayes</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.2</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.3</span>
       </span>
     </div>
 
@@ -70,6 +70,10 @@
           <p class="section-desc"></p>
         </th>
       </tr></tbody><tbody><tr><td>
+          <p><code><a href="statetable.html">statetable()</a></code> </p>
+        </td>
+        <td><p>Summarise intermittenly-observed multi-state data</p></td>
+      </tr><tr><td>
           <p><code><a href="msmhist.html">msmhist()</a></code> </p>
         </td>
         <td><p>Illustrate the empirical distribution of states against time in intermittently-observed multistate data</p></td>
@@ -93,6 +97,10 @@
           <h2 id="getting-results-from-fitted-models">Getting results from fitted models <a href="#getting-results-from-fitted-models" class="anchor" aria-hidden="true"></a></h2>
           <p class="section-desc"></p>
         </th>
+      </tr></tbody><tbody><tr><th colspan="2">
+          <h3 id="general-models">General models <a href="#general-models" class="anchor" aria-hidden="true"></a></h3>
+          <p class="section-desc"></p>
+        </th>
       </tr></tbody><tbody><tr><td>
           <p><code><a href="qdf.html">qdf()</a></code> </p>
         </td>
@@ -110,17 +118,17 @@
         </td>
         <td><p>Transition probability matrix from an msmbayes model</p></td>
       </tr><tr><td>
-          <p><code><a href="loghr.html">loghr()</a></code> </p>
+          <p><code><a href="pnext.html">pnext()</a></code> </p>
         </td>
-        <td><p>Log hazard ratios for covariates on transition intensities</p></td>
-      </tr><tr><td>
-          <p><code><a href="hr.html">hr()</a></code> </p>
-        </td>
-        <td><p>Hazard ratios for covariates on transition intensities</p></td>
+        <td><p>Probabilities for the next state in a multi-state model</p></td>
       </tr><tr><td>
           <p><code><a href="mean_sojourn.html">mean_sojourn()</a></code> </p>
         </td>
         <td><p>Mean sojourn times from an msmbayes model</p></td>
+      </tr><tr><td>
+          <p><code><a href="loghr.html">loghr()</a></code> <code><a href="loghr.html">hr()</a></code> </p>
+        </td>
+        <td><p>(Log) hazard ratios for covariates on transition intensities</p></td>
       </tr><tr><td>
           <p><code><a href="soj_prob.html">soj_prob()</a></code> </p>
         </td>
@@ -130,17 +138,9 @@
         </td>
         <td><p>Total length of stay in each state over an interval</p></td>
       </tr><tr><td>
-          <p><code><a href="edf.html">edf()</a></code> </p>
+          <p><code><a href="loglik.html">loglik()</a></code> <code><a href="loglik.html">logLik(<i>&lt;msmbayes&gt;</i>)</a></code> </p>
         </td>
-        <td><p>Misclassification error probabilities from an msmbayes model</p></td>
-      </tr><tr><td>
-          <p><code><a href="ematrix.html">ematrix()</a></code> </p>
-        </td>
-        <td><p>Matrix of misclassification error probabilities from an msmbayes model</p></td>
-      </tr><tr><td>
-          <p><code><a href="phaseapprox_pars.html">phaseapprox_pars()</a></code> </p>
-        </td>
-        <td><p>Summarise posteriors for shape and scale parameters for the sojourn distribution in a semi-Markov msmbayes model</p></td>
+        <td><p>Log likelihood from an msmbayes model</p></td>
       </tr><tr><td>
           <p><code><a href="summary.msmbayes.html">summary(<i>&lt;msmbayes&gt;</i>)</a></code> </p>
         </td>
@@ -150,21 +150,37 @@
         </td>
         <td><p>Constructor for a standardising population used for model outputs</p></td>
       </tr></tbody><tbody><tr><th colspan="2">
-          <h2 id="datasets">Datasets <a href="#datasets" class="anchor" aria-hidden="true"></a></h2>
+          <h3 id="semi-markov-models">Semi-Markov models <a href="#semi-markov-models" class="anchor" aria-hidden="true"></a></h3>
           <p class="section-desc"></p>
         </th>
       </tr></tbody><tbody><tr><td>
-          <p><code><a href="infsim.html">infsim</a></code> <code><a href="infsim.html">infsim2</a></code> </p>
+          <p><code><a href="phaseapprox_pars.html">phaseapprox_pars()</a></code> </p>
         </td>
-        <td><p>Simulated infection testing data</p></td>
+        <td><p>Summarise posteriors for shape and scale parameters for the sojourn distribution in a semi-Markov msmbayes model</p></td>
       </tr><tr><td>
-          <p><code><a href="bigdat.html">bigdat</a></code> </p>
+          <p><code><a href="logtaf.html">logtaf()</a></code> <code><a href="logtaf.html">taf()</a></code> </p>
         </td>
-        <td><p>A simulated multistate dataset with lots of observations and covariates</p></td>
+        <td><p>(Log) time acceleration factors in semi-Markov models</p></td>
       </tr><tr><td>
-          <p><code><a href="example_models.html">infsim_model</a></code> <code><a href="example_models.html">infsim_modelc</a></code> <code><a href="example_models.html">infsim_modelp</a></code> <code><a href="example_models.html">infsim_modelpc</a></code> <code><a href="example_models.html">cav_misc</a></code> </p>
+          <p><code><a href="logoddsnext.html">logoddsnext()</a></code> </p>
         </td>
-        <td><p>Example fitted model objects used for testing msmbayes</p></td>
+        <td><p>Summarise posteriors for log odds of transitions from phase-type states</p></td>
+      </tr><tr><td>
+          <p><code><a href="rrnextdoc.html">logrrnext()</a></code> <code><a href="rrnextdoc.html">rrnext()</a></code> </p>
+        </td>
+        <td><p>Effects of covariates on competing exit transitions in phase type models</p></td>
+      </tr></tbody><tbody><tr><th colspan="2">
+          <h3 id="misclassification-models">Misclassification models <a href="#misclassification-models" class="anchor" aria-hidden="true"></a></h3>
+          <p class="section-desc"></p>
+        </th>
+      </tr></tbody><tbody><tr><td>
+          <p><code><a href="edf.html">edf()</a></code> </p>
+        </td>
+        <td><p>Misclassification error probabilities from an msmbayes model</p></td>
+      </tr><tr><td>
+          <p><code><a href="ematrix.html">ematrix()</a></code> </p>
+        </td>
+        <td><p>Matrix of misclassification error probabilities from an msmbayes model</p></td>
       </tr></tbody><tbody><tr><th colspan="2">
           <h2 id="simulation">Simulation <a href="#simulation" class="anchor" aria-hidden="true"></a></h2>
           <p class="section-desc"></p>
@@ -198,13 +214,33 @@
         </td>
         <td><p>Phase-type expansion of a transition intensity matrix to create a non-Markov multi-state model</p></td>
       </tr><tr><td>
-          <p><code><a href="phase5approx.html">phase5approx()</a></code> </p>
-        </td>
-        <td><p>Training data to construct phase-type approximations of standard survival distributions</p></td>
-      </tr><tr><td>
           <p><code><a href="nphase_Q.html">nphase_Q()</a></code> </p>
         </td>
         <td><p>Given a phase-type sojourn distribution, return the corresponding Markov intensity matrix where the last state is the absorbing state, and the the time to absorption is the sojourn distribution.</p></td>
+      </tr><tr><td>
+          <p><code><a href="shape_ubound.html">shape_ubound()</a></code> </p>
+        </td>
+        <td><p>Upper bound for shape parameter in moment-based phase-type approximations</p></td>
+      </tr></tbody><tbody><tr><th colspan="2">
+          <h2 id="datasets">Datasets <a href="#datasets" class="anchor" aria-hidden="true"></a></h2>
+          <p class="section-desc"></p>
+        </th>
+      </tr></tbody><tbody><tr><td>
+          <p><code><a href="infsim.html">infsim</a></code> <code><a href="infsim.html">infsim2</a></code> </p>
+        </td>
+        <td><p>Simulated infection testing data</p></td>
+      </tr><tr><td>
+          <p><code><a href="bigdat.html">bigdat</a></code> </p>
+        </td>
+        <td><p>A simulated multistate dataset with lots of observations and covariates</p></td>
+      </tr><tr><td>
+          <p><code><a href="example_models.html">infsim_model</a></code> <code><a href="example_models.html">infsim_modelc</a></code> <code><a href="example_models.html">infsim_modelp</a></code> <code><a href="example_models.html">infsim_modelpc</a></code> </p>
+        </td>
+        <td><p>Example fitted model objects used for testing msmbayes</p></td>
+      </tr><tr><td>
+          <p><code><a href="illdeath_data.html">illdeath_data</a></code> </p>
+        </td>
+        <td><p>A simulated dataset from an illness-death model</p></td>
       </tr></tbody><tbody><tr><th colspan="2">
           <h2 id="package-overview">Package overview <a href="#package-overview" class="anchor" aria-hidden="true"></a></h2>
           <p class="section-desc"></p>
@@ -226,7 +262,7 @@
 </div>
 
 <div class="pkgdown">
-  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.1.</p>
+  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.3.</p>
 </div>
 
       </footer></div>

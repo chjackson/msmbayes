@@ -4,79 +4,100 @@
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
-<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<meta name="description" content="Bayesian multi-state models for intermittently-observed data.  Markov and phase-type semi-Markov models, and misclassification hidden Markov models.">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Bayesian Multi-State Models for Intermittently-Observed Data • msmbayes</title>
-<script src="deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<link href="deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
-<script src="deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><!-- Font Awesome icons --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk=" crossorigin="anonymous">
+<!-- jquery --><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js" integrity="sha512-v2CJ7UaYy4JwqLDIrZUI/4hqeoQieOmAZNXBeQyjo21dadnwR+8ZaIJVT8EE2iyI61OV8e6M8PP2/4hpQINQ/g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script><!-- Bootstrap --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.4.1/css/bootstrap.min.css" integrity="sha256-bZLfwXAP04zRMK2BjiO8iu9pf4FbLqX6zitd+tIvLhE=" crossorigin="anonymous">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.4.1/js/bootstrap.min.js" integrity="sha256-nuL8/2cJ5NDSSwnKD8VqreErSWHtnEP9E7AySL+1ev4=" crossorigin="anonymous"></script><!-- bootstrap-toc --><link rel="stylesheet" href="bootstrap-toc.css">
+<script src="bootstrap-toc.js"></script><!-- Font Awesome icons --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk=" crossorigin="anonymous">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/v4-shims.min.css" integrity="sha256-wZjR52fzng1pJHwx4aV2AO3yyTOXrcDW7jBpJtTwVxw=" crossorigin="anonymous">
-<!-- bootstrap-toc --><script src="https://cdn.jsdelivr.net/gh/afeld/bootstrap-toc@v1.0.1/dist/bootstrap-toc.min.js" integrity="sha256-4veVQbu7//Lk5TSmc7YV48MxtMy98e26cf5MrgZYnwo=" crossorigin="anonymous"></script><!-- headroom.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/headroom.min.js" integrity="sha256-AsUX4SJE1+yuDu5+mAVzJbuYNPHj/WroHuZ8Ir/CkE0=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/jQuery.headroom.min.js" integrity="sha256-ZX/yNShbjqsohH1k95liqY9Gd8uOiE1S4vZc+9KQ1K4=" crossorigin="anonymous"></script><!-- clipboard.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" crossorigin="anonymous"></script><!-- search --><script src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/6.4.6/fuse.js" integrity="sha512-zv6Ywkjyktsohkbp9bb45V6tEMoWhzFzXis+LrMehmJZZSys19Yxf1dopHx7WzIKxr5tK2dVcYmaCk2uqdjF4A==" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/autocomplete.js/0.38.0/autocomplete.jquery.min.js" integrity="sha512-GU9ayf+66Xx2TmpxqJpliWbT5PiGYxpaG8rfnBEk1LL8l1KGkRShhngwdXK1UgqhAzWpZHSiYPc09/NwDQIGyg==" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/mark.js/8.11.1/mark.min.js" integrity="sha512-5CYOlHXGh6QpOFA/TeTylKLWfB3ftPsde7AnmhuitiTX4K5SqCLBeKro6sPS8ilsz1Q4NRx3v8Ko2IBiszzdww==" crossorigin="anonymous"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="Bayesian Multi-State Models for Intermittently-Observed Data">
-<meta property="og:description" content="Bayesian multi-state models for intermittently-observed data.  Markov and phase-type semi-Markov models, and misclassification hidden Markov models.">
+<!-- clipboard.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" crossorigin="anonymous"></script><!-- headroom.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/headroom.min.js" integrity="sha256-AsUX4SJE1+yuDu5+mAVzJbuYNPHj/WroHuZ8Ir/CkE0=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/jQuery.headroom.min.js" integrity="sha256-ZX/yNShbjqsohH1k95liqY9Gd8uOiE1S4vZc+9KQ1K4=" crossorigin="anonymous"></script><!-- pkgdown --><link href="pkgdown.css" rel="stylesheet">
+<script src="pkgdown.js"></script><meta property="og:title" content="Bayesian Multi-State Models for Intermittently-Observed Data">
+<meta property="og:description" content="Bayesian multi-state models for intermittently-observed data. Markov and phase-type semi-Markov models, and misclassification hidden Markov models.">
 <!-- mathjax --><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js" integrity="sha256-nvJJv9wWKEm88qvoQl9ekL2J+k/RWIsaSScxxlsrv8k=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/config/TeX-AMS-MML_HTMLorMML.js" integrity="sha256-84DKXVJXs0/F8OTMzX4UR909+jtl4G7SPypPavF+GfA=" crossorigin="anonymous"></script><!--[if lt IE 9]>
 <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
 <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
 <![endif]-->
 </head>
-<body>
-    <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
-    
+<body data-spy="scroll" data-target="#toc">
 
-    <nav class="navbar fixed-top navbar-light navbar-expand-lg bg-light"><div class="container">
-    
-    <a class="navbar-brand me-2" href="index.html">msmbayes</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2</small>
+    <div class="container template-home">
+      <header><div class="navbar navbar-default navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <span class="navbar-brand">
+        <a class="navbar-link" href="index.html">msmbayes</a>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.3</span>
+      </span>
+    </div>
 
-    
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-
-    <div id="navbar" class="collapse navbar-collapse ms-3">
-      <ul class="navbar-nav me-auto">
-<li class="nav-item">
-  <a class="nav-link" href="reference/index.html">Reference</a>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+<li>
+  <a href="reference/index.html">Reference</a>
 </li>
-<li class="nav-item dropdown">
-  <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false" aria-haspopup="true" id="dropdown-articles">Articles</a>
-  <div class="dropdown-menu" aria-labelledby="dropdown-articles">
-    <a class="dropdown-item" href="articles/advanced.html">Advanced multi-state models in msmbayes</a>
-    <a class="dropdown-item" href="articles/examples.html">Examples of using msmbayes</a>
-  </div>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    Articles
+
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+<li>
+      <a href="articles/examples.html">Examples of using msmbayes</a>
+    </li>
+    <li>
+      <a href="articles/misclass.html">Misclassification multi-state models in msmbayes</a>
+    </li>
+    <li>
+      <a href="articles/semimarkov.html">Semi-Markov models with msmbayes</a>
+    </li>
+    <li>
+      <a href="articles/nphase.html">Advanced phase-type models in msmbayes</a>
+    </li>
+  </ul>
 </li>
-<li class="nav-item">
-  <a class="nav-link" href="news/index.html">Changelog</a>
+<li>
+  <a href="news/index.html">Changelog</a>
 </li>
       </ul>
-<form class="form-inline my-2 my-lg-0" role="search">
-        <input type="search" class="form-control me-sm-2" aria-label="Toggle navigation" name="search-input" data-search-index="search.json" id="search-input" placeholder="Search for" autocomplete="off">
-</form>
+<ul class="nav navbar-nav navbar-right">
+<li>
+  <a href="https://github.com/chjackson/msmbayes/" class="external-link">
+    <span class="fab fa-github fa-lg"></span>
 
-      <ul class="navbar-nav">
-<li class="nav-item">
-  <a class="external-link nav-link" href="https://github.com/chjackson/msmbayes/" aria-label="github">
-    <span class="fab fa fab fa-github fa-lg"></span>
-     
   </a>
 </li>
       </ul>
 </div>
-
-    
+<!--/.nav-collapse -->
   </div>
-</nav><div class="container template-home">
-<div class="row">
-  <main id="main" class="col-md-9"><div class="section level1">
+<!--/.container -->
+</div>
+<!--/.navbar -->
+
+
+
+      </header><div class="row">
+  <div class="contents col-md-9">
+<div class="section level1">
 <div class="page-header"><h1 id="msmbayes">msmbayes<a class="anchor" aria-label="anchor" href="#msmbayes"></a>
 </h1></div>
 <p><code>msmbayes</code> is an R package for Bayesian multi-state modelling of intermittently-observed data.</p>
-<p>It is similar to the <a href="https://chjackson.github.io/msm" class="external-link"><code>msm</code></a> package. It supports the following models:</p>
+<p>It is similar to the <a href="https://chjackson.github.io/msm" class="external-link"><code>msm</code></a> package. It supports the following continuous-time multi-state models.</p>
 <ul>
-<li><p>Markov models for intermittently-observed states</p></li>
-<li><p>Hidden Markov models for intermittently-observed, misclassified (discrete) states</p></li>
-<li><p>Phase-type semi-Markov models for intermittently-observed states</p></li>
+<li><p>Markov models</p></li>
+<li><p>Semi-Markov models using phase-type distributions</p></li>
+<li><p>Hidden Markov models for misclassified (discrete) state data</p></li>
 </ul>
+<p>The same observation schemes are supported as in <code>msm</code>: intermittent observations, exact transition times, “exact death times” and censored (coarsened) states. Covariates may be time-homogeneous or piecewise-constant.</p>
+<p>Any transition structures are permitted for any models (any number of states, with or without cycles, with or without absorbing states).</p>
 <p>Models are fitted with Bayesian estimation, via any of the algorithms available in <a href="http://mc-stan.org" class="external-link">Stan</a>, whereas <code>msm</code> uses only maximum likelihood.</p>
 <div class="section level2">
 <h2 id="advantages-of-msmbayes-compared-to-msm">Advantages of msmbayes compared to msm<a class="anchor" aria-label="anchor" href="#advantages-of-msmbayes-compared-to-msm"></a>
@@ -85,22 +106,20 @@
 <li><p>Informative priors can represent background information</p></li>
 <li><p>Prior information can also help to stabilise model fitting</p></li>
 <li><p>Automatic, efficient uncertainty quantification for any model output</p></li>
-<li><p>Phase-type models with any number of phases are supported, though these have not been investigated much</p></li>
+<li><p>More robust semi-Markov models, via phase-type approximations to Weibull and Gamma distributions</p></li>
 </ul>
 </div>
 <div class="section level2">
 <h2 id="limitations-of-msmbayes-compared-to-msm">Limitations of msmbayes compared to msm<a class="anchor" aria-label="anchor" href="#limitations-of-msmbayes-compared-to-msm"></a>
 </h2>
 <ul>
-<li><p>“Exact death time” observation schemes are not supported (but models can still have absorbing states, or any state structure).</p></li>
-<li><p>Continuously-observed processes (<code>exacttimes</code> in <code>msm()</code>) are not supported.</p></li>
-<li><p>“Censored states” are not supported.</p></li>
-<li><p>Equality constraints and fixed parameters are not supported. However, parameters can be constrained through their prior distributions.</p></li>
-<li><p>Time-inhomogeneous models specified through <code>pci</code> in <code>msm()</code> are not supported. However, models with time-varying intensities can still be specified through a “time” covariate, which assumes that intensities are constant between successive observations of the state.</p></li>
 <li><p>Hidden Markov models with general outcome distributions are not supported. The only HMMs supported are those where the observed state space is the same as (or a subset of) the true state space. This includes misclassification and phase-type models.</p></li>
-<li><p>Multivariate hidden Markov models are not supported</p></li>
-<li><p>Fewer output functions</p></li>
-<li><p>More limited documentation and worked examples</p></li>
+<li><p>Covariates on misclassification probabilities are not supported in misclassification models</p></li>
+<li><p>Equality constraints and fixed parameters are not supported. However, parameters can be constrained through their prior distributions.</p></li>
+<li><p>The <code>pci</code> syntax for time-inhomogeneous models is not supported. However, these models can still be specified, by treating time as a time-dependent covariate, and including censored states at the occasions when the covariate changes but not the state.</p></li>
+<li><p>Multivariate hidden Markov models are not supported.</p></li>
+<li><p>Fewer output functions.</p></li>
+<li><p>More limited documentation and worked examples.</p></li>
 </ul>
 </div>
 <div class="section level2">
@@ -112,6 +131,10 @@
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
 <p><strong>Warning: this package is experimental. Some knowledge of Bayesian analysis is needed to develop and interpret models with it!</strong></p>
+<ol style="list-style-type: lower-alpha">
+<li><p>Install <code>cmdstan</code> and <code>cmdstanr</code> by following the <a href="https://mc-stan.org/cmdstanr/articles/cmdstanr.html" class="external-link">instructions linked here</a></p></li>
+<li><p>Install <code>msmbayes</code> by doing:</p></li>
+</ol>
 <pre><code><span><span class="co">## install,packages("remotes") # if need be</span></span>
 <span><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"chjackson/msmbayes"</span><span class="op">)</span></span></code></pre>
 <p>If you use it, please give feedback on <a href="https://github.com/chjackson/msmbayes/issues" class="external-link">github issues</a>, or <a href="mailto:chris.jackson@mrc-bsu.cam.ac.uk">by email</a>.</p>
@@ -119,7 +142,10 @@
 
 </div>
 </div>
-  </main><aside class="col-md-3"><div class="links">
+  </div>
+
+  <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
+    <div class="links">
 <h2 data-toc-skip>Links</h2>
 <ul class="list-unstyled">
 <li><a href="https://github.com/chjackson/msmbayes/" class="external-link">Browse source code</a></li>
@@ -147,7 +173,7 @@
 <div class="developers">
 <h2 data-toc-skip>Developers</h2>
 <ul class="list-unstyled">
-<li>Christopher Jackson <br><small class="roles"> Author, maintainer </small> <a href="https://orcid.org/0000-0002-6656-8913" target="orcid.widget" aria-label="ORCID" class="external-link"><span class="fab fa-orcid orcid" aria-hidden="true"></span></a> </li>
+<li>Christopher Jackson <br><small class="roles"> Author, maintainer </small> <a href="https://orcid.org/0000-0002-6656-8913" target="orcid.widget" aria-label="ORCID" class="external-link"><span class="fab fa-orcid orcid" aria-hidden="true"></span></a>  </li>
 </ul>
 </div>
 
@@ -160,26 +186,27 @@
 </ul>
 </div>
 
-  </aside>
+  </div>
 </div>
 
 
-    <footer><div class="pkgdown-footer-left">
+      <footer><div class="copyright">
   <p></p>
 <p>Developed by Christopher Jackson.</p>
 </div>
 
-<div class="pkgdown-footer-right">
+<div class="pkgdown">
   <p></p>
-<p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.7.</p>
+<p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.3.</p>
 </div>
 
-    </footer>
+      </footer>
 </div>
 
-  
 
-  
+
+
+
 
   </body>
 </html>

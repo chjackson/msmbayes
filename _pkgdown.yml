@@ -12,21 +12,33 @@ reference:
   - msmbayes
   - msmprior
 - title: Getting results from fitted models
+- subtitle: General models
 - contents:
   - qdf
   - qmatrix
   - pmatrixdf
   - pmatrix
-  - loghr
-  - hr
+  - pnext
   - mean_sojourn
+  - hr
+  - loghr
   - soj_prob
   - totlos
-  - edf
-  - ematrix
-  - phaseapprox_pars
+  - loglik
   - summary.msmbayes
   - standardise_to
+- subtitle: Semi-Markov models
+- contents:
+  - phaseapprox_pars
+  - taf
+  - logtaf
+  - logoddsnext
+  - rrnext
+  - logrrnext
+- subtitle: Misclassification models
+- contents:
+  - edf
+  - ematrix
 - title: Simulation
 - contents:
   - msmbayes_prior_sample
@@ -37,8 +49,8 @@ reference:
   - canpars_to_rates
   - shapescale_to_rates
   - qphaseapprox
-  - phase5approx
   - nphase_Q
+  - shape_ubound
 - title: Datasets
 - contents:
   - infsim
