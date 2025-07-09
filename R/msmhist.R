@@ -163,26 +163,26 @@ msmhist_bardata <- function(data, state="state", time="time", subject="subject",
 
   ## Calculate p(i,s): prop of each indivdual's observations in the bin
   ## that are from each state
-  pstate_subj_df <- datp %>%
-    group_by(timebin, subject) %>%
-    summarise(pstate = 1 / n()) %>%
+  pstate_subj_df <- datp |>
+    group_by(timebin, subject) |>
+    summarise(pstate = 1 / n()) |>
     ungroup()
   ## Then estimate p(s) as the mean of p(i,s) over individuals observed in the bin
-  bardata <- datp %>%
-    left_join(pstate_subj_df, by=c("timebin","subject")) %>%
+  bardata <- datp |>
+    left_join(pstate_subj_df, by=c("timebin","subject")) |>
     tidyr::complete(state, tidyr::nesting(subject, timebin),
-                    fill=list(pstate=0)) %>% # set p(i,s) = 0 if s not observed
-    group_by(timebin) %>%
-    mutate(n = length(unique(subject))) %>%
-    group_by(timebin, state) %>%
-    summarise(props = sum(pstate/n)) %>%
-    group_by(timebin) %>%
+                    fill=list(pstate=0)) |> # set p(i,s) = 0 if s not observed
+    group_by(timebin) |>
+    mutate(n = length(unique(subject))) |>
+    group_by(timebin, state) |>
+    summarise(props = sum(pstate/n)) |>
+    group_by(timebin) |>
     mutate(cumpend = cumsum(props),
            cumpstart = c(0, head(cumpend, -1)),
            binid = match(timebin, levels(timebin)),
            binstart = head(qs,-1)[binid],
            binend = qs[-1][binid],
-           binmid = (binstart + binend)/2) %>%
+           binmid = (binstart + binend)/2) |>
     ungroup()
   attr(bardata,"qs") <- qs
   bardata
