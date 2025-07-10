@@ -466,8 +466,10 @@ loglik_internal <- function(draws, type="posterior"){
     logprior <- as.numeric(draws_of(logprior))
     logpost <- as.numeric(draws_of(logpost))
   }
-  if (!is_hmm(draws))
+  if (!is_hmm(draws)){
     loglik <- loglik - attr(draws,"standat")$multinom_const
+    logpost <- logpost - attr(draws,"standat")$multinom_const
+  }    
   c(loglik, logprior, logpost)
 }
 
