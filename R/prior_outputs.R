@@ -165,7 +165,7 @@ prior_logtaf_db <- function(priors, cm){
     to = rep(cmdf$to, cmdf$ncovs),
     prior = prior_to_rvar(priors$loghrmean[cm$tafdf$response=="scale"],
                           priors$loghrsd[cm$tafdf$response=="scale"],
-                          n=1000)[tafdf$consid]
+                          n=1000)
   ) |>
     mutate(logtaf  = prior,
            taf  = exp(prior)) |>

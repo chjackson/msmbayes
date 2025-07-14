@@ -34,6 +34,7 @@ shapescale_to_rates <- function(shape, scale=1, family="gamma",
   ml <- max(length(shape), length(scale))
   shape <- rep(shape, length.out=ml)
   scale <- rep(scale, length.out=ml)
+  if (is.null(nphase)) nphase <- 5
 
   if (method == "moment"){
     rates <- shape_to_rates_moment(shape, scale, family, nphase)
@@ -101,7 +102,8 @@ qphaseapprox <- function(qmatrix, pastates, shape, scale=1, family="gamma", meth
   qm <- phase_expand_qmodel(qm, pm)
   qnew <- pm$Qphase
   for (i in 1:pm$npastates){
-    rates <- shapescale_to_rates(shape[i], scale[i], family=family, method=method, nphase=nphase, list=TRUE)
+    rates <- shapescale_to_rates(shape[i], scale[i],
+                                 family=pm$pafamily[i], method=method, nphase=pm$nphase[pm$pastates][i], list=TRUE)
     pd <- qm$phasedata
     pdprog <- as.matrix(pd[pd$ttype=="prog" & pd$oldfrom==pastates[i], c("qrow","qcol")])
     pdabs <- as.matrix(pd[pd$ttype=="abs" & pd$oldfrom==pastates[i], c("qrow","qcol")])
