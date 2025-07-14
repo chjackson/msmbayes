@@ -293,8 +293,6 @@ process_priors <- function(priors, qm, cm, pm, em, qmobs,
   logqsd <- rep(.default_priors$logq$sd, qm$npriorq)
   loghrmean <- rep(.default_priors$loghr$mean, cm$nxuniq)
   loghrsd <- rep(.default_priors$loghr$sd, cm$nxuniq)
-  logtafmean <- rep(.default_priors$logtaf$mean, cm$nxuniq)
-  logtafsd <- rep(.default_priors$logtaf$sd, cm$nxuniq)
   logshapemean <- as.numeric(sapply(.default_priors$logshape[pm$pafamily], function(x)x$mean))
   logshapesd <- as.numeric(sapply(.default_priors$logshape[pm$pafamily], function(x)x$sd))
   logscalemean <- rep(.default_priors$logscale$mean, pm$npastates)
@@ -348,7 +346,6 @@ process_priors <- function(priors, qm, cm, pm, em, qmobs,
   lb <- logshape_bounds(pm)
   list(logqmean = as.array(logqmean), logqsd = as.array(logqsd),
        loghrmean = as.array(loghrmean), loghrsd = as.array(loghrsd),
-       logtafmean = as.array(logtafmean), logtafsd = as.array(logtafsd),
        logshapemean = as.array(logshapemean), logshapesd = as.array(logshapesd),
        logscalemean = as.array(logscalemean), logscalesd = as.array(logscalesd),
        logshapemin = as.array(lb$min), logshapemax = as.array(lb$max),

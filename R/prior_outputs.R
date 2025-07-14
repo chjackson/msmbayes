@@ -158,12 +158,14 @@ prior_logtaf_db <- function(priors, cm){
   prior <- name <- xname <- NULL
   cmdf <- cm$cmodeldf[cm$cmodeldf$response %in% c("scale"),]
   if (nrow(cmdf)==0) return(NULL)
+  tafdf <- cm$tafdf[cm$tafdf$response %in% c("scale"),]
   data.frame(
-    xname = cm$tafdf$name[cm$tafdf$response=="scale"],
+    xname = tafdf$name,
     from = rep(cmdf$from, cmdf$ncovs),
     to = rep(cmdf$to, cmdf$ncovs),
-    prior = prior_to_rvar(priors$logtafmean,
-                          priors$logtafsd, n=1000)[cm$tafdf$consid]
+    prior = prior_to_rvar(priors$loghrmean[cm$tafdf$response=="scale"],
+                          priors$loghrsd[cm$tafdf$response=="scale"],
+                          n=1000)[tafdf$consid]
   ) |>
     mutate(logtaf  = prior,
            taf  = exp(prior)) |>

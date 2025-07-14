@@ -158,11 +158,11 @@
 #'   the data, and the transition to the current state is made exactly
 #'   at the current time.
 #'
-#'   `3`: "Exact death times". the transition to the current state is
+#'   `3`: "Exact death times". A transition to the current state is
 #'   made exactly at the current time, but the state in the period
-#'   from the previous observation to the instant before the
-#'   transition is unknown.  Typical (but not necessary) for
-#'   observations of death in epidemiological studies.
+#'   between the previous observation and this transition is unknown.
+#'   Typical (but not necessary) for observations of death in
+#'   epidemiological/clinical studies.
 #'
 #'    This is the same feature as in the `msm` package.  If omitted,
 #'    then all observations are assumed to be intermittent, with
@@ -202,6 +202,9 @@
 #'   In misclassification models, the subset refers to values of the
 #'   true state if `obstrue` is 1, or the observed state if `obstrue`
 #'   is 0.
+#'
+#'   Unlike in `msm`, there is no `censor` argument, and a `censor_states`
+#'   must be supplied if there are censored states.
 #'
 #' @param constraint Constraints that a covariate has an equal effect
 #'   on a particular set of transition intensities.  A list with one

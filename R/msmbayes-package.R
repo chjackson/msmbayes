@@ -21,6 +21,7 @@
 #'
 #' @import Rcpp
 #' @import methods
+#' @import vctrs
 #' @importFrom rstan sampling
 #' @importFrom rstantools rstan_config
 #' @importFrom RcppParallel RcppParallelLibs

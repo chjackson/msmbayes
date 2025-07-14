@@ -25,7 +25,7 @@
 ##' @param drop If shape or scale have both have one element, and \code{drop=FALSE}, a matrix with one row is returned.
 ##'
 ##' @export
-shapescale_to_rates <- function(shape, scale=1, family="weibull",
+shapescale_to_rates <- function(shape, scale=1, family="gamma",
                                 canonical=FALSE, method="moment",
                                 nphase=5,
                                 list=FALSE, drop=TRUE){
@@ -94,13 +94,14 @@ check_positive_number <- function(x){
 ##' @return Intensity matrix on the latent state space.
 ##'
 ##' @export
-qphaseapprox <- function(qmatrix, pastates, shape, scale=1, family="weibull", method="moment", att=FALSE){
+qphaseapprox <- function(qmatrix, pastates, shape, scale=1, family="gamma", method="moment", nphase=NULL, att=FALSE){
   qm <- form_qmodel(qmatrix)
-  pm <- form_phasetype(pastates = pastates, qm=list(Q=qmatrix), pafamily=family)
+  pm <- form_phasetype(pastates = pastates, qm=list(Q=qmatrix), pafamily=family,
+                       panphase = nphase)
   qm <- phase_expand_qmodel(qm, pm)
   qnew <- pm$Qphase
   for (i in 1:pm$npastates){
-    rates <- shapescale_to_rates(shape[i], scale[i], family=family, method=method, list=TRUE)
+    rates <- shapescale_to_rates(shape[i], scale[i], family=family, method=method, nphase=nphase, list=TRUE)
     pd <- qm$phasedata
     pdprog <- as.matrix(pd[pd$ttype=="prog" & pd$oldfrom==pastates[i], c("qrow","qcol")])
     pdabs <- as.matrix(pd[pd$ttype=="abs" & pd$oldfrom==pastates[i], c("qrow","qcol")])

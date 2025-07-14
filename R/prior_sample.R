@@ -31,13 +31,14 @@ msmbayes_prior_sample <- function(data, state="state", time="time", subject="sub
                                   covariates = NULL,
                                   pastates = NULL,
                                   pafamily = "weibull",
+                                  panphase = NULL,
                                   nphase = NULL,
                                   E = NULL,
                                   priors = NULL,
                                   nsim = 1){
   m <- msmbayes_form_internals(data=data, state=state, time=time, subject=subject,
                                Q=Q, covariates=covariates, pastates=pastates,
-                               pafamily=pafamily, pamethod="moment", E=E,
+                               pafamily=pafamily, panphase=panphase, E=E,
                                nphase=nphase, priors=priors,
                                prior_sample = TRUE)
   qm <- m$qm; pm <- m$pm; priors <- m$priors; cm <- m$cm; em <- m$em; data <- m$data; qmobs <- m$qmobs
@@ -66,7 +67,7 @@ msmbayes_prior_sample <- function(data, state="state", time="time", subject="sub
 }
 
 ## TODO way to convert the Stan names to real names for the model draws output
-## though just for output, not for initial values 
+## though just for output, not for initial values
 
 prior_sample_logq <- function(priors, nsim, qm, pm, em){
   if (qm$npriorq > 0){
@@ -102,8 +103,8 @@ prior_sample_loghr <- function(priors, nsim, cm){
     ind3 <- ifelse(tudf$response=="scale", "", paste0(",",tudf$toobs))
     names(loghr) <- sprintf("%s[%s,%s%s]", tudf$pname, tudf$name, tudf$fromobs, ind3)
     loghr_expand <- loghr[,cm$hrdf$tafid,drop=FALSE]
-    cm$hrdf$pname <- ifelse(cm$hrdf$response=="scale", "logtaf", "loghr")
-    names(loghr_expand) <- sprintf("%s[%s,%s,%s]", cm$hrdf$pname, cm$hrdf$name, cm$hrdf$from, cm$hrdf$to)
+##    cm$hrdf$pname <- ifelse(cm$hrdf$response=="scale", "logtaf", "loghr")
+    names(loghr_expand) <- sprintf("loghr[%s,%s,%s]", cm$hrdf$name, cm$hrdf$from, cm$hrdf$to)
     attr(loghr, "stan_names") <- sprintf("%s[%s]", tudf$pname, 1:cm$nxuniq)
   } else
     loghr <- loghr_expand <- as.data.frame(matrix(nrow=nsim, ncol=0))
@@ -214,7 +215,8 @@ msmbayes_priorpred_sample <- function(data, state="state", time="time", subject=
                                       Q,
                                       covariates = NULL,
                                       pastates = NULL,
-                                      pafamily = "weibull",
+                                      pafamily = "gamma",
+                                      panphase = NULL,
                                       nphase = NULL,
                                       E = NULL,
                                       priors = NULL,
@@ -223,12 +225,14 @@ msmbayes_priorpred_sample <- function(data, state="state", time="time", subject=
                                       ){
   prior_sample <- msmbayes_prior_sample(data=data, state=state, time=time, subject=subject,
                                         Q=Q, covariates=covariates,
-                                        pastates=pastates, pafamily=pafamily, 
+                                        pastates=pastates, pafamily=pafamily,
+                                        panphase = panphase,
                                         nphase=nphase, E=E, priors=priors,
                                         nsim = 1)
   m <- msmbayes_form_internals(data=data, state=state, time=time, subject=subject,
                                Q=Q, covariates=covariates, pastates=pastates,
-                               pafamily=pafamily, pamethod="moment", E=E,
+                               pafamily=pafamily, panphase = panphase,
+                               E=E,
                                nphase=nphase, priors=priors,
                                prior_sample = TRUE)
   data_orig <- data
@@ -250,7 +254,7 @@ msmbayes_priorpred_sample <- function(data, state="state", time="time", subject=
     scales <- exp(unlist(prior_sample[grep("logscale",names(prior_sample),value=TRUE)]))
     q_pred <- qphaseapprox(qmatrix=q_prior,
                            shape = shapes, scale=scales,
-                           pastates=pastates, family=pafamily)
+                           pastates=pastates, family=pafamily, nphase=panphase)
     ematrix <- m$em$E
   } else ematrix <- NULL   # TESTME
 
@@ -349,8 +353,9 @@ logoddsnext_to_probs <- function(logoddsnext, qm, qmobs){
 form_simmsm_beta <- function(prior_sample, qm, cm, qmatrix=NULL, i=1){
   name <- from <- to <- betagamma <- NULL
   if (cm$nx + cm$nrrnext==0) return(NULL)
-  bdf <- extract_beta_df(prior_sample, i)
-  rrdf <- extract_logrrnext_df(prior_sample, cm, i)
+  bdf <- extract_coveff_df(prior_sample, parname="loghr", i=i)
+  rrdf <- extract_coveff_df(prior_sample, parname="logrrnext", i=i) |>
+    rename(gamma = beta)
   brrdf <- full_join(bdf, rrdf, by=join_by("name","from","to","lab")) |>
     mutate(gamma=if_else(is.na(gamma), 0, gamma),
            betagamma = beta + gamma)
@@ -373,14 +378,15 @@ form_simmsm_beta <- function(prior_sample, qm, cm, qmatrix=NULL, i=1){
   beta
 }
 
-## tidy the betas from a single posterior sample
+## tidy the covariate effects from a single posterior sample
 ## input: one stretched matrix row.
 ## output: data frame
+## @param parname: loghr, logtaf, or logrra
 ## includes all log hrs between phases, effects on scale replicated
 ## excludes effects on competing risk probs (gamma)
-extract_beta_df <- function(prior_sample, i=1){
+extract_coveff_df <- function(prior_sample, parname, i=1){
   prior_sample <- attr(prior_sample,"expand")
-  bre <- "loghr\\[(.+),([[:digit:]]+),([[:digit:]]+)\\]"
+  bre <- sprintf("%s\\[(.+),([[:digit:]]+),([[:digit:]]+)\\]", parname)
   bn <- grep(bre,names(prior_sample),value=TRUE)
   bdf <- data.frame(
     name = gsub(bre, "\\1", bn),
@@ -391,19 +397,4 @@ extract_beta_df <- function(prior_sample, i=1){
   bdf$lab <- paste(bdf$from,bdf$to,sep="-")
   bdf <- bdf[order(bdf$from, bdf$to),]
   bdf
-}
-
-extract_logrrnext_df <- function(prior_sample, cm, i=1){
-  prior_sample <- attr(prior_sample,"expand")
-  re <- "logrrnext\\[(.+),([[:digit:]]+),([[:digit:]]+)\\]"
-  rn <- grep(re, names(prior_sample), value=TRUE)
-  rrdf <- data.frame(
-    name = gsub(re, "\\1", rn),
-    from = as.numeric(gsub(re, "\\2", rn)),
-    to = as.numeric(gsub(re, "\\3", rn)),
-    gamma = as.numeric(prior_sample[i,rn])
-  )
-  rrdf$lab <- paste(rrdf$from,rrdf$to,sep="-")
-  rrdf <- rrdf[order(rrdf$from, rrdf$to),]
-  rrdf
 }
