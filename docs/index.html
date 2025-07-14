@@ -105,8 +105,8 @@
 <ul>
 <li><p>Informative priors can represent background information</p></li>
 <li><p>Prior information can also help to stabilise model fitting</p></li>
-<li><p>Automatic, efficient uncertainty quantification for any model output</p></li>
 <li><p>More robust semi-Markov models, via phase-type approximations to Weibull and Gamma distributions</p></li>
+<li><p>Automatic, efficient uncertainty quantification for any model output</p></li>
 </ul>
 </div>
 <div class="section level2">
@@ -114,12 +114,10 @@
 </h2>
 <ul>
 <li><p>Hidden Markov models with general outcome distributions are not supported. The only HMMs supported are those where the observed state space is the same as (or a subset of) the true state space. This includes misclassification and phase-type models.</p></li>
-<li><p>Covariates on misclassification probabilities are not supported in misclassification models</p></li>
+<li><p>Covariates on misclassification probabilities are not supported in misclassification models.</p></li>
 <li><p>Equality constraints and fixed parameters are not supported. However, parameters can be constrained through their prior distributions.</p></li>
-<li><p>The <code>pci</code> syntax for time-inhomogeneous models is not supported. However, these models can still be specified, by treating time as a time-dependent covariate, and including censored states at the occasions when the covariate changes but not the state.</p></li>
+<li><p>The <code>pci</code> syntax for time-inhomogeneous models is not supported. However, these models can still be specified, by treating time as a time-dependent covariate, and including censored states at the occasions when the covariate changes but not the state. Prediction functions also currently cannot automatically deal with piecewise-constant covariates.</p></li>
 <li><p>Multivariate hidden Markov models are not supported.</p></li>
-<li><p>Fewer output functions.</p></li>
-<li><p>More limited documentation and worked examples.</p></li>
 </ul>
 </div>
 <div class="section level2">
@@ -130,7 +128,7 @@
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
-<p><strong>Warning: this package is experimental. Some knowledge of Bayesian analysis is needed to develop and interpret models with it!</strong></p>
+<p><strong>Warning: some knowledge of Bayesian analysis is needed to develop and interpret models with this package!</strong></p>
 <ol style="list-style-type: lower-alpha">
 <li><p>Install <code>cmdstan</code> and <code>cmdstanr</code> by following the <a href="https://mc-stan.org/cmdstanr/articles/cmdstanr.html" class="external-link">instructions linked here</a></p></li>
 <li><p>Install <code>msmbayes</code> by doing:</p></li>

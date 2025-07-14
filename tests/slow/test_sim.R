@@ -38,6 +38,41 @@ test_that("one-simulation test: multiple covariates",{
   loghr(mod)
 })
 
+
+
+
+test_that("one-simulation test: SMM with covariates on scale",{
+  Q <- rbind(c(0,1),c(1,0))
+  nindiv <- 10
+  nobspt <- 100
+  subjdf <- data.frame(
+    subject = 1:nindiv,
+    male = factor(rep(c("male","female"), (nindiv/10)*c(6,4)))
+  )
+  dat <- subjdf[rep(1:nindiv,each=nobspt),]
+  dat$time <- rep(1:nobspt, nindiv)
+
+  priors_phase <-
+    list(logshape1 = msmprior("logshape(1)", mean=0, sd=0.01),
+         logscale1 = msmprior("logscale(1)", mean= log(10), sd=0.01),
+         logtaf = msmprior("logtaf(malemale,1)", mean = 5, sd = 0.01))
+
+  set.seed(10)
+  sam <- msmbayes_priorpred_sample(data=dat, Q=Q, pastates=c(1), pafamily="gamma", panphase=5,
+                                   priors=priors_phase,
+                                   covariates = list(scale(1) ~ male))
+  statetable(sam, state="obs_state", covariates="male")
+
+  mod <- msmbayes(data=sam, state="obs_state", Q=Q, pastates=c(1), pafamily="gamma", panphase=5,
+                  covariates = list(scale(1) ~ male),
+                  fit_method="optimize")
+
+  summary(mod, pars=c("shape","logtaf"))
+
+})
+
+
+
 test_that("one-simulation test: illness-death phase-type approx",{
   Qid <- rbind(c(0,1,1),c(0,0,1),c(0,0,0))
   nindiv <- 1000

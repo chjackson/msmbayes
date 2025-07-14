@@ -1,99 +1,54 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>https://chjackson.github.io/msmbayes/404.html</loc>
-  </url>
-  <url>
-    <loc>https://chjackson.github.io/msmbayes/articles/advanced.html</loc>
-  </url>
-  <url>
-    <loc>https://chjackson.github.io/msmbayes/articles/examples.html</loc>
-  </url>
-  <url>
-    <loc>https://chjackson.github.io/msmbayes/articles/index.html</loc>
-  </url>
-  <url>
-    <loc>https://chjackson.github.io/msmbayes/authors.html</loc>
-  </url>
-  <url>
-    <loc>https://chjackson.github.io/msmbayes/index.html</loc>
-  </url>
-  <url>
-    <loc>https://chjackson.github.io/msmbayes/LICENSE.html</loc>
-  </url>
-  <url>
-    <loc>https://chjackson.github.io/msmbayes/news/index.html</loc>
-  </url>
-  <url>
-    <loc>https://chjackson.github.io/msmbayes/reference/bigdat.html</loc>
-  </url>
-  <url>
-    <loc>https://chjackson.github.io/msmbayes/reference/edf.html</loc>
-  </url>
-  <url>
-    <loc>https://chjackson.github.io/msmbayes/reference/example_models.html</loc>
-  </url>
-  <url>
-    <loc>https://chjackson.github.io/msmbayes/reference/hr.html</loc>
-  </url>
-  <url>
-    <loc>https://chjackson.github.io/msmbayes/reference/index.html</loc>
-  </url>
-  <url>
-    <loc>https://chjackson.github.io/msmbayes/reference/infsim.html</loc>
-  </url>
-  <url>
-    <loc>https://chjackson.github.io/msmbayes/reference/infsim2.html</loc>
-  </url>
-  <url>
-    <loc>https://chjackson.github.io/msmbayes/reference/infsim_model.html</loc>
-  </url>
-  <url>
-    <loc>https://chjackson.github.io/msmbayes/reference/infsim_modelc.html</loc>
-  </url>
-  <url>
-    <loc>https://chjackson.github.io/msmbayes/reference/loghr.html</loc>
-  </url>
-  <url>
-    <loc>https://chjackson.github.io/msmbayes/reference/mean_sojourn.html</loc>
-  </url>
-  <url>
-    <loc>https://chjackson.github.io/msmbayes/reference/msmbayes-package.html</loc>
-  </url>
-  <url>
-    <loc>https://chjackson.github.io/msmbayes/reference/msmbayes.html</loc>
-  </url>
-  <url>
-    <loc>https://chjackson.github.io/msmbayes/reference/msmhist.html</loc>
-  </url>
-  <url>
-    <loc>https://chjackson.github.io/msmbayes/reference/msmhist_bardata.html</loc>
-  </url>
-  <url>
-    <loc>https://chjackson.github.io/msmbayes/reference/msmprior.html</loc>
-  </url>
-  <url>
-    <loc>https://chjackson.github.io/msmbayes/reference/pmatrix.html</loc>
-  </url>
-  <url>
-    <loc>https://chjackson.github.io/msmbayes/reference/pmatrixdf.html</loc>
-  </url>
-  <url>
-    <loc>https://chjackson.github.io/msmbayes/reference/qdf.html</loc>
-  </url>
-  <url>
-    <loc>https://chjackson.github.io/msmbayes/reference/qmatrix.html</loc>
-  </url>
-  <url>
-    <loc>https://chjackson.github.io/msmbayes/reference/standardise_to.html</loc>
-  </url>
-  <url>
-    <loc>https://chjackson.github.io/msmbayes/reference/summary.msmbayes.html</loc>
-  </url>
-  <url>
-    <loc>https://chjackson.github.io/msmbayes/reference/totlos.html</loc>
-  </url>
-  <url>
-    <loc>https://chjackson.github.io/msmbayes/TODO.html</loc>
-  </url>
+<urlset xmlns = 'http://www.sitemaps.org/schemas/sitemap/0.9'>
+<url><loc>https://chjackson.github.io/msmbayes/404.html</loc></url>
+<url><loc>https://chjackson.github.io/msmbayes/articles/advanced.html</loc></url>
+<url><loc>https://chjackson.github.io/msmbayes/articles/examples.html</loc></url>
+<url><loc>https://chjackson.github.io/msmbayes/articles/index.html</loc></url>
+<url><loc>https://chjackson.github.io/msmbayes/articles/misclass.html</loc></url>
+<url><loc>https://chjackson.github.io/msmbayes/articles/nphase.html</loc></url>
+<url><loc>https://chjackson.github.io/msmbayes/articles/semimarkov.html</loc></url>
+<url><loc>https://chjackson.github.io/msmbayes/authors.html</loc></url>
+<url><loc>https://chjackson.github.io/msmbayes/index.html</loc></url>
+<url><loc>https://chjackson.github.io/msmbayes/LICENSE.html</loc></url>
+<url><loc>https://chjackson.github.io/msmbayes/news/index.html</loc></url>
+<url><loc>https://chjackson.github.io/msmbayes/reference/bigdat.html</loc></url>
+<url><loc>https://chjackson.github.io/msmbayes/reference/canpars_to_rates.html</loc></url>
+<url><loc>https://chjackson.github.io/msmbayes/reference/cav_misc.html</loc></url>
+<url><loc>https://chjackson.github.io/msmbayes/reference/edf.html</loc></url>
+<url><loc>https://chjackson.github.io/msmbayes/reference/ematrix.html</loc></url>
+<url><loc>https://chjackson.github.io/msmbayes/reference/example_models.html</loc></url>
+<url><loc>https://chjackson.github.io/msmbayes/reference/illdeath_data.html</loc></url>
+<url><loc>https://chjackson.github.io/msmbayes/reference/index.html</loc></url>
+<url><loc>https://chjackson.github.io/msmbayes/reference/infsim.html</loc></url>
+<url><loc>https://chjackson.github.io/msmbayes/reference/loghr.html</loc></url>
+<url><loc>https://chjackson.github.io/msmbayes/reference/loglik.html</loc></url>
+<url><loc>https://chjackson.github.io/msmbayes/reference/logoddsnext.html</loc></url>
+<url><loc>https://chjackson.github.io/msmbayes/reference/logtaf.html</loc></url>
+<url><loc>https://chjackson.github.io/msmbayes/reference/mean_sojourn.html</loc></url>
+<url><loc>https://chjackson.github.io/msmbayes/reference/msmbayes-package.html</loc></url>
+<url><loc>https://chjackson.github.io/msmbayes/reference/msmbayes.html</loc></url>
+<url><loc>https://chjackson.github.io/msmbayes/reference/msmbayes_priorpred_sample.html</loc></url>
+<url><loc>https://chjackson.github.io/msmbayes/reference/msmbayes_prior_sample.html</loc></url>
+<url><loc>https://chjackson.github.io/msmbayes/reference/msmhist.html</loc></url>
+<url><loc>https://chjackson.github.io/msmbayes/reference/msmhist_bardata.html</loc></url>
+<url><loc>https://chjackson.github.io/msmbayes/reference/msmprior.html</loc></url>
+<url><loc>https://chjackson.github.io/msmbayes/reference/nphase.html</loc></url>
+<url><loc>https://chjackson.github.io/msmbayes/reference/nphase_Q.html</loc></url>
+<url><loc>https://chjackson.github.io/msmbayes/reference/phase5approx.html</loc></url>
+<url><loc>https://chjackson.github.io/msmbayes/reference/phaseapprox_pars.html</loc></url>
+<url><loc>https://chjackson.github.io/msmbayes/reference/pmatrix.html</loc></url>
+<url><loc>https://chjackson.github.io/msmbayes/reference/pmatrixdf.html</loc></url>
+<url><loc>https://chjackson.github.io/msmbayes/reference/pnext.html</loc></url>
+<url><loc>https://chjackson.github.io/msmbayes/reference/qdf.html</loc></url>
+<url><loc>https://chjackson.github.io/msmbayes/reference/qmatrix.html</loc></url>
+<url><loc>https://chjackson.github.io/msmbayes/reference/qphaseapprox.html</loc></url>
+<url><loc>https://chjackson.github.io/msmbayes/reference/rrnextdoc.html</loc></url>
+<url><loc>https://chjackson.github.io/msmbayes/reference/shapescale_to_rates.html</loc></url>
+<url><loc>https://chjackson.github.io/msmbayes/reference/shape_ubound.html</loc></url>
+<url><loc>https://chjackson.github.io/msmbayes/reference/soj_prob.html</loc></url>
+<url><loc>https://chjackson.github.io/msmbayes/reference/standardise_to.html</loc></url>
+<url><loc>https://chjackson.github.io/msmbayes/reference/statetable.html</loc></url>
+<url><loc>https://chjackson.github.io/msmbayes/reference/summary.msmbayes.html</loc></url>
+<url><loc>https://chjackson.github.io/msmbayes/reference/totlos.html</loc></url>
+<url><loc>https://chjackson.github.io/msmbayes/TODO.html</loc></url>
 </urlset>
+

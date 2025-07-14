@@ -28,7 +28,8 @@ Imports:
     rstantools (>= 2.4.0),
     stringr,
     tidybayes,
-    tidyr
+    tidyr,
+    vctrs
 Suggests:
     cmdstanr,
     msm,

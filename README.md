@@ -2,7 +2,7 @@
 
 `msmbayes` is an R package for Bayesian multi-state modelling of intermittently-observed data.
 
-It is similar to the [`msm`](https://chjackson.github.io/msm) package.  It supports the following continuous-time multi-state models.
+It is similar to the [`msm`](https://chjackson.github.io/msm) package.  It supports the following continuous-time multi-state models:
 
 * Markov models
 
@@ -14,35 +14,31 @@ The same observation schemes are supported as in `msm`: intermittent observation
 
 Any transition structures are permitted for any models (any number of states, with or without cycles, with or without absorbing states).
 
-Models are fitted with Bayesian estimation, via any of the algorithms available in [Stan](http://mc-stan.org), whereas `msm` uses only maximum likelihood.
+Models can be fitted with either Bayesian or maximum likelihood estimation, via any of the algorithms available in [Stan](http://mc-stan.org), whereas `msm` uses only maximum likelihood.
 
 
 ## Advantages of msmbayes compared to msm
 
 * Informative priors can represent background information
 
-* Prior information can also help to stabilise model fitting
+* Prior information can also help to stabilise model fitting - avoiding convergence failures. 
+
+* Semi-Markov models, via phase-type approximations to Weibull and Gamma distributions, which are easier to use and much more robust than the "two-phase" methods in msm.
 
 * Automatic, efficient uncertainty quantification for any model output
-
-* More robust semi-Markov models, via phase-type approximations to Weibull and Gamma distributions
 
 
 ## Limitations of msmbayes compared to msm 
 
 * Hidden Markov models with general outcome distributions are not supported.  The only HMMs supported are those where the observed state space is the same as (or a subset of) the true state space.  This includes misclassification and phase-type models.
 
-* Covariates on misclassification probabilities are not supported in misclassification models 
+* Covariates on misclassification probabilities are not supported in misclassification models. 
 
-* Equality constraints and fixed parameters are not supported.  However, parameters can be constrained through their prior distributions.
+* Fixed parameters are not supported.  However, parameters can be constrained through their prior distributions.  Limited support for equality constraints on covariate effects.
 
-* The `pci` syntax for time-inhomogeneous models is not supported.  However, these models can still be specified, by treating time as a time-dependent covariate, and including censored states at the occasions when the covariate changes but not the state.
+* The `pci` syntax for time-inhomogeneous models is not supported.  However, these models can still be specified, by treating time as a time-dependent covariate, and including censored states at the occasions when the covariate changes but not the state.   Prediction functions also currently cannot automatically deal with piecewise-constant covariates.
 
 * Multivariate hidden Markov models are not supported.
-
-* Fewer output functions.
-
-* More limited documentation and worked examples.
 
 
 ## Getting started
@@ -52,7 +48,7 @@ Examples of using `msmbayes` are given in: `vignette("examples")`.
 
 ## Installation 
 
-**Warning: this package is experimental. Some knowledge of Bayesian analysis is needed to develop and interpret models with it!**
+**Warning: some knowledge of Bayesian analysis is needed to develop and interpret models with this package!**
 
 (a) Install `cmdstan` and `cmdstanr` by following the [instructions linked here](https://mc-stan.org/cmdstanr/articles/cmdstanr.html)
 

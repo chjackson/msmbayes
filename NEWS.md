@@ -15,7 +15,7 @@
   over the distribution of a given population.
 
 
-# Version 0.3 (2025/03/??)
+# Version 0.3 (2025/07/??)
 
 * `msmbayes()` now supports semi-Markov models with phase-type approximations to Weibull and Gamma sojourn distributions.
 
@@ -31,4 +31,6 @@
 
 * Data summary function, `statetable()`, similar to its `msm` counterpart.
 
-* New function `soj_prob()` to return the CDF of the fitted sojourn distribution at arbitrary points.
+* New output functions, including `soj_prob()` to return the CDF of the fitted sojourn distribution at arbitrary points, and `pnext()` to return the probability of the next state. 
+
+* `summary()` has an improved interface for selecting model parameters

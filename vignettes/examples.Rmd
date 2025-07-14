@@ -12,8 +12,10 @@ resource_files:
   - ../man/figures/twostate.png
 vignette: >
   %\VignetteIndexEntry{Examples of using msmbayes}
-  %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+editor_options: 
+  chunk_output_type: console
 ---
 
 This article demonstrates the basic use of the `msmbayes` package to fit Bayesian multi-state models to longitudinal data consisting of intermittent observations of a state.
@@ -182,6 +184,28 @@ summary(mean_sojourn(draws), mean, median, ~quantile(.x, c(0.025, 0.975)))
 ```
 
 
+## Maximum likelihood estimation
+
+In `msmbayes`, we don't have to use Bayesian estimation to fit models.  We can use maximum likelihood by specifying `priors="mle"`.  In theory, this will give the same results as the `msm` package. 
+
+Maximum likelihood estimation is implemented in `msmbayes` using  Stan's optimisation feature.  Uniform priors are assumed for all parameters (on their real-line scales), then the posterior mode is then equal to the maximum likelihood, and the (negative inverse) Hessian at the optimum is equivalent to the covariance matrix. The sample stored in the model object (`fit_mle` here) is obtained by sampling from a multivariate normal defined by this estimate and covariance matrix.  Summaries of this sample give intervals that could be interpreted either as frequentist confidence intervals (equivalent to those produced by the `ci="normal"` option in `msm`) or as Bayesian credible intervals given by a Laplace approximation to the posterior. 
+ 
+For this model, an identical maximum likelihood is obtained under either package (though note that the default optimisation algorithm used by `msm` failed to locate this optimum, so we switched to the slightly more robust, but slower, Nelder-Mead method).
+
+```{r}
+library(msm)
+fit_mle <- msmbayes(data=infsim, state="state", time="months", subject="subject",
+                    Q=Q, priors="mle")
+fit_msm <- msm(state~months, subject=subject, qmatrix=Q, data=infsim, gen.inits=TRUE,
+               method="Nelder-Mead")
+loglik(fit_mle)
+logLik(fit_msm)
+```
+
+
+
+
+
 # Fitting a Markov model with covariates  {#sec-covs}
 
 To demonstrate how to fit a Markov multi-state model with covariates, some data are simulated from a model with covariates.
@@ -274,7 +298,6 @@ Awkwardly, the optimiser used by `msm` needs to be tuned (with the `fnscale` opt
 to find the global optimum.
 
 ```{r,cache=TRUE}
-library(msm)
 msm(statec~months, subject = subject, data = infsim, qmatrix = Q, 
     covariates = list("1-2" = ~sex+age10, "2-1" = ~sex+age10),
     control = list(fnscale=1000, maxit=10000))
