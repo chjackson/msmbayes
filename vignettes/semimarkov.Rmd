@@ -29,9 +29,9 @@ Non-Markov models have previously been difficult for intermittently observed dat
 
 The distribution has two parameters: shape $a$ and scale $b$.  The probability distribution function is defined by 
 
-\[ F(x | a, b) = F_p(x | \lambda  = b h(a)) \]
+\[ F(x | a, b) = F_p(x | \boldsymbol{\lambda}  = b \mathbf{h}(a)) \]
 
-where $F_p(x | \lambda)$ is a phase-type distribution (with 5 phases by default) and vector of transition rates $\lambda$.   The shape and scale are mapped to the phase-type transition rates through a function $h()$, determined so that the first three moments of the phase-type distribution are the same as those of the Weibull or a Gamma, for a wide range of shape parameters.  This function is pre-determined (using the formulae from [Bobbio et al.](https://doi.org/10.1081/STM-200056210)) and stored in the `msmbayes` package.   A default 5 phases is used.  This process will be described more formally in a forthcoming paper, but for now, the code is in the package source (`phaseapprox` branch).
+where $F_p(x | \boldsymbol{\lambda})$ is a phase-type distribution (with 5 phases by default) and vector of transition rates $\boldsymbol{\lambda}$.   The shape and scale are mapped to the phase-type transition rates through a function $\mathbf{h}()$, determined so that the first three moments of the phase-type distribution are the same as those of the Weibull or a Gamma, for a wide range of shape parameters.  This function is pre-determined (using the formulae from [Bobbio et al.](https://doi.org/10.1081/STM-200056210)) and stored in the `msmbayes` package.   A default of 5 phases is used.  This process will be described more formally in a forthcoming paper, but for now, the code is in the package source (`phaseapprox` branch).
 
 * Covariates can be applied to the scale parameter $b$, as a linear model on $\log(b)$, giving an accelerated failure time model.
 
@@ -44,7 +44,7 @@ where $F_p(x | \lambda)$ is a phase-type distribution (with 5 phases by default)
 
 This vignette gives a demonstration of using semi-Markov models with phase-type shape-scale distributions in `msmbayes`, based on an artificial dataset. 
 
-> **Note:** this vignette should not be used literally as a step-by-step recipe for an applied analysis!  It is just intended to demonstrate the range of functions available in the package and how to use them.  An applied analysis should take account of the research question, including thoughtful choice of priors, computing appropriate outputs of interest, model checking and comparison.
+> **Note:** this vignette should not be used literally as a step-by-step recipe for an applied analysis.  It is intended to demonstrate the range of functions available in the package and how to use them.  An applied analysis should take account of the research question, including thoughtful choice of priors, computing appropriate outputs of interest, model checking and comparison.
 
 
 ## Specifying a basic semi-Markov model 
@@ -106,7 +106,7 @@ loglik(drawsw)
 
 The function `soj_prob()` computes the probability of staying in a given state, at a sequence of times, from a fitted `msmbayes()` model.   It can be used to plot a kind of "survival curve" for the sojourn distribution in a state.   In this case, there is little difference between the Weibull and Gamma distributions, and a lot of uncertainty.
 
-```{r}
+```{r,message=FALSE}
 library(ggplot2)
 library(dplyr)
 t0 <- seq(0, 6, by=0.2)
@@ -254,7 +254,7 @@ The posterior samples for state 1 and state 2 are added together to give the pos
 
 Finally we obtain a posterior sample `tl_diff` for the difference in the expected time spent alive for men and women. 
 
-```{r}
+```{r,message=FALSE}
 library(posterior)
 tl_diff <- rvar_sum(tl_12_female) - rvar_sum(tl_12_male) 
 ```

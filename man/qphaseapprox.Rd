@@ -10,8 +10,9 @@ qphaseapprox(
   pastates,
   shape,
   scale = 1,
-  family = "weibull",
+  family = "gamma",
   method = "moment",
+  nphase = NULL,
   att = FALSE
 )
 }
@@ -37,6 +38,12 @@ Ignored if \code{nphase} is supplied.}
 \item{family}{parametric family approximated by the phase-type distribution: \code{"weibull"} or \code{"gamma"}}
 
 \item{method}{(Deprecated)}
+
+\item{nphase}{Only required for models with phase-type sojourn
+distributions specified directly (not through \code{pastates}).
+\code{nphase} is a vector with one element per state, giving the
+number of phases per state.  This element is 1 for states that do
+not have phase-type sojourn distributions.}
 
 \item{att}{keep attributes indicating progression and absorption states}
 }

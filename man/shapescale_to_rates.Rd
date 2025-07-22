@@ -7,7 +7,7 @@
 shapescale_to_rates(
   shape,
   scale = 1,
-  family = "weibull",
+  family = "gamma",
   canonical = FALSE,
   method = "moment",
   nphase = 5,

@@ -382,3 +382,8 @@ div.csl-right-inline {
 div.csl-indent {
   margin-left: 2em;
 }
+
+/* TESTME */
+blockquote {
+  font-size: 0.7em; /* relative to the base */
+}

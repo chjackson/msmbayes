@@ -12,7 +12,8 @@ msmbayes_priorpred_sample(
   Q,
   covariates = NULL,
   pastates = NULL,
-  pafamily = "weibull",
+  pafamily = "gamma",
+  panphase = NULL,
   nphase = NULL,
   E = NULL,
   priors = NULL,
@@ -104,6 +105,10 @@ Ignored if \code{nphase} is supplied.}
 approximated sojourn distribution in the phased state.  Either a
 vector of the same length as \code{pastates}, or just one to apply to
 all states.}
+
+\item{panphase}{Number of phases to use for each state given a
+phase-type Gamma or Weibull approximation.  Vector of same length
+as \code{pastates}. More phases allow a wider range of shape parameters.}
 
 \item{nphase}{Only required for models with phase-type sojourn
 distributions specified directly (not through \code{pastates}).

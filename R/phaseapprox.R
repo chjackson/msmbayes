@@ -37,7 +37,7 @@ shapescale_to_rates <- function(shape, scale=1, family="gamma",
   if (is.null(nphase)) nphase <- 5
 
   if (method == "moment"){
-    rates <- shape_to_rates_moment(shape, scale, family, nphase)
+    rates <- shapescale_to_rates_moment(shape, scale, family, nphase)
     if (canonical)
       rates <- rates_to_canpars(rates)
   } else if (method %in% c("kl_hermite","kl_linear")){

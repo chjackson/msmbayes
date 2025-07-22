@@ -49,8 +49,8 @@ test_that("shapescale_to_rates approximates weibull and gamma distributions: mom
                                 family="gamma", list=TRUE, method="moment")
 
   nmo <- gamma_nmo(shape=c(1.2, 1.3), scale=0.8)
-  n3_moment_bounds(nmo$n2[1], nmo$n3[1], n=5)
-  n3_moment_bounds(nmo$n2, nmo$n3, n=5)
+  n3_moment_bounds(nmo$n2[1], n=5)
+  n3_moment_bounds(nmo$n2, n=5)
   in_moment_bounds(nmo$n2[1], nmo$n3[1], n=5)
   in_moment_bounds(nmo$n2, nmo$n3, n=5)
 })
