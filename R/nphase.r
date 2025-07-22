@@ -10,6 +10,10 @@
 #'   of this vector.  If `arate` is a matrix, then the number of
 #'   phases is assumed to be the number of columns.
 #'
+#' \code{mean_nphase}, \code{var_nphase}, \code{skewness_nphase} and
+#' \code{ncmoment_nphase} return the mean, variance, skewness and general
+#' non-central moments of the distribution.
+#'
 #' These functions work in a vectorised way, so that alternative
 #' parameter values or evaluation values `x` can be supplied.  The
 #' number of alternative values is determined from the number of rows
@@ -19,6 +23,8 @@
 #' @param n Number of random samples to generate.
 #'
 #' @param x Value at which to evaluate the PDF, CDF, or hazard.
+#'
+#' @param q Value at which to evaluate the CDF.
 #'
 #' @param prate Progression rates.  Either a vector of length
 #'   `nphase-1`, or a matrix with `npar` rows and `nphase-1` columns.
@@ -35,7 +41,7 @@
 #'   matrix exponential is determined using numerical methods, via
 #'   `expm::expm()`.
 #'
-#' @param lower.tail If `TRUE` return P(X<x), else P(X>=x). 
+#' @param lower.tail If `TRUE` return P(X<x), else P(X>=x).
 #'
 #' @return A vector of length `n` or `length(x)`.
 #'
@@ -73,8 +79,9 @@ dnphase <- function(x, prate, arate, initp=NULL, method="expm"){
 ##' @rdname nphase
 ##' @aliases pnphase
 ##' @export
-pnphase <- function(x, prate, arate, initp=NULL,
+pnphase <- function(q, prate, arate, initp=NULL,
                     method="expm", lower.tail=TRUE){
+  x <- q
   pars <- vectorise_nphase(x, prate, arate)
   ret <- numeric(length(pars$x))
   ret[x==0] <- 0;  ret[x==Inf] <- 1
@@ -132,7 +139,7 @@ nphase_generator <- function(prate, arate){
 ##' state, and the the time to absorption is the sojourn distribution.
 ##'
 ##' @inheritParams nphase
-##' 
+##'
 ##' @export
 nphase_Q <- function(prate, arate){
   nphase <- length(arate)
@@ -143,26 +150,40 @@ nphase_Q <- function(prate, arate){
   Q
 }
 
+##' @rdname nphase
+##' @export
 mean_nphase <- function(prate, arate, initp=NULL){
-  pars <- check_prate_arate(prate, arate)
-  S <- nphase_generator(pars$prate, pars$arate)
-  initp <- make_initp(initp, pars$nphase)
-  - sum(initp %*% solve(S))
-  #I <- diag(pars$nphase)
-  #sum(initp %*% solve(I - S)) # CHECKME
+  ncmoment_nphase(prate, arate, initp, i=1) 
 }
 
-#FIXME S insoluble and rnphase crashes for 
-#$prate
-#[1] 0.2695774 3.8055824
-#$arate
-#[1] 0.6818182 0.0000000 0.0000000
-
+##' @rdname nphase
+##' @export
 var_nphase <- function(prate, arate, initp=NULL){
+  ex1 <- ncmoment_nphase(prate, arate, initp, i=1) 
+  ex2 <- ncmoment_nphase(prate, arate, initp, i=2) 
+  ex2 - ex1^2
+}
+
+##' @rdname nphase
+##' @export
+skewness_nphase <- function(prate, arate, initp=NULL){
+  ex1 <- ncmoment_nphase(prate, arate, initp, i=1) 
+  ex2 <- ncmoment_nphase(prate, arate, initp, i=2) 
+  ex3 <- ncmoment_nphase(prate, arate, initp, i=3) 
+  s <- sqrt(ex2 - ex1^2)
+  (ex3 - 3*ex1*ex2  + 2*ex1^3) / s^3
+}
+
+##' @rdname nphase
+##' @export
+ncmoment_nphase <- function(prate, arate, i, initp=NULL){
   pars <- check_prate_arate(prate, arate)
   S <- nphase_generator(pars$prate, pars$arate)
   initp <- make_initp(initp, pars$nphase)
-  2*sum(initp %*% solve(S %*% S)) - sum(initp %*% solve(S))^2
+  Spow <- diag(nrow(S))
+  for (j in 1:i)
+    Spow <- Spow %*% solve(-S)
+  factorial(i) * sum(initp %*% Spow)
 }
 
 vectorise_nphase <- function(x, prate, arate){
@@ -201,10 +222,10 @@ check_prate_arate <- function(prate, arate){
     if ((nrow(prate) != nrep) || (ncol(prate) != nphase-1))
         cli_abort("Inferred nphase = {nphase}, nrep = {nrep} from the size of {.var arate}, so expected {.var prate} to be either a vector of length {nrep} or a matrix with {nrep} row{?s} (replicates) and {nphase-1} column{?s} ({.var nphase+1}). Found {.var prate} to be a {nrow(prate)} by {ncol(prate)} matrix")
   }
-  if (any(prate < -sqrt(.Machine$double.eps))){ # TODO why can't we return NaN for these? 
+  if (any(!is.na(prate) & prate < -sqrt(.Machine$double.eps))){ # TODO why can't we return NaN for these?
     cli_abort("{.var prate} must be non-negative")
   }
-  if (any(arate < -sqrt(.Machine$double.eps)))
+  if (any(!is.na(arate) & arate < -sqrt(.Machine$double.eps)))
     cli_abort("{.var arate} must be non-negative")
   pars <- list(prate=prate, arate=arate, nphase=nphase, nrep=nrep)
 }
@@ -351,3 +372,22 @@ rnphase <- function(n, prate, arate){
   }
   time
 }
+
+##' @rdname nphase
+##' @aliases qnphase
+##' @export
+qnphase <- function(p, prate, arate, lower.tail=TRUE, log.p=FALSE){
+  if (log.p) p <- exp(p)
+  if (!lower.tail) p <- 1 - p
+  qgeneric(pnphase, p=p, matargs=c("prate","arate"),
+                     prate=prate, arate=arate)
+}
+
+
+
+
+#FIXME S insoluble and rnphase crashes for
+#$prate
+#[1] 0.2695774 3.8055824
+#$arate
+#[1] 0.6818182 0.0000000 0.0000000

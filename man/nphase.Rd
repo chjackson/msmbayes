@@ -5,18 +5,33 @@
 \alias{dnphase}
 \alias{pnphase}
 \alias{hnphase}
+\alias{mean_nphase}
+\alias{var_nphase}
+\alias{skewness_nphase}
+\alias{ncmoment_nphase}
 \alias{rnphase}
+\alias{qnphase}
 \title{Density, probability distribution, hazard and random
 number generation functions for the Coxian
 phase-type distribution with any number of phases.}
 \usage{
 dnphase(x, prate, arate, initp = NULL, method = "expm")
 
-pnphase(x, prate, arate, initp = NULL, method = "expm", lower.tail = TRUE)
+pnphase(q, prate, arate, initp = NULL, method = "expm", lower.tail = TRUE)
 
 hnphase(x, prate, arate, initp = NULL, method = "expm")
 
+mean_nphase(prate, arate, initp = NULL)
+
+var_nphase(prate, arate, initp = NULL)
+
+skewness_nphase(prate, arate, initp = NULL)
+
+ncmoment_nphase(prate, arate, i, initp = NULL)
+
 rnphase(n, prate, arate)
+
+qnphase(p, prate, arate, lower.tail = TRUE, log.p = FALSE)
 }
 \arguments{
 \item{x}{Value at which to evaluate the PDF, CDF, or hazard.}
@@ -36,6 +51,8 @@ calculation.  For \code{nphase} 6 or more, or if \code{method="mexp"} the
 matrix exponential is determined using numerical methods, via
 \code{expm::expm()}.}
 
+\item{q}{Value at which to evaluate the CDF.}
+
 \item{lower.tail}{If \code{TRUE} return P(X<x), else P(X>=x).}
 
 \item{n}{Number of random samples to generate.}
@@ -54,6 +71,10 @@ dimensions of the object supplied as \code{arate}.  If \code{arate} is a
 vector, then the number of phases is assumed to equal the length
 of this vector.  If \code{arate} is a matrix, then the number of
 phases is assumed to be the number of columns.
+
+\code{mean_nphase}, \code{var_nphase}, \code{skewness_nphase} and
+\code{ncmoment_nphase} return the mean, variance, skewness and general
+non-central moments of the distribution.
 
 These functions work in a vectorised way, so that alternative
 parameter values or evaluation values \code{x} can be supplied.  The
