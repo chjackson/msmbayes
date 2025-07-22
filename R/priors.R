@@ -510,8 +510,11 @@ get_prior_logoddsnextindex <- function(prior, qm, pm, call=caller_env()){
 get_prior_rrnextindex <- function(prior, cm, call=caller_env()){
   if (prior$ind1 == "all_indices"){
     ind <- seq_len(nrow(cm$rrnextdf))
-  }
-  else
+  } else if (is.null(prior$ind2)) {
+    cli_abort(c("prior for {.var logrrnext} should have two state indices",
+                "found {.str {prior$username}}"),
+              call=call)
+  } else 
     ind <- which(cm$rrnextdf$from==prior$ind1 & cm$rrnextdf$to==prior$ind2)
   if (length(ind)==0){
     if (nrow(cm$rrnextdf)==0)
