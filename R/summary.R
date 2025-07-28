@@ -57,9 +57,9 @@ print.msmbayes <- function(x,...){
 #' Remaining parameters (in non-HMMs) are log hazard ratios for
 #' covariate effects.
 #'
-#' The columns `prior_string` and `prior_rvar` summarise the
+#' The columns `prior` and `prior_string` summarise the
 #' corresponding prior distribution in two different ways.
-#' `prior_rvar` is a quasi-random sample from the prior in the `rvar`
+#' `prior` is a quasi-random sample from the prior in the `rvar`
 #' data type, and is printed as mean and standard deviation.  This
 #' sample can then be used to produce any summary or plot of the
 #' prior.  The string `prior_string` is a summary of this sample,
@@ -196,7 +196,7 @@ summary_priors <- function(object){
 attach_priors <- function(object, draws, basename=NULL, cov=FALSE){
   string <- rvar <- from <- NULL
   prior_db <- attr(draws,"priors") |>
-    select("name", "from", "to", prior_string=string, prior_rvar=rvar)
+    select("name", "from", "to", prior_string=string, prior=rvar)
   if (is.character(object[["from"]])){
     prior_db$from <- as.character(prior_db$from)
     prior_db$to <- as.character(prior_db$to)

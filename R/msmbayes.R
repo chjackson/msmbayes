@@ -355,7 +355,8 @@ msmbayes <- function(data, state="state", time="time", subject="subject",
   attr(res, "pmodel") <- m$pm
   attr(res, "cmodel") <- m$cm[names(m$cm)!="X"]
   attr(res, "stanpriors") <- m$priors
-  attr(res, "priors") <- prior_db(m$priors, m$qm, m$cm, m$pm, m$qmobs, m$em)
+  attr(res, "priors") <- prior_db(m$priors, m$qm, m$cm, m$pm, m$qmobs, m$em,
+                                  n = nrow(res))
   attr(res, "fit_method") <- fit_method
   attr(res, "opt") <- attr(fit, "opt")
   attr(res, "mle") <- m$priors$mle

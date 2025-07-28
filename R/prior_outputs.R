@@ -33,7 +33,7 @@ prior_to_rvar <- function(mean, sd, n=1000){
 #'
 #' @noRd
 rvar_to_quantile_string <- function(rvar){
-  df <- summary(rvar, ~quantile(.x, probs=c(0.025, 0.5, 0.975)))
+  df <- summary(rvar, ~quantile(.x, probs=c(0.025, 0.5, 0.975), na.rm=TRUE))
   for (i in c("50%","2.5%","97.5%"))
     df[[i]] <- trimws(format(round(df[[i]],digits=8), digits=2))
   sprintf("%s (%s, %s)", df[["50%"]], df[["2.5%"]], df[["97.5%"]])
@@ -49,6 +49,9 @@ rvar_to_quantile_string <- function(rvar){
 #'
 #' @param qm, cm, pm, qmobs, ema internal objects from msmbayes
 #'
+#' @param n Number of draws to use for the rvar.  When called from msmbayes
+#'  this is the same as the number of draws for the posterior.
+#'
 #' @return A tidy data frame with "rvar" (summarised as mean, SD) and "string"
 #' (median and 95 CI) representations of each prior
 #'
@@ -58,20 +61,20 @@ rvar_to_quantile_string <- function(rvar){
 #' are ever needed.
 #'
 #' @noRd
-prior_db <- function(priors, qm, cm, pm, qmobs, em){
+prior_db <- function(priors, qm, cm, pm, qmobs, em, n){
   name <- NULL
   qmprior <- if (pm$phaseapprox) qmobs else qm
-  logq <- prior_logq_db(priors, qmprior) # name, from, to, rvar, string
+  logq <- prior_logq_db(priors, qmprior, n) # name, from, to, rvar, string
   ## logq and related don't have priors in semi-M
   ## do we need priormean, priorsd??? not used. only if print. rm for now
   mst <- prior_mst_db(priors, qmprior, pm, logq |> filter(name=="q"))
-  loghr <- prior_loghr_db(priors, cm)
-  papars <- prior_papars_db(priors, pm, qm)
-  logtaf <- prior_logtaf_db(priors, cm)
-  logoddsnext <- prior_logoddsnext_db(priors, qm)
-  pnext <- prior_pnext_db(priors, qm)
-  logrrnext <- prior_logrrnext_db(priors, cm)
-  loe <- prior_loe_db(priors, em)
+  loghr <- prior_loghr_db(priors, cm, n)
+  papars <- prior_papars_db(priors, pm, qm, n)
+  logtaf <- prior_logtaf_db(priors, cm, n)
+  logoddsnext <- prior_logoddsnext_db(priors, qm, n)
+  pnext <- prior_pnext_db(priors, qm, n)
+  logrrnext <- prior_logrrnext_db(priors, cm, n)
+  loe <- prior_loe_db(priors, em, n)
   res <- rbind(logq, mst, loghr, papars, logtaf, logoddsnext, pnext, logrrnext, loe)
   if (pm$phasetype & !pm$phaseapprox){
     res$from <- pm$pdat$label[res$from]
@@ -80,13 +83,13 @@ prior_db <- function(priors, qm, cm, pm, qmobs, em){
   res
 }
 
-prior_logq_db <- function(priors, qm){
+prior_logq_db <- function(priors, qm, n){
   prior <- NULL
   if (sum(qm$priorq_inds)==0) return(NULL)
   data.frame(
     from = qm$qrow[qm$priorq_inds],
     to = qm$qcol[qm$priorq_inds],
-    prior = prior_to_rvar(priors$logqmean, priors$logqsd, n=1000)
+    prior = prior_to_rvar(priors$logqmean, priors$logqsd, n=n)
   ) |>
     mutate(logq  = prior,
            q  = exp(prior),
@@ -112,7 +115,7 @@ prior_mst_db <- function(priors, qm, pm, qdb){
     select("name", "from", "to", "rvar", "string")
 }
 
-prior_loghr_db <- function(priors, cm){
+prior_loghr_db <- function(priors, cm, n){
   prior <- name <- xname <- NULL
   cmdf <- cm$cmodeldf[cm$cmodeldf$response %in% c("Q"),]
   if (nrow(cmdf)==0) return(NULL)
@@ -120,7 +123,7 @@ prior_loghr_db <- function(priors, cm){
     xname = cm$tafdf$name,
     from = rep(cmdf$from, cmdf$ncovs),
     to = rep(cmdf$to, cmdf$ncovs),
-    prior = prior_to_rvar(priors$loghrmean, priors$loghrsd, n=1000)[cm$tafdf$consid]
+    prior = prior_to_rvar(priors$loghrmean, priors$loghrsd, n=n)[cm$tafdf$consid]
   ) |>
     mutate(loghr  = prior,
            hr  = exp(prior)) |>
@@ -132,18 +135,18 @@ prior_loghr_db <- function(priors, cm){
     select("name", "from", "to", "rvar", "string")
 }
 
-prior_papars_db <- function(priors, pm, qm){
+prior_papars_db <- function(priors, pm, qm, n){
   rvar <- rvar_log <- namebase <- name <- NULL
   if (!pm$phaseapprox) return(NULL)
   prior <- loind <- oldfrom <- oldto <- from <- NULL
   logshape <- data.frame(name = "shape",
                          from = pm$pastates, to = rep(NA, pm$npastates),
                          rvar_log = prior_to_rvar(priors$logshapemean,
-                                                  priors$logshapesd, n=1000))
+                                                  priors$logshapesd, n=n))
   logscale <- data.frame(name = "scale",
                          from = pm$pastates, to = rep(NA, pm$npastates),
                          rvar_log = prior_to_rvar(priors$logscalemean,
-                                                  priors$logscalesd, n=1000))
+                                                  priors$logscalesd, n=n))
   rbind(logshape, logscale) |>
     mutate(rvar_natural = exp(rvar_log)) |>
     tidyr::pivot_longer(cols = all_of(c("rvar_natural","rvar_log")),
@@ -154,7 +157,7 @@ prior_papars_db <- function(priors, pm, qm){
     select("name", "from", "to", "rvar", "string")
 }
 
-prior_logtaf_db <- function(priors, cm){
+prior_logtaf_db <- function(priors, cm, n){
   prior <- name <- xname <- NULL
   cmdf <- cm$cmodeldf[cm$cmodeldf$response %in% c("scale"),]
   if (nrow(cmdf)==0) return(NULL)
@@ -165,7 +168,7 @@ prior_logtaf_db <- function(priors, cm){
     to = rep(cmdf$to, cmdf$ncovs),
     prior = prior_to_rvar(priors$loghrmean[cm$tafdf$response=="scale"],
                           priors$loghrsd[cm$tafdf$response=="scale"],
-                          n=1000)
+                          n=n)
   ) |>
     mutate(logtaf  = prior,
            taf  = exp(prior)) |>
@@ -177,14 +180,14 @@ prior_logtaf_db <- function(priors, cm){
     select("name", "from", "to", "rvar", "string")
 }
 
-prior_logoddsnext_internal <- function(priors, qm){
+prior_logoddsnext_internal <- function(priors, qm, n){
   from <- dest_base <- prior <- NULL
   if (qm$noddsnext==0) return(NULL)
   pa <- qm$pacrdata |> filter(!dest_base)
   res <- data.frame(name = "logoddsnext",
                     from = pa |> pull("oldfrom"),
                     to = pa |> pull("oldto"),
-                    prior = prior_to_rvar(priors$logoddsnextmean, priors$logoddsnextsd, n=1000)
+                    prior = prior_to_rvar(priors$logoddsnextmean, priors$logoddsnextsd, n=n)
   ) |>
     arrange(from) |>
     mutate(logoddsnext = prior,
@@ -194,20 +197,20 @@ prior_logoddsnext_internal <- function(priors, qm){
   res
 }
 
-prior_logoddsnext_db <- function(priors, qm){
+prior_logoddsnext_db <- function(priors, qm, n){
   if (qm$noddsnext==0) return(NULL)
-  res <- prior_logoddsnext_internal(priors, qm) |>
+  res <- prior_logoddsnext_internal(priors, qm, n) |>
     rename(rvar = logoddsnext) |>
     mutate(string = rvar_to_quantile_string(rvar)) |>
     select("name", "from", "to", "rvar", "string")
   res
 }
 
-prior_pnext_db <- function(priors, qm){
+prior_pnext_db <- function(priors, qm, n){
   oldfrom <- oldto <- dest_base <- oddsnext <- sumodds <- NULL
   if (qm$noddsnext==0) return(NULL)
   pabs <- from <- to <- NULL
-  res <- prior_logoddsnext_internal(priors, qm)
+  res <- prior_logoddsnext_internal(priors, qm, n)
   odds1 <- res |>
     select("from", "to", "sumodds") |>
     filter(!duplicated(from)) |>
@@ -224,8 +227,7 @@ prior_pnext_db <- function(priors, qm){
     select("name", "from", "to", "rvar", "string")
 }
 
-### TESTME
-prior_logrrnext_db <- function(priors, cm){
+prior_logrrnext_db <- function(priors, cm, n){
   prior <- name <- xname <- NULL
   cmdf <- cm$cmodeldf[cm$cmodeldf$response %in% c("rrnext"),]
   if (nrow(cmdf)==0) return(NULL)
@@ -234,7 +236,7 @@ prior_logrrnext_db <- function(priors, cm){
     from = rep(cmdf$from, cmdf$ncovs),
     to = rep(cmdf$to, cmdf$ncovs),
     prior = prior_to_rvar(priors$logrrnextmean,
-                          priors$logrrnextsd, n=1000)
+                          priors$logrrnextsd, n=n)
   ) |>
     mutate(logrrnext  = prior,
            rrnext  = exp(prior)) |>
@@ -246,14 +248,14 @@ prior_logrrnext_db <- function(priors, cm){
     select("name", "from", "to", "rvar", "string")
 }
 
-prior_loe_db <- function(priors, em){
+prior_loe_db <- function(priors, em, n){
   rvar <- NULL
   if (!em$hmm || (em$nepars==0)) return(NULL)
   data.frame(
     name = "loe",
     from = em$erow,
     to = em$ecol,
-    rvar = prior_to_rvar(priors$loemean, priors$loesd, n=1000)
+    rvar = prior_to_rvar(priors$loemean, priors$loesd, n=n)
   ) |>
     mutate(string  = rvar_to_quantile_string(rvar))
 }
