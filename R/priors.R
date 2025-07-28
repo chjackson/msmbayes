@@ -514,8 +514,11 @@ get_prior_rrnextindex <- function(prior, cm, call=caller_env()){
     cli_abort(c("prior for {.var logrrnext} should have two state indices",
                 "found {.str {prior$username}}"),
               call=call)
-  } else 
+  } else
     ind <- which(cm$rrnextdf$from==prior$ind1 & cm$rrnextdf$to==prior$ind2)
+  if (!is.null(prior$covname))
+    ind <- which(ind & cm$rrnextdf$name %in% prior$covname)
+  ## ... else use this prior for all covariates affecting ind1-ind2
   if (length(ind)==0){
     if (nrow(cm$rrnextdf)==0)
       msg <- "the model does not include covariates on competing exit transitions in a {.var pastates} model"
