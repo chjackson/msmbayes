@@ -36,6 +36,7 @@ functions {
     vector[nprates] rates;
     vector[n-1] prate;
     vector[n] arate;
+    vector[2] solution;
     if (family == 1){ // gamma
       m1 = shape*scale;
       n2 = (shape + 1)/shape;
@@ -45,18 +46,59 @@ functions {
       n2 = tgamma(1+2/shape) / tgamma(1+1/shape)^2;
       n3 = tgamma(1+3/shape) / (tgamma(1+1/shape)*tgamma(1+2/shape));
     }
-    b = (2*(4 - n*(3*n2 - 4))) /
-      (n2*(4 + n - n*n3) + sqrt(n*n2)*(
-				       sqrt(12*n2^2*(n + 1) + 16*n3*(n + 1) + n2*(n*(n3 - 15)*(n3 + 1) - 8*(n3 + 3)))
-				       ));
-    a = ((b*n2 - 2)*(n - 1)*b) / ((b - 1)*n);
-    p = (b - 1)/a;
+
+    solution = erlang_exp_solution_sympy(n2, n3, n);
+    p = solution[1]; a = solution[2];
+
     lam = (p*a + 1)/m1;
     mu = lam*(n - 1)/a;
     prate = append_row(p*lam, rep_vector(mu, n-2));
     arate = append_row(append_row((1-p)*lam, rep_vector(0, n-2)), mu);
     rates = append_row(prate, arate);
     return rates;
+  }
+
+  vector erlang_exp_solution_sympy(real n2, real n3, real n){
+    vector[2] solution;
+    real p, a, b;
+    real A = n*n2*(12*n*n2*n2 + n*n2*n3*n3 - 14*n*n2*n3 - 15*n*n2 + 16*n*n3 + 12*n2*n2 - 8*n2*n3 - 24*n2 + 16*n3);
+    real B;
+    real C = (n*n2 - n + n2 - 4);
+    real D = (-n*n3 + n + 4);
+    real E = (n*n2 - 2*n + n2 - 2);
+    real F = (n*n2 - n*n3 + n2);
+    real G = 8*n*n2*n2*(n + 1)*(n2 - 2);
+    if (A >= 0) B = sqrt(A);
+    if (n2==2 && n3==3) {
+      p=0; a=1;
+    }
+    else if (abs(F) < sqrt(machine_precision())){
+      a = (2*n2 - n3)*(3*n2*n2 - 4*n3)*(-3*n2*n2 + 2*n3*(n2 - 2) + 4*n3)/(n2*n2*n3*(n2 - 2)*(n2*n3 + 3*n2 - 4*n3));
+      b = (3*n2*n2 - 4*n3)/(n2*(n2*n3 + 3*n2 - 4*n3));
+    } else {
+      a = -(n - 1)*(n2*D - B)*(2*n2*(n2*D - B)*C - 8*n2*F*E + pow(n2*D - B, 2))/(G*F*F);
+      b = (-n*n2*n3 + n*n2 + 4*n2 - B)/(2*n2*F);
+      if (((b - 1)/a < 0) || ((b - 1)/a > 1) || (a < 0)){
+	a = -(n - 1)*(n2*D + B)*(2*n2*(n2*D + B)*C - 8*n2*F*E + pow(n2*D + B, 2))/(G*F*F);
+	b = (n2*D + B)/(2*n2*F);
+      }
+    }
+    p = (b - 1)/a;
+    solution[1] = p; solution[2] = a;
+    return solution;
+  }
+
+  vector erlang_exp_solution_bobbio(real n2, real n3, real n){
+    real p, a, b;
+    vector[2] solution;
+    b = (2*(4 - n*(3*n2 - 4))) /
+      (n2*(4 + n - n*n3) + sqrt(n*n2)*(
+				       sqrt(12*n2^2*(n + 1) + 16*n3*(n + 1) + n2*(n*(n3 - 15)*(n3 + 1) - 8*(n3 + 3)))
+				       ));
+    a = ((b*n2 - 2)*(n - 1)*b) / ((b - 1)*n);
+    p = (b - 1)/a;
+    solution[1] = p; solution[2] = a;
+    return solution;
   }
 
   vector canpars_to_rates(vector canpars,

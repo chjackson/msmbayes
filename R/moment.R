@@ -62,23 +62,17 @@ weibull_nmo <- function(shape, scale=1){
 ##'
 ##' @md
 ##' @noRd
-erlang_exp_case1 <- function(m1, n2, n3, n, check=FALSE){
+erlang_exp <- function(m1, n2, n3, n, check=FALSE, method="sympy"){
   if (n<2) stop("need n >= 2")
 
-  if (check && !all(in_case1_bounds(n2,n3,n)))
-    warning("some outside case 1 bounds")
   if (check && !all(in_moment_bounds(n2, n3, n)))
     warning("some outside moment bounds")
 
-  b <- (2*(4 - n*(3*n2 - 4))) /
-    (n2*(4 + n - n*n3) + sqrt(n*n2)*(
-      sqrt(12*n2^2*(n + 1) + 16*n3*(n + 1) + n2*(n*(n3 - 15)*(n3 + 1) - 8*(n3 + 3)))
-    ))
-  ## note b=1 and any other NaN not handled.
-
-  a <- ((b*n2 - 2)*(n - 1)*b) / ((b - 1)*n)
-  p <- ifelse(b==1, 0, # reduction to exponential distribution
-              (b - 1)/a)
+  if (method=="sympy")
+    pa <- erlang_exp_pa_sympy(n2, n3, n)
+  else
+    pa <- erlang_exp_pa_bobbio(n2, n3, n)
+  p <- pa$p; a <- pa$a
 
   ## equate m1 to mean of the phasetype = p*((n-1)/mu + 1/lam) + (1-p)*1/lam,
   ## m1 =  p*(n-1)/mu + 1/lam, hence...
@@ -91,9 +85,72 @@ erlang_exp_case1 <- function(m1, n2, n3, n, check=FALSE){
   #prate <- c(p*lam, rep(mu, n-2))
   #arate <- c((1-p)*lam, rep(0, n-2), mu)
   list(a=a, p=p, lam=lam, n=n,
-       mu = mu, b=b,
+       mu = mu,
        prate = rates$prate, arate = rates$arate,
        mean = p*(n-1)/mu + 1/lam)
+}
+
+## Solution to equation (2) referred to in the second Proof in Bobbio
+## p314.  Obtained by symbolic algebra (Python sympy)
+
+## from sympy import symbols, solve
+## n, n2, n3 = symbols('n n2 n3')
+## a, b, p = symbols('a b p')
+## p = (b-1)/a
+##  #  n = n2/(n3-n2) # case when penguin=0
+## eqns = [
+##     (2*b + a*a*p*n / (n-1)) / b**2 - n2,
+##     (6*b + a*a*p* n/(n-1) * ((n+1)/(n-1)*a + 3)
+##      ) / (2*b**2 + a*a*p*n / (n-1)*b) - n3
+##     ]
+## solutions = solve(eqns, a, b, dict=True)
+## print(solutions)
+
+erlang_exp_pa_sympy <- function(n2, n3, n){
+  A <- n*n2*(12*n*n2**2 + n*n2*n3**2 - 14*n*n2*n3 - 15*n*n2 + 16*n*n3 + 12*n2**2 - 8*n2*n3 - 24*n2 + 16*n3)
+  B <- ifelse(A < 0, NA, sqrt(A))
+  C <- (n*n2 - n + n2 - 4)
+  D <- (-n*n3 + n + 4)
+  E <- (n*n2 - 2*n + n2 - 2)
+  F <- (n*n2 - n*n3 + n2)
+  G <- 8*n*n2**2*(n + 1)*(n2 - 2)
+
+  a1 <- -(n - 1)*(n2*D - B)*(2*n2*(n2*D - B)*C - 8*n2*F*E + (n2*D - B)**2)/(G*F**2)
+  b1 <- (-n*n2*n3 + n*n2 + 4*n2 - B)/(2*n2*F)
+  p1 <- (b1 - 1)/a1
+
+  a2 <- -(n - 1)*(n2*D + B)*(2*n2*(n2*D + B)*C - 8*n2*F*E + (n2*D + B)**2)/(G*F**2)
+  b2 <- (n2*D + B)/(2*n2*F)
+  p2 <- (b2 - 1)/a2
+
+  a3 <- (2*n2 - n3)*(3*n2**2 - 4*n3)*(-3*n2**2 + 2*n3*(n2 - 2) + 4*n3)/(n2**2*n3*(n2 - 2)*(n2*n3 + 3*n2 - 4*n3))
+  b3 <- (3*n2**2 - 4*n3)/(n2*(n2*n3 + 3*n2 - 4*n3))
+  p3 <- (b3 - 1)/a3
+
+  exponential <- (n2==2 & n3==3)
+  valid1 <- p1 >= 0 & p1 <= 1 & a1 >= 0
+  F0 <- abs(F) < .EPS
+  p <- ifelse(exponential, 0, ifelse(F0, p3, ifelse(valid1, p1, p2)))
+  a <- ifelse(exponential, 1 , # arbitrary non NA value ensures rate can be deduced
+       ifelse(F0, a3, ifelse(valid1, a1, a2)))
+
+  list(p=p, a=a)
+}
+
+## Equation (7) in Theorem 4.1 of Bobbio
+## Note this is less robust than the sympy solution
+## b=1, b=0/0 and any other NaN not handled.
+## Gives wrong quadratic solution for n2=5/3, n3=7/3, n=4
+
+erlang_exp_pa_bobbio <- function(n2, n3, n){
+  b <- (2*(4 - n*(3*n2 - 4))) /
+    (n2*(4 + n - n*n3) + sqrt(n*n2)*(
+      sqrt(12*n2^2*(n + 1) + 16*n3*(n + 1) + n2*(n*(n3 - 15)*(n3 + 1) - 8*(n3 + 3)))
+    ))
+  a <- ((b*n2 - 2)*(n - 1)*b) / ((b - 1)*n)
+  p <- ifelse(b==1, 0, # reduction to exponential distribution
+              (b - 1)/a)
+  list(p=p, a=a)
 }
 
 ## parameters in coxian form. derive from mixture representation:
@@ -165,24 +222,6 @@ in_moment_bounds <- function(n2, n3, n){
   (n2 >= (n+1)/n) & (mb[["lower"]] <= n3) & (n3 <= mb[["upper"]])
 }
 
-.EPS <- sqrt(.Machine$double.eps)
-
-## TODO are these meant to be mutually exclusive given moment bounds
-
-in_case1_bounds <- function(n2, n3, n){
-  (n2 > 2 |                    # implies n2 > (n + k)/n for k<n
-#  ((n2 <= (n / (n-1)) + .EPS) | # FIXME should this be n2 > 2, as in https://github.com/ghorvath78/butools/blob/master/Python/butools/ph/canonical.py?  Weaker condition
-#                                # equivalent condition only for n=2
-   (n3 < 2*n2 - 1 + .EPS) )
-}
-
-in_case2_bounds <- function(n2, n3, n){
-  uprev <- n3_moment_bounds(n2, n-1)[["un"]]
-  (n2  + .EPS > (n / (n-1))) &
-#  (n2  + .EPS < ((n-1) / (n-2))) & # this condition isn't stated in Thm 4.1 ii), but it is required for "subset 3". assume already implied by the moment bounds
-    (n3  + .EPS > uprev)
-}
-
 ##' Determine parameters of a phase-type distribution that approximate
 ##' a parametric shape-scale distribution, using moment matching
 ##'
@@ -192,25 +231,16 @@ in_case2_bounds <- function(n2, n3, n){
 ##'
 ##' @noRd
 shapescale_to_rates_moment <- function(shape, scale=1, family,
-                                       nphase=5, method="numeric"){
+                                       nphase=5){
   nmoment_fn <- sprintf("%s_nmo",family)
   nmo <- do.call(nmoment_fn, list(shape=shape, scale=scale))
   inbounds <- in_case1_bounds(nmo[["n2"]], nmo[["n3"]], nphase)
+  oob <- which(!inbounds)
+  if (any(oob))
+    cli_warn("Bounds for moment matching formula not satisfied for", oob)
 
-  ## TODO implement case 1/2 switch in Stan too, and/or sort out when it applies for W/G
-
-  ee1 <- erlang_exp_case1(nmo[["m1"]], nmo[["n2"]], nmo[["n3"]], n=nphase)
-  ee2 <- erlang_exp_case2(nmo[["m1"]], nmo[["n2"]], nmo[["n3"]], n=nphase, method="numeric")
-
-  prate <- matrix(nrow=length(shape), ncol=nphase-1)
-  arate <- matrix(nrow=length(shape), ncol=nphase)
-
-  for (i in 1:length(shape)){
-    if (any(!inbounds[i])) cat("Using case 2\n")
-    prate[i,] <- if(inbounds[i]) ee1$prate[i,] else ee2$prate[i,]
-    arate[i,] <- if(inbounds[i]) ee1$arate[i,] else ee2$arate[i,]
-  }
-  rates <- cbind(prate, arate)
+  ee1 <- erlang_exp(nmo[["m1"]], nmo[["n2"]], nmo[["n3"]], n=nphase)
+  rates <- cbind(ee1$prate, ee1$arate)
 
   # Exponential dist with rate 1/scale, for gamma and weibull
   if (family %in% c("gamma","weibull"))
@@ -218,6 +248,14 @@ shapescale_to_rates_moment <- function(shape, scale=1, family,
 
   colnames(rates) <- phase_ratenames(nphase)
   rates
+}
+
+.EPS <- sqrt(.Machine$double.eps)
+
+in_case1_bounds <- function(n2, n3, n){
+  ((n2 > 2) | # as in https://github.com/ghorvath78/butools/blob/master/Python/butools/ph/canonical.py
+  (n2 <= (n / (n-1)) + .EPS) | # conditions in paper
+   (n3 < 2*n2 - 1 + .EPS) )
 }
 
 gamma_shape_ubound <- function(nphase){
@@ -243,9 +281,7 @@ gamma_shape_in_bounds <- function(shape, nphase){
   n3 <- (shape+2)/shape
   b <- n3_moment_bounds(n2, nphase)
   ifelse(shape==1, rep(TRUE,length(shape)),
-  (shape <= nphase) & (n3 >= b$lower) & (n3 <= b$upper) &
-  (in_case1_bounds(n2, n3, nphase) | in_case2_bounds(n2, n3, nphase))
-  )
+  (shape <= nphase) & (n3 >= b$lower) & (n3 <= b$upper) )
 }
 
 #' @export
@@ -253,8 +289,7 @@ weibull_shape_in_bounds <- function(shape, nphase){
   n2 <- weibull_nmo(shape)$n2
   n3 <- weibull_nmo(shape)$n3
   b <- n3_moment_bounds(n2, nphase)
-  (shape < weibull_ubounds[nphase]) & (n3 > b$lower) & (n3 < b$upper) &
-    (in_case1_bounds(n2, n3, nphase) | in_case2_bounds(n2, n3, nphase))
+  (shape < weibull_ubounds[nphase]) & (n3 > b$lower) & (n3 < b$upper)
 }
 
 #fn <- function(shape, n=5){
@@ -297,86 +332,4 @@ shape_ubound <- function(nphase, family){
   for (i in seq_along(res))
     res[i] <- family_fns[[family[i]]](nphase[i])
   res
-}
-
-erlang_exp_case2 <- function(m1, n2, n3, n, check=FALSE, method="numeric"){
-  if (n<2) stop("need n >= 2")
-  if (check && !all(in_case2_bounds(n2,n3,n)))
-    warning("some outside case 2 bounds")
-  if (check && !all(in_moment_bounds(n2, n3, n)))
-    warning("some outside moment bounds")
-  f <- erlang_exp_case2_f(n2, n3, n, method=method)
-  a <- 2*(f-1)*(n-1) / ((n-1)*(n2*f^2 - 2*f + 2) - n)
-  p <- (f - 1) * a
-  lam <- (p*a + 1)/m1 # as case 1
-  mu <- lam*(n - 1) / a
-  rates <- exp_erlang_to_coxian(mu, lam, p, n)
-  list(a=a, p=p, lam=lam, n=n, f=f,
-       mu = mu,
-       prate = rates$prate, arate = rates$arate,
-       mean = p*(n-1)/mu + 1/lam)
-}
-
-erlang_exp_case2_f <- function(n2, n3, n, method="numeric"){
-  if (method=="numeric"){
-    r <- polyroot(erlang_exp_case2_f_poly(n2, n3, n))
-    f <- first_pos_real_root <- Re(r)[(abs(Im(r)) < .EPS) & (Re(r) > 0)][1]
-  } else if (method=="analytic") {
-    f <- erlang_exp_case2_f_analytic(n2, n3, n)
-  } else cli_abort("Unknown {.var method}: {.str {method}}")
-  f
-}
-
-## Coefficients of quartic polynomial to be solved
-## Bobbio, Horvath and Telek p314 bottom
-erlang_exp_case2_f_poly <- function(n2, n3, n){
-  c4 <- n2*(3*n2 - 2*n3)*(n-1)^2
-  c3 <- 2*n2*(n3-3)*(n-1)^2
-  c2 <- 6*(n-1)*(n-n2)
-  c1 <- 4*n*(2-n)
-  c0 <- n*(n-2)
-  c(c0, c1, c2, c3, c4)
-}
-
-## Analytic solution in Bobbio et al
-## Not sure this is correct
-erlang_exp_case2_f_analytic <- function(n2, n3, n){
-  K1 <- n - 1
-  K2 <- n - 2
-  K3 <- 3*n2 - 2*n3
-  K4 <- n3 - 3
-  K5 <- n - n2
-  K6 <- 1 + n2 - n3
-  K7 <- n + n2 - n*n2
-  K8 <- 3 + 3*n2^2 + n3 - 3*n2*n3
-  K9 <- 108*K1^2 * (4*K2^2*K3*n^2*n2 + K1^2*K2*K4^2*n*n2^2 +
-                    4*K1*K5*(K5^2 - 3*K2*K6*n*n2) +
-                    sqrt(-16*K1^2*K7^6 + (4*K1*K5^3 + K1^2*K2*K4^2*n*n2^2 +
-                                          4*K2*n*n2*(K4*n^2 - 3*K6*n2 + K8*n))^2))
-  K10 <- K4^2 / (4*K3^2)  -  K5 / (K1*K3*n2)
-  K11 <- 2^(1/3) * (3*K5^2 + K2*(K3 + 2*K4)*n*n2) / (K3*K9^(1/3)*n2)
-  K12 <- K9^(1/3) / (3 * 2^(7/3) * K1^2 * K3 * n2)
-  K13 <- sqrt(K10 + K11 + K12)
-  K14 <- (6*K1*K3*K4*K5 + 4*K2*K3^2*n - K1^2*K4^3*n2) / (4*K1^2*K3^2*K13*n2)
-  K15 <- - K4 / (2*K3)
-  K16 <- sqrt(2*K10 - K11 - K12 - K14)
-  K17 <- sqrt(2*K10 - K11 - K12 + K14)
-  K18 <- 36*K5^3 + 36*K2*K4*K5*n*n2 + 9*K1*K2*K4^2*n*n2^2 -
-    sqrt(81*(4*K5^3 + 4*K2*K4*K5*n*n2 + K1*K2*K4^2*n*n2^2)^2 -
-         48*(3*K5^2 + 2*K2*K4*n*n2)^3)
-  K19 <- - K5 / (K1*K4*n2) -
-    2^(2/3)*(3*K5^2+2*K2*K4*n*n2) / (3^(1/3)*K1*K4*n2*K18^(1/3)) -
-    K18^(1/3) / (6^(2/3)*K1*K4*n2)
-  K20 <- 6*K1*K3*K4*K5 + 4*K2*K3^2*n - K1^2*K4^3*n2
-  K21 <- K11 + K12 + K5/(2*n*K1*K3)
-  K22 <- sqrt(3*K4^2/(4*K3^2) - 3*K5/(K1*K3*n2) + sqrt(4*K21^2 - n*K2/(n2*K1^2*K3)))
-
-  uprev <- n3_moment_bounds(n2, n-1)[["un"]]
-  res1 <- K13 + K15 - K17;  cond1 <- uprev < n3 & n3 < 3*n2/2
-  res2 <- K19;              cond2 <- n3 == 3*n2/2
-  res3 <- -K13 + K15 + K16; cond3 <- (n3 > 3*n2/2) & (K20 > 0)
-  res4 <- K15 + K22;        cond4 <- K20==0
-  res5 <- K13 + K15 + K17;  cond5 <- K20<0
-  f <- ifelse(cond1, res1, ifelse(cond2, res2, ifelse(cond3, res3, ifelse(cond4, res4, ifelse(cond5, res5, NA)))))
-  f
 }
