@@ -153,12 +153,12 @@ test_that("prior_sample with pastates, covariates on exit probs",{
   dat <- data.frame(subject=rep(1:100, each=10), time=rep(0:9, 100),
                     x=rbinom(1000, 1, 0.5), y=rbinom(1000, 1, 0.5))
   priorsr <- c(priors,
-               list(msmprior("logrrnext(age10,1,3)", median=log(2), lower=log(1.95))))
+               list(msmprior("logrrnext(x,1,3)", median=log(2), lower=log(1.95))))
   sam <- msmbayes_priorpred_sample(data=dat, Q=Q, priors=priorsr, pastates=1,
                                    covariates = list(rrnext(1,3) ~ x))
 
   priorsr <- c(priors,
-               list(msmprior("logrrnext(age10,1,3)", median=log(2), lower=log(0.8))))
+               list(msmprior("logrrnext(x,1,3)", median=log(2), lower=log(0.8))))
   mod <- msmbayes(data=sam, state="obs_state", Q=Q, pastates=1, priors=priorsr,
                   covariates = list(rrnext(1,3) ~ x), fit_method="optimize", seed=1)
   rrnext(mod)

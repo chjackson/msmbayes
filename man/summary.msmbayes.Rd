@@ -56,9 +56,9 @@ intensities, are those for covariate values of zero.
 Remaining parameters (in non-HMMs) are log hazard ratios for
 covariate effects.
 
-The columns \code{prior_string} and \code{prior_rvar} summarise the
+The columns \code{prior} and \code{prior_string} summarise the
 corresponding prior distribution in two different ways.
-\code{prior_rvar} is a quasi-random sample from the prior in the \code{rvar}
+\code{prior} is a quasi-random sample from the prior in the \code{rvar}
 data type, and is printed as mean and standard deviation.  This
 sample can then be used to produce any summary or plot of the
 prior.  The string \code{prior_string} is a summary of this sample,

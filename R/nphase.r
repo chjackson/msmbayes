@@ -1,6 +1,6 @@
 #' @name nphase
 #'
-#' @title Density, probability distribution, hazard and random
+#' @title Density, probability distribution, quantile, moment, hazard and random
 #' number generation functions for the Coxian
 #' phase-type distribution with any number of phases.
 #'
@@ -26,6 +26,8 @@
 #'
 #' @param q Value at which to evaluate the CDF.
 #'
+#' @param p Probability at which to evaluate the quantile 
+#'
 #' @param prate Progression rates.  Either a vector of length
 #'   `nphase-1`, or a matrix with `npar` rows and `nphase-1` columns.
 #'
@@ -41,7 +43,11 @@
 #'   matrix exponential is determined using numerical methods, via
 #'   `expm::expm()`.
 #'
+#' @param i which moment to return from \code{ncmoment_nphase}
+#'
 #' @param lower.tail If `TRUE` return P(X<x), else P(X>=x).
+#'
+#' @param log.p return log probability 
 #'
 #' @return A vector of length `n` or `length(x)`.
 #'

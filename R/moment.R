@@ -262,19 +262,25 @@ gamma_shape_ubound <- function(nphase){
   nphase
 }
 
-#' Test whether a shape parameter of the Gamma is in the bounds
-#' required for a valid phase-type approximation
+#' @name shape_in_bounds
+#' Test whether a shape parameter of is in the bounds required for a
+#' valid phase-type approximation
 #'
 #' @details Also verifies that the parameter satisfies Case 1 of Theorem 1
 #' in Bobbio et al.
 #'
 #' @param shape Shape parameter or vector)
 #'
-#' @param nphases Number of phases
+#' @param nphase Number of phases
 #'
 #' @return Vector or logicals, whether each shape parameter is in the bounds
 #' require for a phase-type approximation with that number of phases.
 #'
+#' @md
+
+
+#' @rdname shape_in_bounds
+#' @aliases gamma_shape_in_bounds
 #' @export
 gamma_shape_in_bounds <- function(shape, nphase){
   n2 <- (shape+1)/shape
@@ -284,12 +290,15 @@ gamma_shape_in_bounds <- function(shape, nphase){
   (shape <= nphase) & (n3 >= b$lower) & (n3 <= b$upper) )
 }
 
+
+##' @rdname shape_in_bounds
+##' @aliases weibull_shape_in_bounds
 #' @export
 weibull_shape_in_bounds <- function(shape, nphase){
   n2 <- weibull_nmo(shape)$n2
   n3 <- weibull_nmo(shape)$n3
   b <- n3_moment_bounds(n2, nphase)
-  (shape < weibull_ubounds[nphase]) & (n3 > b$lower) & (n3 < b$upper)
+  (shape < weibull_shape_ubound(nphase)) & (n3 > b$lower) & (n3 < b$upper)
 }
 
 #fn <- function(shape, n=5){

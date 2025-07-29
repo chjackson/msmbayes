@@ -523,8 +523,8 @@ get_prior_rrnextindex <- function(prior, cm, call=caller_env()){
     if (nrow(cm$rrnextdf)==0)
       msg <- "the model does not include covariates on competing exit transitions in a {.var pastates} model"
     else
-      msg <- "transition {prior$ind1}-{prior$ind2} is not a competing exit transition in a {.var pastates} model"
-    cli_abort(paste0("Unknown prior parameter {prior$username}:",msg), call=call)
+      msg <- "covariate {.var {prior$covname}} on competing risk transition {prior$ind1}-{prior$ind2} is not a model parameter"
+    cli_abort(paste0("Unknown prior parameter {prior$username}: ",msg), call=call)
   }
   ind
 }
