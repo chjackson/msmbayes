@@ -366,15 +366,14 @@ form_simmsm_beta <- function(prior_sample, qm, cm, qmatrix=NULL, i=1){
     select(from, to) |>
     arrange(from, to) |> # msm reads across rows, msmbayes down cols
     left_join(bwidedf, by=join_by("from","to")) |>
-    mutate(across(everything(), ~replace_na(.x,0))) |>
-    select(-from,-to) |> as.matrix() |> t()
-
-##  beta <- beta_df_to_matrix(bdf, qm)
+    mutate(across(everything(), ~replace_na(.x,0)))
   if (!is.null(qmatrix) && !is.null(qm$phasedata)){
-    qmatrix_lab <- sprintf("%s-%s",
-                           row(qmatrix)[qmatrix>0], col(qmatrix)[qmatrix>0])
-    beta <- beta[,match(qmatrix_lab, qm$phasedata$qlab),drop=FALSE]
+    beta <- beta |>
+      mutate(qmatrix = qmatrix[cbind(from,to)]) |>
+      filter(qmatrix > 0) |> select(-qmatrix)
   }
+  beta <- beta |>
+    select(-from,-to) |> as.matrix() |> t()
   beta
 }
 
