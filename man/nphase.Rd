@@ -11,7 +11,7 @@
 \alias{ncmoment_nphase}
 \alias{rnphase}
 \alias{qnphase}
-\title{Density, probability distribution, hazard and random
+\title{Density, probability distribution, quantile, moment, hazard and random
 number generation functions for the Coxian
 phase-type distribution with any number of phases.}
 \usage{
@@ -55,13 +55,19 @@ matrix exponential is determined using numerical methods, via
 
 \item{lower.tail}{If \code{TRUE} return P(X<x), else P(X>=x).}
 
+\item{i}{which moment to return from \code{ncmoment_nphase}}
+
 \item{n}{Number of random samples to generate.}
+
+\item{p}{Probability at which to evaluate the quantile}
+
+\item{log.p}{return log probability}
 }
 \value{
 A vector of length \code{n} or \code{length(x)}.
 }
 \description{
-Density, probability distribution, hazard and random
+Density, probability distribution, quantile, moment, hazard and random
 number generation functions for the Coxian
 phase-type distribution with any number of phases.
 }
