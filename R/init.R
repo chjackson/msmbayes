@@ -69,8 +69,10 @@ prior_random_inits <- function(standat, init_scale=5, chain_id=1){
   logscale <- rnorm(npa, mean=standat$logscalemean, sd=standat$logscalesd / init_scale)
   logoddse <- rnorm(length(standat$loemean), mean=standat$loemean, sd=standat$loesd / init_scale)
   logoddsnext <- rnorm(length(standat$logoddsnextmean), mean=standat$logoddsnextmean, sd=standat$logoddsnextsd / init_scale)
+  logrrnext <- rnorm(length(standat$logrrnextmean), mean=standat$logrrnextmean, sd=standat$logrrnextsd / init_scale)
   list(logq = as.array(logq), logq_markov = as.array(logq_markov),
        loghr_uniq = as.array(loghr_uniq),
        logshape = as.array(logshape), logscale = as.array(logscale),
-       logoddse = as.array(logoddse), logoddsnext = as.array(logoddsnext))
+       logoddse = as.array(logoddse), logoddsnext = as.array(logoddsnext),
+       logrrnext = as.array(logrrnext))
 }
