@@ -120,9 +120,9 @@ examples).</p>
 intensities, are those for covariate values of zero.</p>
 <p>Remaining parameters (in non-HMMs) are log hazard ratios for
 covariate effects.</p>
-<p>The columns <code>prior_string</code> and <code>prior_rvar</code> summarise the
+<p>The columns <code>prior</code> and <code>prior_string</code> summarise the
 corresponding prior distribution in two different ways.
-<code>prior_rvar</code> is a quasi-random sample from the prior in the <code>rvar</code>
+<code>prior</code> is a quasi-random sample from the prior in the <code>rvar</code>
 data type, and is printed as mean and standard deviation.  This
 sample can then be used to produce any summary or plot of the
 prior.  The string <code>prior_string</code> is a summary of this sample,
@@ -138,14 +138,14 @@ showing the median and 95% equal tailed credible interval.</p>
     <h2>Examples</h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">infsim_model</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 4 × 7</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   name   from    to    posterior  mode prior_string                 prior_rvar</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   name   from    to    posterior  mode prior_string                      prior</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;rvar[1d]&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                        <span style="color: #949494; font-style: italic;">&lt;rvar[1d]&gt;</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> q         1     2  0.74 <span style="color: #949494;">± 0.34</span> 0.666 <span style="color: #949494;">"</span> 0.14 ( 0.0027,   6.7)<span style="color: #949494;">"</span>   0.92 <span style="color: #949494;">± 3.5</span>  </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> q         2     1  4.26 <span style="color: #949494;">± 1.98</span> 3.86  <span style="color: #949494;">"</span> 0.14 ( 0.0027,   6.7)<span style="color: #949494;">"</span>   0.92 <span style="color: #949494;">± 3.5</span>  </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> mst       1    <span style="color: #BB0000;">NA</span>  1.65 <span style="color: #949494;">± 0.78</span> 1.50  <span style="color: #949494;">"</span>7.4 (0.15, 369)<span style="color: #949494;">"</span>         50.07 <span style="color: #949494;">± 192.1</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> mst       2    <span style="color: #BB0000;">NA</span>  0.29 <span style="color: #949494;">± 0.13</span> 0.259 <span style="color: #949494;">"</span>7.4 (0.15, 369)<span style="color: #949494;">"</span>         50.07 <span style="color: #949494;">± 192.1</span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">infsim_model</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   name from to      mode           prior_string    prior_rvar      mean</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   name from to      mode           prior_string         prior      mean</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1    q    1  2 0.6661191  0.14 ( 0.0027,   6.7)  0.92 ± 3.5   0.7396011</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 2    q    2  1 3.8606438  0.14 ( 0.0027,   6.7)  0.92 ± 3.5   4.2635807</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 3  mst    1 NA 1.5012331        7.4 (0.15, 369) 50.07 ± 192.1 1.6488597</span>
@@ -156,7 +156,7 @@ showing the median and 95% equal tailed credible interval.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 3 1.5097945 0.7772463 0.6521936 0.7106836 3.0879814 0.9998919 3891.378 4018.977</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 4 0.2579671 0.1328940 0.1114707 0.1254326 0.5430131 0.9999786 3893.001 3960.449</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">infsim_model</span><span class="op">)</span>, <span class="va">median</span>, <span class="op">~</span><span class="fu"><a href="https://rdrr.io/r/stats/quantile.html" class="external-link">quantile</a></span><span class="op">(</span><span class="va">.x</span>, <span class="fl">0.025</span>, <span class="fl">0.975</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   name from to      mode           prior_string    prior_rvar    median</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   name from to      mode           prior_string         prior    median</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1    q    1  2 0.6661191  0.14 ( 0.0027,   6.7)  0.92 ± 3.5   0.6623418</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 2    q    2  1 3.8606438  0.14 ( 0.0027,   6.7)  0.92 ± 3.5   3.8764643</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 3  mst    1 NA 1.5012331        7.4 (0.15, 369) 50.07 ± 192.1 1.5097945</span>

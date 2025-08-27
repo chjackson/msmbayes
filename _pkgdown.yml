@@ -51,6 +51,8 @@ reference:
   - qphaseapprox
   - nphase_Q
   - shape_ubound
+  - shape_in_bounds
+  - n3_moment_bounds
 - title: Datasets
 - contents:
   - infsim

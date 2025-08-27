@@ -83,8 +83,9 @@ shape/scale distribution.</p>
 <span>  <span class="va">pastates</span>,</span>
 <span>  <span class="va">shape</span>,</span>
 <span>  scale <span class="op">=</span> <span class="fl">1</span>,</span>
-<span>  family <span class="op">=</span> <span class="st">"weibull"</span>,</span>
+<span>  family <span class="op">=</span> <span class="st">"gamma"</span>,</span>
 <span>  method <span class="op">=</span> <span class="st">"moment"</span>,</span>
+<span>  nphase <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  att <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -125,6 +126,14 @@ Ignored if <code>nphase</code> is supplied.</p></dd>
 
 <dt id="arg-method">method<a class="anchor" aria-label="anchor" href="#arg-method"></a></dt>
 <dd><p>(Deprecated)</p></dd>
+
+
+<dt id="arg-nphase">nphase<a class="anchor" aria-label="anchor" href="#arg-nphase"></a></dt>
+<dd><p>Only required for models with phase-type sojourn
+distributions specified directly (not through <code>pastates</code>).
+<code>nphase</code> is a vector with one element per state, giving the
+number of phases per state.  This element is 1 for states that do
+not have phase-type sojourn distributions.</p></dd>
 
 
 <dt id="arg-att">att<a class="anchor" aria-label="anchor" href="#arg-att"></a></dt>

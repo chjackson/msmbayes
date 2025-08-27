@@ -240,11 +240,11 @@ knowledge implied by the structure <code>Q</code> of permitted transitions).</p>
 previous observed value between the previous and current times in
 the data, and the transition to the current state is made exactly
 at the current time.</p>
-<p><code>3</code>: "Exact death times". the transition to the current state is
+<p><code>3</code>: "Exact death times". A transition to the current state is
 made exactly at the current time, but the state in the period
-from the previous observation to the instant before the
-transition is unknown.  Typical (but not necessary) for
-observations of death in epidemiological studies.</p>
+between the previous observation and this transition is unknown.
+Typical (but not necessary) for observations of death in
+epidemiological/clinical studies.</p>
 <p>This is the same feature as in the <code>msm</code> package.  If omitted,
 then all observations are assumed to be intermittent, with
 <code>obstype</code> 1.</p></dd>
@@ -284,7 +284,9 @@ interpretable as integers, since the <code>"state"</code> variable must be
 an integer.</p>
 <p>In misclassification models, the subset refers to values of the
 true state if <code>obstrue</code> is 1, or the observed state if <code>obstrue</code>
-is 0.</p></dd>
+is 0.</p>
+<p>Unlike in <code>msm</code>, there is no <code>censor</code> argument, and a <code>censor_states</code>
+must be supplied if there are censored states.</p></dd>
 
 
 <dt id="arg-constraint">constraint<a class="anchor" aria-label="anchor" href="#arg-constraint"></a></dt>
