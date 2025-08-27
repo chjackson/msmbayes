@@ -12,6 +12,7 @@ vignettes/figures*
 _pkgdown.yml
 vignettes/examples_*
 vignettes/advanced*
+vignettes/elsa*
 bin
 ^codecov\.yml$
 ^\.github$

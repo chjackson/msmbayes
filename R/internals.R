@@ -29,7 +29,8 @@ msmbayes_form_internals <- function(data, state="state", time="time", subject="s
                      obstrue=obstrue, censor_states=censor_states,
                      qm=qm, em=em, pm=pm,
                      prior_sample=prior_sample, call=call)
-  em$censor <- identical(data[["state"]], 0) # use non-HMM lik if no censor codes in data
+  # use non-HMM lik if no censor codes in data
+  em$censor <- !is.null(data[["state"]]) && any(data[["state"]]==0)
   em$hmm <- em$ne>0 || em$censor  #  and no misclassification
 
   priors <- process_priors(priors, qm, cm, pm, em, qmobs, call=call)

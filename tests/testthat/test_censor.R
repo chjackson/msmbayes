@@ -15,8 +15,9 @@ test_that("error handling for censor_states",{
                "should be interpretable as numbers")
   expect_no_error(msmbayes(data=cav, state="state_cens", time="years", subject="PTNUM",
                            Q=Qcav2, init=init2,
-                           censor_states = list(" 99 "=1:3),
+                           censor_states = list("99"=1:3),
                            algorithm="Fixed_param", chains=1, iter=1))
+
   expect_error(msmbayes(data=cav, state="state_cens", time="years", subject="PTNUM",
                         Q=Qcav2, init=init2,
                         censor_states = list("99"=c(1:3,9)),

@@ -38,7 +38,7 @@ test_that("prior_sample with pastates, no covariates",{
   expect_gt(summ[["1st Qu."]], log(1.06)); expect_lt(summ[["3rd Qu."]], log(1.14))
   summ <- summary(sam[["logscale[1]"]])
   expect_gt(summ[["1st Qu."]], log(0.94)); expect_lt(summ[["3rd Qu."]], 1.06)
-  summ <- summary(sam[["logoddsa[1]"]])
+  summ <- summary(sam[["logoddsnext[1]"]])
   expect_gt(summ[["1st Qu."]], -0.6); expect_lt(summ[["3rd Qu."]], 0.6)
   summ <- summary(exp(sam[["logq[2,3]"]]))
   expect_gt(summ[["1st Qu."]], 1.08); expect_lt(summ[["3rd Qu."]], 1.12)
@@ -111,7 +111,7 @@ test_that("prior_sample with pastates, different covariates on two scales: prior
   expect_gt(summ[["1st Qu."]], log(49)); expect_lt(summ[["3rd Qu."]], log(51))
   summ <- summary(sam[["logtaf[x,2]"]])
   expect_gt(summ[["1st Qu."]], log(9.9)); expect_lt(summ[["3rd Qu."]], log(10.1))
-  summ <- summary(sam[["logoddsa[1]"]])
+  summ <- summary(sam[["logoddsnext[1]"]])
   expect_gt(summ[["1st Qu."]], -0.6); expect_lt(summ[["3rd Qu."]], -0.4)
 
   ## sense check model fit

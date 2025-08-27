@@ -263,7 +263,8 @@ gamma_shape_ubound <- function(nphase){
 }
 
 #' @name shape_in_bounds
-#' Test whether a shape parameter of is in the bounds required for a
+#' 
+#' @title Test whether a shape parameter of is in the bounds required for a
 #' valid phase-type approximation
 #'
 #' @details Also verifies that the parameter satisfies Case 1 of Theorem 1
