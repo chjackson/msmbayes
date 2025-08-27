@@ -13,7 +13,7 @@
 #' Docme
 #'
 #' @noRd
-msmbres_to_draws <- function(res, name=NULL, col="value"){
+msmbres_to_draws <- function(res, name=NULL, col="posterior"){
   if (is.null(name)) name <- res[[name]]
   dims <- c(length(draws_of(res[[col]][1])), nrow(res))
   res |> pull(col) |> draws_of() |> array(dim=dims) |>
@@ -28,7 +28,7 @@ msmbres_to_draws <- function(res, name=NULL, col="value"){
 #' [ prob sensible to do by default ]
 #'
 #' @param compare Second column for comparison.  First column assumed
-#'   to be called "value"
+#'   to be called "posterior"
 #' @param names Names for two things compared, to include in the
 #'   output plot
 #' @param varnames Name of thing that is being described in two
@@ -36,25 +36,26 @@ msmbres_to_draws <- function(res, name=NULL, col="value"){
 #' @param plot plot if true, else return plot data
 #'
 #' @noRd
-dens_compare <- function(res, compare="prior_rvar",
+dens_compare <- function(res, compare="prior",
                          names = c("Prior", "Posterior"),
                          varnames = NULL, plot=TRUE,
-                         xlab=""){
+                         xlab="", alpha=0.5){
   x <- pp <- NULL
   if (is.null(varnames)) varnames <- res[["name"]]
   if (any(duplicated(varnames)))
     cli_abort("Variable names in {.var name} column are duplicated. Define the names by hand using the {.var varnames} argument")
-  dims <- c(length(draws_of(res$value[1])), nrow(res))
+  dims <- c(length(draws_of(res$posterior[1])), nrow(res))
   draws_ref <-     msmbres_to_draws(res, name=varnames)
   draws_compare <- msmbres_to_draws(res, col=compare, name=varnames)
   dat <- rbind(cbind(draws_compare, pp=names[1]),
                cbind(draws_ref, pp=names[2]))
   ## FIXME breaks when variable names are not unique
   dat <- dat |>
-    pivot_longer(cols=1:nrow(res), names_to="name", values_to="x")
+    pivot_longer(cols=1:nrow(res), names_to="name", values_to="x") |>
+    mutate(pp=relevel(factor(pp), "Prior"))
   if (plot)
     ggplot(dat, aes(x=x)) +
-      geom_density(aes(group=pp, fill=pp), alpha=0.5) +
+      geom_density(aes(group=pp, fill=pp), alpha=alpha) +
       facet_wrap(~name, nrow=1, scales="free_x") +
       guides(fill  = guide_legend(position = "inside", title=NULL)) +
       theme(legend.margin = margin(0, 0, 0, 0),

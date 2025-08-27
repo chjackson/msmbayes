@@ -133,7 +133,7 @@ prior_sample_logoddsnext <- function(priors, nsim, qm, pm){
   noddsnext <- qm$noddsnext
   if (pm$phaseapprox && noddsnext > 0){
     logoddsnext <- as.data.frame(matrix(nrow=nsim, ncol=noddsnext))
-    names(logoddsnext) <- sprintf("logoddsa[%s]", 1:noddsnext) # inconsistent name
+    names(logoddsnext) <- sprintf("logoddsnext[%s]", 1:noddsnext)
     for (i in 1:noddsnext){
       logoddsnext[,i] <- rnorm(nsim, priors$logoddsnextmean[i], priors$logoddsnextsd[i])
     }
@@ -305,7 +305,7 @@ extract_q <- function(prior_sample, Q, i){
 }
 
 extract_logoddsnext <- function(prior_sample, i=1){
-  logoddsnextre <- "logoddsa\\[([[:digit:]]+)\\]"
+  logoddsnextre <- "logoddsnext\\[([[:digit:]]+)\\]"
   prior_sample[i,grepl(logoddsnextre, names(prior_sample))]
 }
 
@@ -320,10 +320,10 @@ extract_logoddsnext <- function(prior_sample, i=1){
 ##'
 ##' @noRd
 logoddsnext_to_probs <- function(logoddsnext, qm, qmobs){
-  crd <- qm$pacrdata[qm$pacrdata$loind==1,,drop=FALSE]
+  crd <- qm$pacrdata[qm$pacrdata$loind > 0,,drop=FALSE]
   crdbase <- qm$pacrdata[qm$pacrdata$dest_base,,drop=FALSE]
   mat <- emat <- matrix(0, nrow=qmobs$K, ncol=qmobs$K)
-  mat[cbind(crd$oldfrom, crd$oldto)] <- logoddsnext
+  mat[cbind(crd$oldfrom, crd$oldto)] <- as.numeric(logoddsnext)
   emat[cbind(crdbase$oldfrom, crdbase$oldto)] <- 1
   emat[mat!=0] <- exp(mat[mat!=0])
   pmat <- emat / rowSums(emat)

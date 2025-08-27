@@ -24,12 +24,12 @@ msmbayes_form_internals <- function(data, state="state", time="time", subject="s
              obstype=obstype, obstrue=obstrue,
              qm, censor_states, prior_sample=prior_sample, call=call)
   cm <- form_covariates(covariates, data, constraint, qm, pm, em, qmobs, call=call)
-  data <- clean_data(data, state, time, subject, 
+  data <- clean_data(data, state, time, subject,
                      X=cm$X, obstype=obstype, deathexact=deathexact,
                      obstrue=obstrue, censor_states=censor_states,
                      qm=qm, em=em, pm=pm,
                      prior_sample=prior_sample, call=call)
-  em$censor <- any(data$state==0) # use non-HMM lik if no censor codes in data
+  em$censor <- identical(data[["state"]], 0) # use non-HMM lik if no censor codes in data
   em$hmm <- em$ne>0 || em$censor  #  and no misclassification
 
   priors <- process_priors(priors, qm, cm, pm, em, qmobs, call=call)
@@ -212,7 +212,7 @@ form_initprobs <- function(initprobs=NULL, qm, em, dat, pm, call=caller_env()){
     ## perhaps this should be the first of the states for which em[,obs] > 0 ?
   }
   if (em$ne==0){ # HMM lik used but no misclassification (e.g. censoring)
-    ## censdat is matrix(nobs, nstates): P(obs | true state).  O or 1 
+    ## censdat is matrix(nobs, nstates): P(obs | true state).  O or 1
     ## Not really initial "probabilities" in this model, where likelihood is a sum of pathway probs
     firstobs <- which(!duplicated(dat[["subject"]]))
     cens_first <- dat$censdat[firstobs,,drop=FALSE]
