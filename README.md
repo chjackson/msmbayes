@@ -19,13 +19,13 @@ Models can be fitted with either Bayesian or maximum likelihood estimation, via 
 
 ## Advantages of msmbayes compared to msm
 
-* Informative priors can represent background information
+* Informative priors can represent background information.
 
 * Prior information can also help to stabilise model fitting - avoiding convergence failures. 
 
 * Semi-Markov models, via phase-type approximations to Weibull and Gamma distributions, which are easier to use and much more robust than the "two-phase" methods in msm.
 
-* Automatic, efficient uncertainty quantification for any model output
+* Automatic, efficient uncertainty quantification for any model output.
 
 
 ## Limitations of msmbayes compared to msm 
@@ -36,7 +36,7 @@ Models can be fitted with either Bayesian or maximum likelihood estimation, via 
 
 * Fixed parameters are not supported.  However, parameters can be constrained through their prior distributions.  Limited support for equality constraints on covariate effects.
 
-* The `pci` syntax for time-inhomogeneous models is not supported.  However, these models can still be specified, by treating time as a time-dependent covariate, and including censored states at the occasions when the covariate changes but not the state.   Prediction functions also currently cannot automatically deal with piecewise-constant covariates.
+* The `pci` syntax for time-inhomogeneous models is not supported.  However, these models can still be specified, by treating time as a covariate, and including censored states at the occasions when the covariate changes but not the state.   Prediction functions also currently cannot automatically deal with piecewise-constant covariates.
 
 * Multivariate hidden Markov models are not supported.
 

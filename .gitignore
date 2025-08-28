@@ -7,6 +7,7 @@
 .quarto
 *~
 vignettes/*_cache*
+vignettes/articles/*_cache*
 vignettes/*_files*
 *.exe
 bin/stan/*
