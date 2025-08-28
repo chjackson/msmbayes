@@ -1,0 +1,489 @@
+---
+title: "Code for using the msmbayes package for semi-Markov modelling in an application to cognitive function"
+author: "Christopher Jackson"
+editor_options: 
+  chunk_output_type: console
+--- 
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+This file gives the code used for the analysis of the cognitive function data in Section 7 of the paper "Stable and practical semi-Markov modelling of intermittently-observed data" (Jackson).
+
+It is intended to show that the methodology in the paper can be easily used in practice.  It also serves as an aid to learning Bayesian multi-state modelling using the `msmbayes` package, in conjunction with the other documentation given on the [package site](https://chjackson.github.io/msmbayes).
+
+Since the original ELSA dataset cannot be redistributed, here we provide a simulated dataset with the same structure and size.   The code used for the analysis is the same as in the paper, just with different data.  Therefore the code can be run, but the results will be different. 
+
+
+```{r setup, message=FALSE}
+library(msmbayes)
+library(msm)
+library(tidyverse)
+library(gt)
+library(posterior)
+source("elsa_priors.R")
+Q5 <- rbind(c(0, 1, 0, 0, 1), 
+            c(1, 0, 1, 0, 1), 
+            c(0, 1, 0, 1, 1), 
+            c(0, 0, 1, 0, 1),
+            c(0, 0, 0, 0, 0))
+save_files <- FALSE # for local use
+if (save_files){
+ wd <- "../elsa/fakedata"
+ mbmodc <- readRDS(file=file.path(wd, "mbmodc.rds"))
+ mbmodscw <- readRDS(file=file.path(wd, "mbmodscg.rds"))
+ mbmodscg <- readRDS(file=file.path(wd, "mbmodscw.rds"))
+}
+```
+
+
+# Simulated data 
+
+A simulated dataset is loaded here, which was produced by simulating
+state outcomes from a Markov model fitted to the original ELSA data.
+The same number of individuals and observation times are simulated as
+in the original data.
+
+```{r}
+elsa1000 <- readRDS("elsa_fakedata.rds")
+```
+
+
+# Basic data summaries 
+
+Calculate the number of observed transitions over an interval between observations, by from-state and to-state.  Overall and split by covariates.  Note a small number of deaths from each state.
+
+```{r}
+statetable(state="state", time="agey", subject="idauniq", data=elsa1000)
+statetable(state="state", time="agey", subject="idauniq", 
+           covariates = "gender", data=elsa1000)
+statetable(state="state", time="agey", subject="idauniq", 
+           covariates = "age10", data=elsa1000 |> 
+             mutate(age10=cut(agey,c(0,60,70,80,110)))) |>
+  group_by(age10) |> summarise(n = sum(`5`)) # deaths by age group 
+```
+
+
+
+# Markov models in msmbayes 
+
+Start with the simplest model with no covariates and default priors, as a sense check.  Looking at just the transition intensities (`q`), and mean sojourn times (`mst`) the estimates do not look extreme or uncertain, but this is misleading - when converted to a time scale, the expected times to the death state 5 (without competing risks) are implausibly large and uncertain.   
+
+```{r}
+mbmod <- msmbayes(data=elsa1000, state="state", time="agey", subject="idauniq",
+                  Q=Q5, deathexact=TRUE, fit_method="optimize")
+summary(mbmod) 
+summary(mbmod, pars="time") 
+```
+
+
+Since there is very little information in this dataset about death,  we obtain strong priors on the death rates, and effect of age and sex on these, from national mortality statistics.   Other effects are given weakly informative priors: a log-normal(0, 1) distribution supports hazard ratios up to around `exp(2) = 7`, which we suppose would be surprising in the context of demographic effects on the risk of cognitive decline.   The priors are stored in the file `elsa_priors.R`, and code used to derive them is in Supplementary Appendix 4 of the paper. 
+
+Now include the covariates in the model, still with a Markov model.   Age-sex interaction and level of education, modifying all transition rates differently.
+
+
+```{r,cache=TRUE}
+set.seed(1)
+mbmodc <- msmbayes(data=elsa1000, state="state", time="agey", subject="idauniq",
+                   Q=Q5, deathexact=TRUE,
+                   covariates =  ~ gender*y5010 + raeducl,
+                   priors = c(logq_priors, loghr_priors), # init = list(ini),
+                   fit_method="optimize")
+if (save_files) saveRDS(mbmodc, file=file.path(wd, "mbmodc.rds"))
+```
+
+Standard maximum likelihood estimation in `msm` appears to converge, even without any constraints on the parameters,  but some confidence intervals for hazard ratios are implausibly wide.   `msmbayes` allows use of informative priors to stabilise computation
+and support weak data with background information.
+
+```{r,cache=TRUE}
+msmmod <- msm(state ~ agey, subject=idauniq, data=elsa1000, 
+              qmatrix=Q5, deathexact=TRUE, gen.inits=TRUE,
+              covariates =  ~ gender*y5010 + raeducl, 
+              control=list(fnscale=4000,trace=1,REPORT=1,maxit=10000))
+hazard.msm(msmmod)
+```
+
+
+# Semi-Markov models in msmbayes 
+
+
+Gamma phase-type sojourn distribution, fitted using optimization to find the posterior mode, followed by Laplace approximation.  This may take at least 20 minutes to run. 
+
+```{r}
+set.seed(1)
+mbmodscg <- msmbayes(data=elsa1000, state="state", time="agey", subject="idauniq",
+                    Q=Q5, deathexact=TRUE, 
+                    covariates =   list(scale(1) ~ gender*y5010 + raeducl,
+                                        scale(2) ~ gender*y5010 + raeducl,
+                                        scale(3) ~ gender*y5010 + raeducl,
+                                        scale(4) ~ gender*y5010 + raeducl,
+                                        rrnext(1,5) ~ gender*y5010 + raeducl,
+                                        rrnext(2,3) ~ gender*y5010 + raeducl,
+                                        rrnext(2,5) ~ gender*y5010 + raeducl,
+                                        rrnext(3,4) ~ gender*y5010 + raeducl,
+                                        rrnext(3,5) ~ gender*y5010 + raeducl,
+                                        rrnext(4,5) ~ gender*y5010 + raeducl
+                    ),
+                    pastates = c(1,2,3,4), panphase = c(5,5,5,5), pafamily="gamma",
+                    priors = smm_priors("gamma"), 
+                    fit_method="optimize", verbose=TRUE
+                    )
+if (save_files) saveRDS(mbmodscg, file=file.path(wd, "mbmodscg.rds"))
+```
+
+Weibull phase-type sojourn distribution
+
+```{r}
+set.seed(21) 
+mbmodscw <- msmbayes(data=elsa1000, state="state", time="agey", subject="idauniq",
+                    Q=Q5, deathexact=TRUE, 
+                    covariates =   list(scale(1) ~ gender*y5010 + raeducl,
+                                        scale(2) ~ gender*y5010 + raeducl,
+                                        scale(3) ~ gender*y5010 + raeducl,
+                                        scale(4) ~ gender*y5010 + raeducl,
+                                        rrnext(1,5) ~ gender*y5010 + raeducl,
+                                        rrnext(2,3) ~ gender*y5010 + raeducl,
+                                        rrnext(2,5) ~ gender*y5010 + raeducl,
+                                        rrnext(3,4) ~ gender*y5010 + raeducl,
+                                        rrnext(3,5) ~ gender*y5010 + raeducl,
+                                        rrnext(4,5) ~ gender*y5010 + raeducl
+                    ),
+                    pastates = c(1,2,3,4), panphase = c(5,5,5,5), pafamily="weibull",
+                    priors = smm_priors("weibull"), 
+                    fit_method="optimize", verbose=TRUE
+                    )
+
+if (save_files) saveRDS(mbmodscw, file=file.path(wd, "mbmodscw.rds"))
+
+bayesplot::mcmc_trace(mbmodscw |> select(matches("shape")))
+```
+
+
+
+## Likelihood-based model comparison
+
+```{r,cache=TRUE}
+sprintf("The maximised log posterior is %s for the Markov model, %s for the Gamma semi-Markov model and %s for the Weibull semi-Markov model.",
+        round(loglik(mbmodc)$mode[3]), 
+        round(loglik(mbmodscg)$mode[3]), round(loglik(mbmodscw)$mode[3]))
+```
+
+
+## Table of basic parameter estimates 
+
+Sojourn times, next-state probabilities and shape parameters
+
+```{r}
+trans_to_ttype <- function(from, to){ 
+  ifelse(to==5, "Death", ifelse(from < to, "Progression", "Recovery"))
+}
+
+pn_markov <- pnext(mbmodc) |> select(from, to, posterior) |> 
+  mutate(ttype = trans_to_ttype(from, to)) |>
+  pivot_wider(id_cols=c("from"), values_from="posterior", names_from="ttype") |> 
+  select(state=from, `Progression`,`Recovery`,`Death`) |> 
+  mutate(mst = mean_sojourn(mbmodc)$posterior,
+         model = "Markov",
+         shape = posterior::rvar(NA)) |> 
+  relocate(model, state, mst)
+
+pn_semi <- pnext(mbmodscw) |> select(from, to, posterior) |> 
+  mutate(ttype = trans_to_ttype(from, to)) |>
+  pivot_wider(id_cols=c("from"), values_from="posterior", names_from="ttype") |> 
+  select(state=from, `Progression`,`Recovery`,`Death`) |> 
+  mutate(mst = mean_sojourn(mbmodscw)$posterior,
+         model = "Semi-Markov",
+         shape = summary(mbmodscw, pars="shape")$posterior) |> 
+  relocate(model, state, mst)
+
+rvar_to_ci <- function(x){
+  summ <- summary(x, ~quantile(.x, c(0.025, 0.5, 0.975), na.rm=TRUE)) 
+  summf <- summ |>
+    mutate(across(all_of(c("50%","2.5%","97.5%")), ~format(round(.x,2),nsmall=2)))
+  ifelse(is.na(summ[["50%"]]), "",
+  sprintf("%s \\newline {\\footnotesize (%s, %s)}", summf[["50%"]], summf[["2.5%"]], summf[["97.5%"]])) |> latex()
+}
+tab <- rbind(pn_markov, pn_semi) |> 
+  select(-model) |> 
+  mutate(across(mst:shape, rvar_to_ci))
+
+write.table(tab, sep="  &  ", eol="\\\\\n", row.names = FALSE, quote=FALSE)
+```
+
+
+
+
+## Covariate effects
+
+Form a tidy data frame with estimates and CIs to be plotted
+
+```{r}
+hrs <- summary(mbmodc, pars="hr") |> 
+  mutate(ttype = trans_to_ttype(from, to),
+         model = "Markov") |>
+  select(model, from, name, ttype, posterior, prior=prior)
+tafs <- summary(mbmodscw, pars="taf") |> 
+  mutate(model="Semi-Markov", ttype = "Sojourn") |>
+  select(model, from, name, ttype, posterior, prior)
+
+trans_to_ttype_rr <- function(from, to){ 
+  ttype <- ifelse(to==5, "Death", ifelse(from < to, "Progression", "Recovery"))
+  base <- ifelse(from == 1, "Progression", "Recovery")
+  sprintf("%s/%s",ttype,base)
+}
+rrnexts <- summary(mbmodscw,pars = "rrnext") |> 
+  mutate(ttype = trans_to_ttype_rr(from, to),
+         model = "Semi-Markov") |>
+  select(model, from, name, ttype, posterior, prior=prior)
+
+cov_codes <- c("Female (for age 50)"="genderwoman",
+               "Age: 10 years (for female)"="ageeff_woman",
+               "Education: tertiary"="raeducltertiary",
+               "Education: upper secondary"="raeducluppersec",
+               "Age: 10 years (for male)"="y5010")
+  
+covres <- rbind(hrs, tafs, rrnexts) |> 
+  rename(Posterior=posterior, Prior=prior) |>
+  pivot_longer(c("Posterior", "Prior"), names_to="dist", values_to="value") |>
+  mutate(name = gsub(".+\\((.+)\\)","\\1", name)) 
+
+inter <- covres |> filter(name=="genderwoman:y5010") |> select(-name) |>
+  left_join(covres |> filter(name=="y5010") |> rename(ageeff=value) |> select(-name),
+            by = join_by(model, from, ttype, dist)) |>
+  mutate(value = value * ageeff,
+         name = "ageeff_woman") |> 
+  select(model, from, name, ttype, dist, value)
+
+covres <- covres |>
+  filter(name != "genderwoman:y5010") |> 
+  rbind(inter) |> 
+  mutate(value = summary(value, ~quantile(.x, c(0.025, 0.5, 0.975)))) |>
+  mutate(lower = value$`2.5%`, median = value$`50%`, upper = value$`97.5%`) |>
+  select(model, from, name, ttype, dist, lower, median, upper) |>
+  mutate(name = fct_relevel(name, "y5010", "ageeff_woman",
+                            "genderwoman","raeducluppersec",
+                            "raeducltertiary"),
+                            name = fct_recode(name, !!!cov_codes))
+```
+
+Plot for Markov and semi-Markov separately 
+
+```{r}
+p <- ggplot(covres |> filter(model=="Markov", dist=="Posterior"), 
+       aes(y=median, x=from)) + 
+  coord_flip(ylim=c(0,4)) + 
+  facet_grid(rows=vars(name), cols=vars(ttype), 
+             labeller = label_wrap_gen(width=15)) + 
+  geom_hline(yintercept=1, col="gray70") +
+  geom_point(position=position_dodge(width=0.4)) +
+  geom_linerange(aes(ymin=lower, ymax=upper), 
+                 position=position_dodge(width=0.4),
+                 show.legend = FALSE) + 
+  theme(strip.text.y = element_text(angle = 0)) +
+  ylab("Hazard ratio") + xlab("From state")
+p 
+
+if (save_files){
+  pdf("../paper/figures/elsa_hrs.pdf",width=5,height=4)
+  p
+  dev.off()
+}
+```
+
+
+
+```{r}
+p <- ggplot(covres |> filter(model=="Semi-Markov", dist=="Posterior") |> 
+         mutate(ttype = fct_relevel(ttype, "Sojourn", "Death/Progression")), 
+       aes(y=median, x=from, lty=dist, col=dist)) + 
+  coord_flip(ylim=c(0,5)) + 
+  facet_grid(rows=vars(name), cols=vars(ttype), scales="free_y", 
+             labeller = label_wrap_gen(width=15)) + 
+  geom_hline(yintercept=1, col="gray70") +
+  geom_point(position=position_dodge(width=0.4)) +
+  geom_linerange(aes(ymin=lower, ymax=upper), 
+                 position=position_dodge(width=0.4),
+                 show.legend = FALSE) + 
+  scale_color_manual(breaks=c("Posterior","Prior"),values=c("black","blue")) +
+  guides(col = guide_legend(position = "inside", title="")) +
+  theme(legend.position.inside = c(1, 0),
+        legend.justification = c(1, 0),
+        legend.background = element_rect(fill=alpha('white', 0.4)),
+        strip.text.y = element_text(angle = 0)
+        ) +
+  xlab("From state") + ylab("Multiplicative effect")
+
+if (save_files){
+  pdf("../paper/figures/elsa_smm.pdf",width=5,height=4)
+  p
+  dev.off()
+}
+```
+
+
+
+# Standardised outputs: total time spent in states 
+
+```{r,cache=TRUE}
+source("stdpop.R")
+
+tls_educ <- lapply(nd_educ, function(x){
+  totlos(mbmodscg, t=10, new_data=standardise_to(x))
+})
+tlm_educ <- lapply(nd_educ, function(x){
+  totlos(mbmodc, t=10, new_data=standardise_to(x))
+})
+elevs <- c("less","uppersec","tertiary")
+tles <- do.call("rbind",tls_educ) |> 
+  mutate(educ = rep(factor(elevs,levels=elevs),each=5),
+         state = factor(state),) |>
+  filter(state %in% 1:2) |>
+  group_by(educ) |> 
+  summarise(posterior = rvar_sum(posterior)) |>
+  mutate(model = "semi-Markov",
+         tdiff = posterior - posterior[1])
+tlem <- do.call("rbind",tlm_educ) |> 
+  mutate(educ = rep(factor(elevs, levels=elevs),each=5),
+         state = factor(state)) |>
+  filter(state %in% 1:2) |>
+  group_by(educ) |> 
+  summarise(posterior = rvar_sum(posterior)) |>
+  mutate(model = "Markov",
+         tdiff = posterior - posterior[1])
+tle <- rbind(tles, tlem) 
+if (save_files) saveRDS(tle, file=file.path(wd, "tle.rds"))
+```
+
+By age.   55, 65, 75, 85, 95, averaging over gender and education 
+
+Note time dependent covariate, which is why we forecast over a short prediction interval, 10 years. 
+
+```{r,cache=TRUE}
+tls_age <- lapply(nd_age, function(x){
+  totlos(mbmodscg, t=10, new_data=standardise_to(x))
+})
+tlm_age <- lapply(nd_age, function(x){
+  totlos(mbmodc, t=10, new_data=standardise_to(x))
+})
+alevs <- c("50-60","60-70","70-80","80-90","90-100")
+tles <- do.call("rbind",tls_age) |> 
+  mutate(age = rep(factor(alevs,levels=alevs),each=5),
+         state = factor(state),) |>
+  filter(state %in% 1:2) |>
+  group_by(age) |> 
+  summarise(posterior = rvar_sum(posterior)) |>
+  mutate(model = "semi-Markov",
+         tdiff = posterior - posterior[1])
+tlem <- do.call("rbind",tlm_age) |> 
+  mutate(age = rep(factor(alevs, levels=alevs),each=5),
+         state = factor(state)) |>
+  filter(state %in% 1:2) |>
+  group_by(age) |> 
+  summarise(posterior = rvar_sum(posterior)) |>
+  mutate(model = "Markov",
+         tdiff=posterior - posterior[1])
+tla <- rbind(tles, tlem)
+if (save_files) saveRDS(tla, file=file.path(wd, "tla.rds"))
+
+```
+
+
+By gender 
+
+```{r,cache=TRUE}
+tls_gender <- lapply(nd_gender, function(x){
+  totlos(mbmodscw, t=10, new_data=standardise_to(x))
+})
+tlm_gender <- lapply(nd_gender, function(x){
+  totlos(mbmodc, t=10, new_data=standardise_to(x))
+})
+alevs <- sapply(nd_gender, function(x)x$gender[1])
+tles <- do.call("rbind",tls_gender) |> 
+  mutate(gender = rep(factor(alevs,levels=alevs),each=5),
+         state = factor(state)) |>
+  filter(state %in% 1:2) |>
+  group_by(gender) |> 
+  summarise(posterior = rvar_sum(posterior)) |>
+  mutate(model = "semi-Markov",
+         tdiff=posterior - posterior[1])
+tlem <- do.call("rbind",tlm_gender) |> 
+  mutate(gender = rep(factor(alevs, levels=alevs),each=5),
+         state = factor(state)) |>
+  filter(state %in% 1:2) |>
+  group_by(gender) |> 
+  summarise(posterior = rvar_sum(posterior)) |>
+  mutate(model = "Markov",
+         tdiff=posterior - posterior[1])
+tlg <- rbind(tles, tlem)
+if (save_files) saveRDS(tlg, file=file.path(wd, "tlg.rds"))
+tlg
+```
+
+
+Results for all comparisons in a three panel figure
+
+```{r}
+tla <- tla |> 
+  mutate(cov="Age", 
+         age = fct_recode(age, "55"="50-60", "65"="60-70", 
+                          "75"="70-80", "85"="80-90","95"="90-100"),
+         model=fct_recode(model, "Semi-Markov"="semi-Markov")) 
+tlg <- tlg |> 
+  mutate(cov="Sex",
+         model=fct_recode(model, "Semi-Markov"="semi-Markov"),
+         gender = fct_recode(gender, "Male"="man", "Female"="woman"))
+tle <- tle |> 
+  mutate(cov="Education",
+         model=fct_recode(model, "Semi-Markov"="semi-Markov"),
+         educ = fct_recode(educ, "Less"="less", 
+                           "Upper secondary"="uppersec", "Tertiary"="tertiary"))
+
+psize <- 24
+
+ga <- tla |>
+  ggplot(aes(y=age, col=age, lty=model, xdist=posterior)) + 
+  ggdist::stat_pointinterval(position=ggstance::position_dodgev(height=0.5),
+                             interval_size_range = c(1,2), fatten_point=3) + 
+  guides(color="none", 
+         lty = guide_legend(position="inside", title="", reverse=TRUE)) +
+  theme_minimal() +
+  theme(legend.position.inside = c(1, 1.2),
+        legend.justification = c(1, 1),
+        legend.background = element_rect(fill=alpha('white', 0.4), 
+                                         color=0),
+        text = element_text(size=psize)
+  ) + xlab("Years") + ylab("") + ggtitle("By age")
+ga
+gg <- tlg |>
+  ggplot(aes(y=gender, col=gender, lty=model, xdist=posterior)) + 
+  ggdist::stat_pointinterval(position=ggstance::position_dodgev(height=0.4),
+                             interval_size_range = c(1, 2), fatten_point=3) +
+  guides(color="none", lty="none") +
+  theme_minimal() +
+  theme(text = element_text(size=psize)) +
+  xlab("Years") + ylab("") + ggtitle("By sex")
+gg
+ge <- tle |> 
+  ggplot(aes(y=educ, col=educ, lty=model, xdist=posterior)) + 
+  ggdist::stat_pointinterval(position=ggstance::position_dodgev(height=0.4),
+                             interval_size_range = c(1, 2), fatten_point=3) +
+  guides(color="none", lty="none") +
+  theme_minimal() +
+  theme(text = element_text(size=psize)) +
+  xlab("Years") + ylab("") + ggtitle("By highest level of education")
+ge
+
+p <- cowplot::plot_grid(ga, gg, ge, align="v", ncol=1)
+p 
+
+if (save_files){ 
+ pdf("elsa_totlos.pdf")
+ ## png("elsa_totlos.png", width=640, height=640, pointsize=24)
+ p 
+ dev.off()
+}
+```
