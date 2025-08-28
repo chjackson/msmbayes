@@ -18,6 +18,7 @@ It is intended to show that the methodology in the paper and the `msmbayes` pack
 
 Since the original ELSA dataset cannot be redistributed, here we provide a simulated dataset with the same structure and size.   The code used for the analysis is the same as in the paper, just with different data.  Therefore the code can be run, but the results will be different. 
 
+Additional files sourced from this one (the data and additional R code) are available from `vignettes/articles` in the `msmbayes` GitHub repository.
 
 ```{r setup, message=FALSE}
 library(msmbayes)
@@ -34,6 +35,7 @@ Q5 <- rbind(c(0, 1, 0, 0, 1),
 save_files <- FALSE # for local use
 if (save_files){
  wd <- "../elsa/fakedata"
+ wd <- "../elsa"
  mbmodc <- readRDS(file=file.path(wd, "mbmodc.rds"))
  mbmodscw <- readRDS(file=file.path(wd, "mbmodscg.rds"))
  mbmodscg <- readRDS(file=file.path(wd, "mbmodscw.rds"))
@@ -81,7 +83,7 @@ summary(mbmod, pars="time")
 ```
 
 
-Since there is very little information in this dataset about death,  we obtain strong priors on the death rates, and effect of age and sex on these, from national mortality statistics.   Other effects are given weakly informative priors: a log-normal(0, 1) distribution supports hazard ratios up to around `exp(2) = 7`, which we suppose would be surprising in the context of demographic effects on the risk of cognitive decline.   The priors are stored in the file `elsa_priors.R`, and code used to derive them is in Supplementary Appendix 4 of the paper. 
+Since there is very little information in this dataset about death,  we obtain strong priors on the death rates, and effect of age and sex on these, from national mortality statistics.   Other effects are given weakly informative priors: a log-normal(0, 1) distribution supports hazard ratios up to around `exp(2) = 7`, which we suppose would be surprising in the context of demographic effects on the risk of cognitive decline.   The priors are stored in the file `elsa_priors.R` (available in `vignettes/articles` in the `msmbayes` GitHub repository), and code used to derive them is in Supplementary Appendix 4 of the paper. 
 
 Now include the covariates in the model, still with a Markov model.   These are age-sex interaction and level of education, modifying all transition rates differently.
 
@@ -289,7 +291,7 @@ p <- ggplot(covres |> filter(model=="Markov", dist=="Posterior"),
 p 
 
 if (save_files){
-  pdf("../paper/figures/elsa_hrs.pdf",width=5,height=4)
+  pdf("../paper/figures/elsa_hrs.pdf",width=7,height=5)
   p
   dev.off()
 }
@@ -319,7 +321,7 @@ p <- ggplot(covres |> filter(model=="Semi-Markov", dist=="Posterior") |>
   xlab("From state") + ylab("Multiplicative effect")
 
 if (save_files){
-  pdf("../paper/figures/elsa_smm.pdf",width=5,height=4)
+  pdf("../paper/figures/elsa_smm.pdf",width=7,height=5)
   p
   dev.off()
 }
