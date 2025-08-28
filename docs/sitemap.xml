@@ -1,6 +1,7 @@
 <urlset xmlns = 'http://www.sitemaps.org/schemas/sitemap/0.9'>
 <url><loc>https://chjackson.github.io/msmbayes/404.html</loc></url>
 <url><loc>https://chjackson.github.io/msmbayes/articles/advanced.html</loc></url>
+<url><loc>https://chjackson.github.io/msmbayes/articles/cognitive.html</loc></url>
 <url><loc>https://chjackson.github.io/msmbayes/articles/examples.html</loc></url>
 <url><loc>https://chjackson.github.io/msmbayes/articles/index.html</loc></url>
 <url><loc>https://chjackson.github.io/msmbayes/articles/misclass.html</loc></url>
@@ -31,6 +32,7 @@
 <url><loc>https://chjackson.github.io/msmbayes/reference/msmhist.html</loc></url>
 <url><loc>https://chjackson.github.io/msmbayes/reference/msmhist_bardata.html</loc></url>
 <url><loc>https://chjackson.github.io/msmbayes/reference/msmprior.html</loc></url>
+<url><loc>https://chjackson.github.io/msmbayes/reference/n3_moment_bounds.html</loc></url>
 <url><loc>https://chjackson.github.io/msmbayes/reference/nphase.html</loc></url>
 <url><loc>https://chjackson.github.io/msmbayes/reference/nphase_Q.html</loc></url>
 <url><loc>https://chjackson.github.io/msmbayes/reference/phase5approx.html</loc></url>
@@ -43,6 +45,7 @@
 <url><loc>https://chjackson.github.io/msmbayes/reference/qphaseapprox.html</loc></url>
 <url><loc>https://chjackson.github.io/msmbayes/reference/rrnextdoc.html</loc></url>
 <url><loc>https://chjackson.github.io/msmbayes/reference/shapescale_to_rates.html</loc></url>
+<url><loc>https://chjackson.github.io/msmbayes/reference/shape_in_bounds.html</loc></url>
 <url><loc>https://chjackson.github.io/msmbayes/reference/shape_ubound.html</loc></url>
 <url><loc>https://chjackson.github.io/msmbayes/reference/soj_prob.html</loc></url>
 <url><loc>https://chjackson.github.io/msmbayes/reference/standardise_to.html</loc></url>

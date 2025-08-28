@@ -14,7 +14,7 @@ knitr::opts_chunk$set(
 
 This file gives the code used for the analysis of the cognitive function data in Section 7 of the paper "Stable and practical semi-Markov modelling of intermittently-observed data" (Jackson).
 
-It is intended to show that the methodology in the paper can be easily used in practice.  It also serves as an aid to learning Bayesian multi-state modelling using the `msmbayes` package, in conjunction with the other documentation given on the [package site](https://chjackson.github.io/msmbayes).
+It is intended to show that the methodology in the paper and the `msmbayes` package can be easily used in practice.  Though for actually learning the package, it is better to start with other documentation given on the [package site](https://chjackson.github.io/msmbayes), in particular the Examples vignette and function references.
 
 Since the original ELSA dataset cannot be redistributed, here we provide a simulated dataset with the same structure and size.   The code used for the analysis is the same as in the paper, just with different data.  Therefore the code can be run, but the results will be different. 
 
@@ -83,10 +83,10 @@ summary(mbmod, pars="time")
 
 Since there is very little information in this dataset about death,  we obtain strong priors on the death rates, and effect of age and sex on these, from national mortality statistics.   Other effects are given weakly informative priors: a log-normal(0, 1) distribution supports hazard ratios up to around `exp(2) = 7`, which we suppose would be surprising in the context of demographic effects on the risk of cognitive decline.   The priors are stored in the file `elsa_priors.R`, and code used to derive them is in Supplementary Appendix 4 of the paper. 
 
-Now include the covariates in the model, still with a Markov model.   Age-sex interaction and level of education, modifying all transition rates differently.
+Now include the covariates in the model, still with a Markov model.   These are age-sex interaction and level of education, modifying all transition rates differently.
 
 
-```{r,cache=TRUE}
+```{r mbmodc,results="hide",cache=TRUE}
 set.seed(1)
 mbmodc <- msmbayes(data=elsa1000, state="state", time="agey", subject="idauniq",
                    Q=Q5, deathexact=TRUE,
@@ -96,14 +96,13 @@ mbmodc <- msmbayes(data=elsa1000, state="state", time="agey", subject="idauniq",
 if (save_files) saveRDS(mbmodc, file=file.path(wd, "mbmodc.rds"))
 ```
 
-Standard maximum likelihood estimation in `msm` appears to converge, even without any constraints on the parameters,  but some confidence intervals for hazard ratios are implausibly wide.   `msmbayes` allows use of informative priors to stabilise computation
-and support weak data with background information.
+Standard maximum likelihood estimation in `msm` appears to converge, even without any constraints on the parameters,  but some confidence intervals for hazard ratios are implausibly wide.   `msmbayes` allows use of informative priors to stabilise computation and support weak data with background information.
 
-```{r,cache=TRUE}
+```{r msmmod,cache=TRUE}
 msmmod <- msm(state ~ agey, subject=idauniq, data=elsa1000, 
               qmatrix=Q5, deathexact=TRUE, gen.inits=TRUE,
               covariates =  ~ gender*y5010 + raeducl, 
-              control=list(fnscale=4000,trace=1,REPORT=1,maxit=10000))
+              control=list(fnscale=4000,maxit=10000))
 hazard.msm(msmmod)
 ```
 
@@ -113,7 +112,7 @@ hazard.msm(msmmod)
 
 Gamma phase-type sojourn distribution, fitted using optimization to find the posterior mode, followed by Laplace approximation.  This may take at least 20 minutes to run. 
 
-```{r}
+```{r mbmodscg, results="hide", cache=TRUE}
 set.seed(1)
 mbmodscg <- msmbayes(data=elsa1000, state="state", time="agey", subject="idauniq",
                     Q=Q5, deathexact=TRUE, 
@@ -135,9 +134,9 @@ mbmodscg <- msmbayes(data=elsa1000, state="state", time="agey", subject="idauniq
 if (save_files) saveRDS(mbmodscg, file=file.path(wd, "mbmodscg.rds"))
 ```
 
-Weibull phase-type sojourn distribution
+Weibull phase-type sojourn distribution.
 
-```{r}
+```{r mbmodscw, results="hide", cache=TRUE}
 set.seed(21) 
 mbmodscw <- msmbayes(data=elsa1000, state="state", time="agey", subject="idauniq",
                     Q=Q5, deathexact=TRUE, 
@@ -175,7 +174,7 @@ sprintf("The maximised log posterior is %s for the Markov model, %s for the Gamm
 
 ## Table of basic parameter estimates 
 
-Sojourn times, next-state probabilities and shape parameters
+Sojourn times, next-state probabilities and shape parameters, here in LaTeX form to include in a paper. 
 
 ```{r}
 trans_to_ttype <- function(from, to){ 
@@ -219,7 +218,9 @@ write.table(tab, sep="  &  ", eol="\\\\\n", row.names = FALSE, quote=FALSE)
 
 ## Covariate effects
 
-Form a tidy data frame with estimates and CIs to be plotted
+Form a tidy data frame with estimates and CIs to be plotted.
+
+For the Markov model these are hazard ratios, and for the semi-Markov model these are time acceleration factors and relative risks of a particular next state.
 
 ```{r}
 hrs <- summary(mbmodc, pars="hr") |> 
@@ -270,7 +271,7 @@ covres <- covres |>
                             name = fct_recode(name, !!!cov_codes))
 ```
 
-Plot for Markov and semi-Markov separately 
+Plot for Markov and semi-Markov separately.
 
 ```{r}
 p <- ggplot(covres |> filter(model=="Markov", dist=="Posterior"), 
@@ -328,7 +329,7 @@ if (save_files){
 
 # Standardised outputs: total time spent in states 
 
-```{r,cache=TRUE}
+```{r stdout,cache=TRUE}
 source("stdpop.R")
 
 tls_educ <- lapply(nd_educ, function(x){
@@ -358,7 +359,7 @@ tle <- rbind(tles, tlem)
 if (save_files) saveRDS(tle, file=file.path(wd, "tle.rds"))
 ```
 
-By age.   55, 65, 75, 85, 95, averaging over gender and education 
+By age, averaging over gender and education..  Age in the model is continuous, but for standardisation we need to group the population, so we obtain model outputs for the age group midpoints: 55, 65, 75, 85, 95 and assume these are homogeneous within age groups.
 
 Note time dependent covariate, which is why we forecast over a short prediction interval, 10 years. 
 
@@ -442,7 +443,8 @@ tle <- tle |>
          educ = fct_recode(educ, "Less"="less", 
                            "Upper secondary"="uppersec", "Tertiary"="tertiary"))
 
-psize <- 24
+# psize <- 24 # for interactive use, for paper 
+psize <- 16 # for automated use, for website
 
 ga <- tla |>
   ggplot(aes(y=age, col=age, lty=model, xdist=posterior)) + 

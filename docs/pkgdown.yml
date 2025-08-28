@@ -2,11 +2,12 @@ pandoc: '3.4'
 pkgdown: 2.1.3
 pkgdown_sha: ~
 articles:
+  articles/cognitive: cognitive.html
   examples: examples.html
   misclass: misclass.html
   nphase: nphase.html
   semimarkov: semimarkov.html
-last_built: 2025-07-09T16:19Z
+last_built: 2025-08-28T09:13Z
 urls:
   reference: https://chjackson.github.io/msmbayes/reference
   article: https://chjackson.github.io/msmbayes/articles

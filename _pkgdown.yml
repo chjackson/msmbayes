@@ -1,5 +1,7 @@
 url: https://chjackson.github.io/msmbayes/
 template:
+  bootstrap: 5
+  math-rendering: mathjax
   assets: web_assets
 reference:
 - title: Exploratory data analysis
@@ -76,3 +78,4 @@ articles:
     - misclass
     - semimarkov
     - nphase
+    - articles/cognitive
