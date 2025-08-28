@@ -63,7 +63,7 @@ If you use it, please give feedback on [github issues](https://github.com/chjack
 
 ### Slides from presentations about msmbayes
 
-* [RSS, September 2025](https://chjackson.github.io/msmbayes/cjackson_msmbayes_rss25.pdf)
+* [RSS, September 2025](https://chjackson.github.io/msmbayes/cjackson_rss25.pdf)
 
 
 ### Papers about msmbayes
