@@ -61,12 +61,12 @@ remotes::install_github("chjackson/msmbayes")
 If you use it, please give feedback on [github issues](https://github.com/chjackson/msmbayes/issues), or [by email](mailto:chris.jackson@mrc-bsu.cam.ac.uk).
 
 
-### Slides from presentations about msmbayes
+## Slides from presentations about msmbayes
 
 * [RSS, September 2025](https://chjackson.github.io/msmbayes/cjackson_rss25.pdf)
 
 
-### Papers about msmbayes
+## Papers about msmbayes
 
 * [Preprint paper](https://chjackson.github.io/msmbayes/msmbayes_paper_arxiv.pdf) soon to be on ArXiV. 
 
