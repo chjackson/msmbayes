@@ -9,6 +9,6 @@ set.seed(2)
 illdeath_data <- msmbayes_priorpred_sample(data=infsim2, time="months",
                                            covariates = list(scale(1) ~ sex),
                                            Q=illdeath_Q, priors=illdeath_priors, pastates=1) |>
-  select(-sexmale,-keep,-latent_state, state=obs_state)
+  select(-keep,-latent_state, state=obs_state)
 
 usethis::use_data(illdeath_data, overwrite=TRUE)

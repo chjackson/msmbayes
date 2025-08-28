@@ -90,6 +90,9 @@ provide a simulated dataset with the same structure and size. The code
 used for the analysis is the same as in the paper, just with different
 data. Therefore the code can be run, but the results will be
 different.</p>
+<p>Additional files sourced from this one (the data and additional R
+code) are available from <code>vignettes/articles</code> in the
+<code>msmbayes</code> GitHub repository.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/chjackson/msmbayes" class="external-link">msmbayes</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/chjackson/msm" class="external-link">msm</a></span><span class="op">)</span></span>
@@ -105,6 +108,7 @@ different.</p>
 <span><span class="va">save_files</span> <span class="op">&lt;-</span> <span class="cn">FALSE</span> <span class="co"># for local use</span></span>
 <span><span class="kw">if</span> <span class="op">(</span><span class="va">save_files</span><span class="op">)</span><span class="op">{</span></span>
 <span> <span class="va">wd</span> <span class="op">&lt;-</span> <span class="st">"../elsa/fakedata"</span></span>
+<span> <span class="va">wd</span> <span class="op">&lt;-</span> <span class="st">"../elsa"</span></span>
 <span> <span class="va">mbmodc</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span>file<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">wd</span>, <span class="st">"mbmodc.rds"</span><span class="op">)</span><span class="op">)</span></span>
 <span> <span class="va">mbmodscw</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span>file<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">wd</span>, <span class="st">"mbmodscg.rds"</span><span class="op">)</span><span class="op">)</span></span>
 <span> <span class="va">mbmodscg</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span>file<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">wd</span>, <span class="st">"mbmodscw.rds"</span><span class="op">)</span><span class="op">)</span></span>
@@ -210,8 +214,9 @@ weakly informative priors: a log-normal(0, 1) distribution supports
 hazard ratios up to around <code>exp(2) = 7</code>, which we suppose
 would be surprising in the context of demographic effects on the risk of
 cognitive decline. The priors are stored in the file
-<code>elsa_priors.R</code>, and code used to derive them is in
-Supplementary Appendix 4 of the paper.</p>
+<code>elsa_priors.R</code> (available in <code>vignettes/articles</code>
+in the <code>msmbayes</code> GitHub repository), and code used to derive
+them is in Supplementary Appendix 4 of the paper.</p>
 <p>Now include the covariates in the model, still with a Markov model.
 These are age-sex interaction and level of education, modifying all
 transition rates differently.</p>
@@ -483,7 +488,7 @@ particular next state.</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span></span>
 <span><span class="kw">if</span> <span class="op">(</span><span class="va">save_files</span><span class="op">)</span><span class="op">{</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/grDevices/pdf.html" class="external-link">pdf</a></span><span class="op">(</span><span class="st">"../paper/figures/elsa_hrs.pdf"</span>,width<span class="op">=</span><span class="fl">5</span>,height<span class="op">=</span><span class="fl">4</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/grDevices/pdf.html" class="external-link">pdf</a></span><span class="op">(</span><span class="st">"../paper/figures/elsa_hrs.pdf"</span>,width<span class="op">=</span><span class="fl">7</span>,height<span class="op">=</span><span class="fl">5</span><span class="op">)</span></span>
 <span>  <span class="va">p</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/grDevices/dev.html" class="external-link">dev.off</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="op">}</span></span></code></pre></div>
@@ -509,7 +514,7 @@ particular next state.</p>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">xlab</a></span><span class="op">(</span><span class="st">"From state"</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ylab</a></span><span class="op">(</span><span class="st">"Multiplicative effect"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="kw">if</span> <span class="op">(</span><span class="va">save_files</span><span class="op">)</span><span class="op">{</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/grDevices/pdf.html" class="external-link">pdf</a></span><span class="op">(</span><span class="st">"../paper/figures/elsa_smm.pdf"</span>,width<span class="op">=</span><span class="fl">5</span>,height<span class="op">=</span><span class="fl">4</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/grDevices/pdf.html" class="external-link">pdf</a></span><span class="op">(</span><span class="st">"../paper/figures/elsa_smm.pdf"</span>,width<span class="op">=</span><span class="fl">7</span>,height<span class="op">=</span><span class="fl">5</span><span class="op">)</span></span>
 <span>  <span class="va">p</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/grDevices/dev.html" class="external-link">dev.off</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="op">}</span></span></code></pre></div>

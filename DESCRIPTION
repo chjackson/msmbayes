@@ -40,7 +40,9 @@ Suggests:
     magick,
     pdftools,
     usethis,
-    maxLik
+    maxLik,
+    lubridate,
+    colorspace
 LazyData: true
 LazyDataCompression: gzip
 VignetteBuilder: knitr

@@ -80,7 +80,7 @@
 #' the latent state space.
 #'
 #' @param pastates This indicates which states (if any) are given a
-#'   Weibull or Gamma sojourn distribution approximated by a phase-type model
+#'   Weibull or Gamma sojourn distribution approximated by a phase-type model.
 #'   Ignored if `nphase` is supplied.
 #'
 #' @param pafamily `"weibull"` or `"gamma"`, indicating the
