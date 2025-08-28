@@ -61,6 +61,16 @@ remotes::install_github("chjackson/msmbayes")
 If you use it, please give feedback on [github issues](https://github.com/chjackson/msmbayes/issues), or [by email](mailto:chris.jackson@mrc-bsu.cam.ac.uk).
 
 
+### Slides from presentations about msmbayes
+
+* [RSS, September 2025](https://chjackson.github.io/msmbayes/cjackson_msmbayes_rss25.pdf)
+
+
+### Papers about msmbayes
+
+* [Preprint paper](https://chjackson.github.io/msmbayes/msmbayes_paper_arxiv.pdf) soon to be on ArXiV. 
+
+
 <!-- badges: start -->
 [![lifecycle](man/figures/lifecycle-experimental.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 [![Codecov test coverage](https://codecov.io/gh/chjackson/msmbayes/branch/master/graph/badge.svg)](https://app.codecov.io/gh/chjackson/msmbayes?branch=master)
