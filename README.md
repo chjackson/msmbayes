@@ -30,6 +30,8 @@ Models can be fitted with either Bayesian or maximum likelihood estimation, via 
 
 ## Limitations of msmbayes compared to msm 
 
+* Computation is typically more intensive, and it does not scale well to larger datasets.   While a fast Laplace approximation method is available as an alternative to MCMC, all computational methods in `msmbayes` are memory-intensive due to the use of automatic differentiation (via Stan).
+
 * Hidden Markov models with general outcome distributions are not supported.  The only HMMs supported are those where the observed state space is the same as (or a subset of) the true state space.  This includes misclassification and phase-type models.
 
 * Covariates on misclassification probabilities are not supported in misclassification models. 
@@ -45,14 +47,11 @@ Models can be fitted with either Bayesian or maximum likelihood estimation, via 
 
 Examples of using `msmbayes` are given in: `vignette("examples")`.
 
+**Note: Some knowledge of Bayesian analysis is needed to develop and interpret models with this package!**
+
 
 ## Installation 
 
-**Warning: some knowledge of Bayesian analysis is needed to develop and interpret models with this package!**
-
-(a) Install `cmdstan` and `cmdstanr` by following the [instructions linked here](https://mc-stan.org/cmdstanr/articles/cmdstanr.html)
-
-(b) Install `msmbayes` by doing:
 ```
 ## install,packages("remotes") # if need be
 remotes::install_github("chjackson/msmbayes")
@@ -63,12 +62,12 @@ If you use it, please give feedback on [github issues](https://github.com/chjack
 
 ## Slides from presentations about msmbayes
 
-* [RSS, September 2025](https://chjackson.github.io/msmbayes/cjackson_rss25.pdf)
+* [Royal Statistical Society conference, Edinburgh, September 2025](https://chjackson.github.io/msmbayes/cjackson_rss25.pdf)
 
 
 ## Papers about msmbayes
 
-* [Preprint paper](https://chjackson.github.io/msmbayes/msmbayes_paper_arxiv.pdf) soon to be on ArXiV. 
+* [Preprint: Stable and practical semi-Markov modelling of intermittently-observed data (Jackson)](https://arxiv.org/abs/2508.20949).
 
 
 <!-- badges: start -->
