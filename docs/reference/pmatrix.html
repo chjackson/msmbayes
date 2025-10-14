@@ -58,7 +58,6 @@
 <span>  t <span class="op">=</span> <span class="fl">1</span>,</span>
 <span>  new_data <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  states <span class="op">=</span> <span class="st">"obs"</span>,</span>
-<span>  X <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  drop <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  type <span class="op">=</span> <span class="st">"posterior"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -88,13 +87,6 @@ times, because an individual may transition out of the state
 before progressing to the next phase.</p>
 <p>If <code>states="phase"</code> (or <code>"true"</code>, or <code>"latent"</code>) then for phase-type models, this describes mean sojourn times
 in the latent state space.</p></dd>
-
-
-<dt id="arg-x">X<a class="anchor" aria-label="anchor" href="#arg-x"></a></dt>
-<dd><p>Lower-level alternative to specifying <code>new_data</code>, for
-developer use only.  <code>X</code> is a numeric matrix formed from
-column-binding the covariate design matrices for each transition
-in turn.</p></dd>
 
 
 <dt id="arg-drop">drop<a class="anchor" aria-label="anchor" href="#arg-drop"></a></dt>
