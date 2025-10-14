@@ -107,7 +107,7 @@ are specified with \code{Q()}, where the numbers inside \code{Q()} refer to
 the latent state space.}
 
 \item{pastates}{This indicates which states (if any) are given a
-Weibull or Gamma sojourn distribution approximated by a phase-type model
+Weibull or Gamma sojourn distribution approximated by a phase-type model.
 Ignored if \code{nphase} is supplied.}
 
 \item{pafamily}{\code{"weibull"} or \code{"gamma"}, indicating the

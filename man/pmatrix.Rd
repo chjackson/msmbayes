@@ -9,7 +9,6 @@ pmatrix(
   t = 1,
   new_data = NULL,
   states = "obs",
-  X = NULL,
   drop = TRUE,
   type = "posterior"
 )
@@ -29,11 +28,6 @@ before progressing to the next phase.
 
 If \code{states="phase"} (or \code{"true"}, or \code{"latent"}) then for phase-type models, this describes mean sojourn times
 in the latent state space.}
-
-\item{X}{Lower-level alternative to specifying \code{new_data}, for
-developer use only.  \code{X} is a numeric matrix formed from
-column-binding the covariate design matrices for each transition
-in turn.}
 
 \item{drop}{Only used if there are no covariates supplied in
 \code{new_data}. Then if \code{drop=TRUE} this returns a
