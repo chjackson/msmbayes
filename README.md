@@ -64,6 +64,8 @@ If you use it, please give feedback on [github issues](https://github.com/chjack
 
 * [Royal Statistical Society conference, Edinburgh, September 2025](https://chjackson.github.io/msmbayes/cjackson_rss25.pdf)
 
+* [Symposium on Innovation in Multi-state Models, Amsterdam, October 2025](https://chjackson.github.io/msmbayes/cjackson_amsterdam.pdf)
+
 
 ## Papers about msmbayes
 
