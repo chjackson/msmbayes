@@ -169,7 +169,7 @@ edf <- function(draws){
 #' @md
 #' @export
 pmatrix <- function(draws,t=1,new_data=NULL,states="obs",
-                    X=NULL,drop=TRUE,type="posterior"){
+                    drop=TRUE,type="posterior"){
   if (type=="mode" && !is_mode(draws)) return(NULL)
   check_t(t)
   ntimes <- length(t)

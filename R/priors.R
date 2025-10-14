@@ -327,16 +327,19 @@ process_priors <- function(priors, qm, cm, pm, em, qmobs,
       loghrsd[phrind] <- prior$sd
     } else if (prior$par_base=="logshape"){
       ind <- get_prior_ssindex(prior, pm)
-      logshapemean[ind] <- prior$mean; logshapesd[ind] <- prior$sd
+      logshapemean[ind] <- prior$mean
+      logshapesd[ind] <- prior$sd
     } else if (prior$par_base=="logscale"){
       ind <- get_prior_ssindex(prior, pm)
-      logscalemean[ind] <- prior$mean; logscalesd[ind] <- prior$sd
+      logscalemean[ind] <- prior$mean
+      logscalesd[ind] <- prior$sd
     } else if (prior$par_base=="loe"){
       ind <- get_prior_loeindex(prior, em)
       loemean[ind] <- prior$mean; loesd[ind] <- prior$sd
     } else if (prior$par_base=="logoddsnext"){
       ind <- get_prior_logoddsnextindex(prior, qm, pm)
-      logoddsnextmean[ind] <- prior$mean; logoddsnextsd[ind] <- prior$sd
+      logoddsnextmean[ind] <- prior$mean
+      logoddsnextsd[ind] <- prior$sd
     } else if (prior$par_base=="logrrnext"){
       ind <- get_prior_rrnextindex(prior, cm)
       logrrnextmean[ind] <- prior$mean
