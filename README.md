@@ -62,9 +62,11 @@ If you use it, please give feedback on [github issues](https://github.com/chjack
 
 ## Slides from presentations about msmbayes
 
-* [Royal Statistical Society conference, Edinburgh, September 2025](https://chjackson.github.io/msmbayes/cjackson_rss25.pdf)
+* [Center for Health Decision Science, Harvard School of Public Health, April 2026](https://chjackson.github.io/msmbayes/cjackson_harvard.pdf)
 
 * [Symposium on Innovation in Multi-state Models, Amsterdam, October 2025](https://chjackson.github.io/msmbayes/cjackson_amsterdam.pdf)
+
+* [Royal Statistical Society conference, Edinburgh, September 2025](https://chjackson.github.io/msmbayes/cjackson_rss25.pdf)
 
 
 ## Papers about msmbayes
