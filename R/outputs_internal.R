@@ -47,6 +47,8 @@ qvector <- function(draws, new_data=NULL, X=NULL, type="posterior", drop=FALSE){
     }
   }
   qvec <- exp(logqnew)
+  dim(qvec) <- c(ncovvals, nqpars(draws))
+
   if (isTRUE(attr(new_data, "std"))){
     qvec <- standardise_pars(qvec)
     ncovvals <- 1
@@ -56,7 +58,12 @@ qvector <- function(draws, new_data=NULL, X=NULL, type="posterior", drop=FALSE){
   }
   if (type=="posterior" && is_mode(draws))
     attr(qvec, "mode") <- qvector(draws, new_data, type="mode", drop=TRUE)
-  if (drop && ncovvals==1) qvec <- qvec[1,]
+
+  if (drop && ncovvals==1) {
+    qvec <- qvec[1,] # just drop the covariate values dimension, ke
+    dim(qvec) <- nqpars(draws) # avoids dropping nqpars dimension for one-transition models
+  }
+
   attr(qvec, "ncovvals") <- ncovvals
   qvec
 }
@@ -185,15 +192,17 @@ logoddsnext_internal <- function(draws, new_data=NULL, type="posterior",drop=FAL
   lonew
 }
 
-#' @param rvar matrix of rvars
+#' @param rvar matrix of rvars,  ncovvals x nqpars
 #' @return numeric 2d matrix with mean of each rvar
 #'
 #' Note this is used to convert type of posterior modes matrix, where
 #' rvars all have just one draw
 #'
+#'
 #' @noRd
 rvarmat_means <- function(rvar){
-  arr <- draws_of(rvar)
+  arr <- draws_of(rvar) # ndraws x ncovvals x nqpars
+  if (length(dim(arr))==2) dim(arr) <- c(dim(arr), 1) # if only one transition rate (survival model)
   array(apply(arr, c(2,3), mean), dim=dim(arr)[2:3])
 }
 
@@ -469,7 +478,7 @@ loglik_internal <- function(draws, type="posterior"){
   if (!is_hmm(draws)){
     loglik <- loglik - attr(draws,"standat")$multinom_const
     logpost <- logpost - attr(draws,"standat")$multinom_const
-  }    
+  }
   c(loglik, logprior, logpost)
 }
 
