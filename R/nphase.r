@@ -95,11 +95,12 @@ pnphase <- function(q, prate, arate, initp=NULL,
                     method="expm", lower.tail=TRUE){
   x <- q
   pars <- vectorise_nphase(x, prate, arate)
-  ret <- numeric(length(pars$x))
+  x <- pars$x
+  ret <- numeric(length(x))
   ret[x==0] <- 0;  ret[x==Inf] <- 1
   ret[is.na(x)] <- NA;  ret[is.nan(x)] <- NaN
 
-  anyna <- function(x)any(is.na(x))
+  anyna <- function(y)any(is.na(y))
   na_pars <- apply(pars$prate, 1, anyna) | apply(pars$arate, 1, anyna)
   ret[na_pars] <- NA
 
