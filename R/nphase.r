@@ -26,7 +26,7 @@
 #'
 #' @param q Value at which to evaluate the CDF.
 #'
-#' @param p Probability at which to evaluate the quantile 
+#' @param p Probability at which to evaluate the quantile
 #'
 #' @param prate Progression rates.  Either a vector of length
 #'   `nphase-1`, or a matrix with `npar` rows and `nphase-1` columns.
@@ -47,7 +47,7 @@
 #'
 #' @param lower.tail If `TRUE` return P(X<x), else P(X>=x).
 #'
-#' @param log.p return log probability 
+#' @param log.p return log probability
 #'
 #' @return A vector of length `n` or `length(x)`.
 #'
@@ -62,9 +62,15 @@
 dnphase <- function(x, prate, arate, initp=NULL, method="expm"){
   pars <- vectorise_nphase(x, prate, arate)
   ret <- numeric(length(pars$x))
+
   ret[x<0] <- ret[x==Inf] <- 0
   ret[is.na(x)] <- NA;  ret[is.nan(x)] <- NaN
-  done <- (x<0) | (x==Inf) | is.na(x) | is.nan(x)
+
+  anyna <- function(x)any(is.na(x))
+  na_pars <- apply(pars$prate, 1, anyna) | apply(pars$arate, 1, anyna)
+  ret[na_pars] <- NA
+
+  done <- (x<0) | (x==Inf) | is.na(x) | is.nan(x) | na_pars
   pars <- subset_nphase_args(x, pars, done)
   nphase <- ncol(pars$arate)
   initp <- make_initp(initp, nphase)
@@ -92,7 +98,12 @@ pnphase <- function(q, prate, arate, initp=NULL,
   ret <- numeric(length(pars$x))
   ret[x==0] <- 0;  ret[x==Inf] <- 1
   ret[is.na(x)] <- NA;  ret[is.nan(x)] <- NaN
-  done <- (x==0) | (x==Inf) | is.na(x) | is.nan(x)
+
+  anyna <- function(x)any(is.na(x))
+  na_pars <- apply(pars$prate, 1, anyna) | apply(pars$arate, 1, anyna)
+  ret[na_pars] <- NA
+
+  done <- (x==0) | (x==Inf) | is.na(x) | is.nan(x) | na_pars
   pars <- subset_nphase_args(x, pars, done)
   nphase <- ncol(pars$arate)
   initp <- make_initp(initp, nphase)
@@ -159,23 +170,23 @@ nphase_Q <- function(prate, arate){
 ##' @rdname nphase
 ##' @export
 mean_nphase <- function(prate, arate, initp=NULL){
-  ncmoment_nphase(prate, arate, initp, i=1) 
+  ncmoment_nphase(prate, arate, initp, i=1)
 }
 
 ##' @rdname nphase
 ##' @export
 var_nphase <- function(prate, arate, initp=NULL){
-  ex1 <- ncmoment_nphase(prate, arate, initp, i=1) 
-  ex2 <- ncmoment_nphase(prate, arate, initp, i=2) 
+  ex1 <- ncmoment_nphase(prate, arate, initp, i=1)
+  ex2 <- ncmoment_nphase(prate, arate, initp, i=2)
   ex2 - ex1^2
 }
 
 ##' @rdname nphase
 ##' @export
 skewness_nphase <- function(prate, arate, initp=NULL){
-  ex1 <- ncmoment_nphase(prate, arate, initp, i=1) 
-  ex2 <- ncmoment_nphase(prate, arate, initp, i=2) 
-  ex3 <- ncmoment_nphase(prate, arate, initp, i=3) 
+  ex1 <- ncmoment_nphase(prate, arate, initp, i=1)
+  ex2 <- ncmoment_nphase(prate, arate, initp, i=2)
+  ex3 <- ncmoment_nphase(prate, arate, initp, i=3)
   s <- sqrt(ex2 - ex1^2)
   (ex3 - 3*ex1*ex2  + 2*ex1^3) / s^3
 }

@@ -108,7 +108,9 @@ erlang_exp <- function(m1, n2, n3, n, check=FALSE, method="sympy"){
 
 erlang_exp_pa_sympy <- function(n2, n3, n){
   A <- n*n2*(12*n*n2**2 + n*n2*n3**2 - 14*n*n2*n3 - 15*n*n2 + 16*n*n3 + 12*n2**2 - 8*n2*n3 - 24*n2 + 16*n3)
-  B <- ifelse(A < 0, NA, sqrt(A))
+  B <- ifelse(A < 0,
+              ifelse(abs(A) < .EPS, 0, NA),
+              sqrt(A))
   C <- (n*n2 - n + n2 - 4)
   D <- (-n*n3 + n + 4)
   E <- (n*n2 - 2*n + n2 - 2)
@@ -127,12 +129,13 @@ erlang_exp_pa_sympy <- function(n2, n3, n){
   b3 <- (3*n2**2 - 4*n3)/(n2*(n2*n3 + 3*n2 - 4*n3))
   p3 <- (b3 - 1)/a3
 
-  exponential <- (n2==2 & n3==3)
+  eps <- 1e-06
+  exponential <- (abs(n2-2) < eps & abs(n3-3) < eps)
   valid1 <- p1 >= 0 & p1 <= 1 & a1 >= 0
-  F0 <- abs(F) < .EPS
+  F0 <- abs(F) < eps
   p <- ifelse(exponential, 0, ifelse(F0, p3, ifelse(valid1, p1, p2)))
   a <- ifelse(exponential, 1 , # arbitrary non NA value ensures rate can be deduced
-       ifelse(F0, a3, ifelse(valid1, a1, a2)))
+              ifelse(F0, a3, ifelse(valid1, a1, a2)))
 
   list(p=p, a=a)
 }
@@ -143,9 +146,11 @@ erlang_exp_pa_sympy <- function(n2, n3, n){
 ## Gives wrong quadratic solution for n2=5/3, n3=7/3, n=4
 
 erlang_exp_pa_bobbio <- function(n2, n3, n){
+  rootand <- 12*n2^2*(n + 1) + 16*n3*(n + 1) + n2*(n*(n3 - 15)*(n3 + 1) - 8*(n3 + 3))
+  rootand[rootand < 0 & (abs(rootand) < .EPS)] <- 0
   b <- (2*(4 - n*(3*n2 - 4))) /
     (n2*(4 + n - n*n3) + sqrt(n*n2)*(
-      sqrt(12*n2^2*(n + 1) + 16*n3*(n + 1) + n2*(n*(n3 - 15)*(n3 + 1) - 8*(n3 + 3)))
+      sqrt(rootand)
     ))
   a <- ((b*n2 - 2)*(n - 1)*b) / ((b - 1)*n)
   p <- ifelse(b==1, 0, # reduction to exponential distribution
@@ -162,6 +167,10 @@ exp_erlang_to_coxian <- function(mu, lam, p, n){
   prate <- cbind(p*lam, mu[,rep(1, n-2),drop=FALSE])
   zeros <- matrix(0, nrow=length(mu), ncol=n-2)
   arate <- cbind((1-p)*lam, zeros, mu)
+
+  a_float_correct <- arate<0 & abs(arate) < .EPS
+  arate[a_float_correct] <- 0
+
   list(prate=prate, arate=arate)
 }
 
@@ -263,7 +272,7 @@ gamma_shape_ubound <- function(nphase){
 }
 
 #' @name shape_in_bounds
-#' 
+#'
 #' @title Test whether a shape parameter of is in the bounds required for a
 #' valid phase-type approximation
 #'
