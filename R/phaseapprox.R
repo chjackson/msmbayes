@@ -95,12 +95,13 @@ check_positive_number <- function(x){
 ##' @return Intensity matrix on the latent state space.
 ##'
 ##' @export
-qphaseapprox <- function(qmatrix, pastates, shape, scale=1, family="gamma", method="moment", nphase=NULL, att=FALSE){
+qphaseapprox <- function(qmatrix, pastates, shape, scale=NULL, family="gamma", method="moment", nphase=NULL, att=FALSE){
   qm <- form_qmodel(qmatrix)
   pm <- form_phasetype(pastates = pastates, qm=list(Q=qmatrix), pafamily=family,
                        panphase = nphase)
   qm <- phase_expand_qmodel(qm, pm)
   qnew <- pm$Qphase
+  if (is.null(scale)) scale <- rep(1, pm$npastates)
   for (i in 1:pm$npastates){
     rates <- shapescale_to_rates(shape[i], scale[i],
                                  family=pm$pafamily[i], method=method, nphase=pm$nphase[pm$pastates][i], list=TRUE)
