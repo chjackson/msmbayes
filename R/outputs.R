@@ -570,6 +570,8 @@ standardize_to <- standardise_to
 ##' @inheritParams qmatrix
 ##' @inheritParams nphase
 ##'
+##' @details For the inverse of this function, see \code{\link{soj_quantile}}.
+##'
 ##' @param t Time since state entry.  A single time or a vector can be supplied.
 ##'
 ##' @param state State of interest (A single integer)
@@ -595,6 +597,32 @@ soj_prob <- function(draws, t, state, new_data=NULL, method="analytic"){
     soj_prob_phase(draws, t, state, new_data, method=method)
   else
     soj_prob_nonphase(draws, t, state, new_data)
+}
+
+##' Quantiles of the sojourn distribution in a state of a msmbayes model
+##'
+##' @details For the inverse of this function, see \code{\link{soj_prob}}.
+##'
+##' @param p Vector of probabilities at which to evaluate quantiles of the sojourn distribution
+##'
+##' @inheritParams soj_prob
+##'
+##' @return A data frame with column `posterior` giving the posterior
+##'   distribution (as an `rvar` object) for the time in `state` for
+##'   which the probability of remaining in this state by this time is
+##'   `p`.
+##' 
+##' @md
+##' @export
+soj_quantile <- function(draws, p, state, new_data=NULL, method="analytic"){
+  if (length(state) > 1)
+    cli_abort("{.var state} should be a single number")
+  if (is_phasetype(draws) &&
+      state %in% attr(draws,"pmodel")$phased_states)
+    res <- soj_prob_phase(draws, p, state, new_data, method=method, inverse=TRUE)
+  else
+    res <- soj_prob_nonphase(draws, p, state, new_data, inverse=TRUE)
+  res |> rename(prob=time)
 }
 
 

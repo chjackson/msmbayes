@@ -102,3 +102,11 @@ test_that("soj_prob",{
 
 })
 
+test_that("soj_quantile",{
+  nd <- data.frame(sex=c("male","female"))
+  sp <- soj_prob(infsim_model, t=c(0.1), state=2)
+  sq <- soj_quantile(infsim_model, p=sp$mode, state=2) |>
+    summary() |>
+    select(q5, q95)
+  expect_true(sq$q5 < 0.1 && sq$q95 > 0.1)
+})

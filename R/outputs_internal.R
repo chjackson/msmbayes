@@ -398,7 +398,7 @@ check_new_data <- function(new_data, call=caller_env()){
 }
 
 soj_prob_phase <- function(draws, t, state, new_data=NULL,
-                           method = "analytic"){
+                           method = "analytic", inverse=FALSE){
   from <- fromobs <- ttype <- posterior <- covid <- NULL
   qphase <- qdf(draws, new_data=new_data, keep_covid=TRUE) |>
     filter(fromobs==state)
@@ -419,12 +419,12 @@ soj_prob_phase <- function(draws, t, state, new_data=NULL,
   covid_a <- rep(1:ncovvals, length.out=ncol(arate))
   surv <- array(0, dim=c(ndraws(draws), ncovvals, ntimes))
   surv_mode <- array(0, dim=c(ncovvals, ntimes))
+  prob_fn <- if (inverse) qnphase else pnphase
   for (i in 1:ntimes){
     for (j in 1:ncovvals){
-      pnphase(t[i], prate[1,covid_p==j], arate[1,covid_a==j], method = method)
-      surv[,j,i] <- 1 - pnphase(t[i], prate[,covid_p==j], arate[,covid_a==j],
+      surv[,j,i] <- 1 - prob_fn(t[i], prate[,covid_p==j], arate[,covid_a==j],
                                 method = method)
-      surv_mode[j,i] <- 1 - pnphase(t[i], prate_mode[covid_p==j], arate_mode[covid_a==j],
+      surv_mode[j,i] <- 1 - prob_fn(t[i], prate_mode[covid_p==j], arate_mode[covid_a==j],
                                      method = method)
     }
   }
@@ -441,7 +441,7 @@ soj_prob_phase <- function(draws, t, state, new_data=NULL,
   res
 }
 
-soj_prob_nonphase <- function(draws, t, state, new_data=NULL){
+soj_prob_nonphase <- function(draws, t, state, new_data=NULL, inverse=FALSE){
   vecid <- time <- NULL
   qv <- - qmatrix(draws, new_data=new_data, drop=FALSE)[, state, state] |> draws_of()
   qv_mode <- if (is_mode(draws)) - qmatrix(draws, new_data=new_data, drop=FALSE, type="mode")[, state, state] else NULL
@@ -449,8 +449,9 @@ soj_prob_nonphase <- function(draws, t, state, new_data=NULL){
   ncovvals <- dim(qv)[2]
   surv <- array(0, dim=c(ndraws(draws), ncovvals, ntimes))
   surv_mode <- if (is_mode(draws)) array(0, dim=c(ncovvals, ntimes)) else NULL
+  prob_fn <- if (inverse) qexp else pexp
   for (i in 1:ntimes){
-    surv[,,i] <- pexp(t[i], rate = qv, lower.tail=FALSE)
+    surv[,,i] <- prob_fn(t[i], rate = qv, lower.tail=FALSE)
     if (is_mode(draws)) surv_mode[,i] <- pexp(t[i], rate = qv_mode, lower.tail=FALSE)
   }
   mode <- vecbycovs_to_df(surv_mode, new_data)$mode

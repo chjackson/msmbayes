@@ -30,3 +30,6 @@ See \code{\link{qdf}} for notes on the \code{rvar} format.
 \description{
 Sojourn probability in a state of a msmbayes model
 }
+\details{
+For the inverse of this function, see \code{\link{soj_quantile}}.
+}
