@@ -13,7 +13,7 @@ print.msmbayes <- function(x,...){
 #'
 #' @param pars Character string indicating the parameters to include in the summary.  This can include:
 #'
-#' `q`: transition intensities.  In semi-Markov models specified with `pastates` these refer to the intensities of transition between the latent phases. 
+#' `q`: transition intensities.  In semi-Markov models specified with `pastates` these refer to the intensities of transition between the latent phases.
 #'
 #' `logq`: log transition intensities
 #'
@@ -115,12 +115,12 @@ summary.msmbayes <- function(object, pars=NULL,...){
     }
     if (has_pnext(object)){
       if ("pnext" %in% pars){
-        pa <- pnext(object) |> 
+        pa <- pnext(object) |>
           select(all_of(colnames))
         res <- rbind(res, pa)
       }
       if ("logoddsnext" %in% pars){ # inconsistent naming
-        pa <- logoddsnext(object) |> 
+        pa <- logoddsnext(object) |>
           select(all_of(colnames))
         res <- rbind(res, pa)
       }

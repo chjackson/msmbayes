@@ -1,9 +1,5 @@
 // Bayesian version of the standard Markov multi-state model for intermittently-observed data (Kalbfleisch and Lawless JASA 1985).  
 
-// Limitations compared to msm non-hidden Markov model:
-// No constraints or fixed parameters
-// No alternative observation schemes (e.g. exact death times, censoring)
-
 functions {
   vector validate_probs(vector P){
     real psum; 

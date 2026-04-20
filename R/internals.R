@@ -253,10 +253,12 @@ check_initprobs <- function(initprobs, em, dat, pm, call=caller_env()){
 }
 
 transient_states <- function(qm){
+  diag(qm$Q) <- 0
   which(rowSums(qm$Q) > 0)
 }
 
 absorbing_states <- function(qm){
+  diag(qm$Q) <- 0
   which(rowSums(qm$Q) == 0)
 }
 

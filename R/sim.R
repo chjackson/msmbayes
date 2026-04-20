@@ -51,9 +51,9 @@ sim_2state_smm <- function(nindiv, obstimes, rfn1=rexp, pars1=list(rate=1),
   for (i in 1:nindiv) { # inefficient
     state <- c(state, res_states[findInterval(obstimes, res[i,])])
   }
-  simdat <- data.frame(pt = rep(1:nindiv, each = length(obstimes)),
-                       state = state,
-                       time = rep(obstimes, nindiv))
+  simdat <- data.frame(subject = rep(1:nindiv, each = length(obstimes)),
+                       time = rep(obstimes, nindiv),
+                       state = state)
   attr(simdat,"inf_soj_true") <- as.numeric(t(inf_soj_true))
   attr(simdat,"res") <- res
   simdat

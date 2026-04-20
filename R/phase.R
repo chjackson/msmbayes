@@ -239,6 +239,7 @@ form_Qphase <- function(Q, nphase, call=caller_env()){
 
   ## Form transition structure and initial values in new state space
   Qnew <- matrix(0, nrow=nstnew, ncol=nstnew)
+  diag(Q) <- 0
 
   ## Transitions from Markov states to any other state
   ## Observable state in new state space equated with first phase
@@ -270,7 +271,6 @@ form_Qphase <- function(Q, nphase, call=caller_env()){
     row(Qnew) + 1 == col(Qnew)
 
   ## Initial value for progression rates set to transition rate out of phased state * number of phases
-  diag(Q) <- 0
   old_exit_rate <- rowSums(Q)[type_old=="phased"]
   old_exit_rate <- rep(old_exit_rate, nphasep - 1)
   Qnew[prog_inds] <- old_exit_rate * rep(nphasep, nphasep-1)
@@ -278,6 +278,7 @@ form_Qphase <- function(Q, nphase, call=caller_env()){
   attr(Qnew, "prog_inds") <- prog_inds
   attr(Qnew, "abs_inds") <- abs_inds
 
+  diag(Qnew) <- -rowSums(Qnew)
   Qnew
 }
 
