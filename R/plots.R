@@ -25,7 +25,7 @@ msmbres_to_draws <- function(res, name=NULL, col="posterior"){
 #' @param res Data frame with class msmbres, and with columns
 #' for each of two rvars to be compared, typically prior and
 #' posterior.  Could be produced with attach_priors 
-#' [ prob sensible to do by default ]
+#' (probably sensible to do by default)
 #'
 #' @param compare Second column for comparison.  First column assumed
 #'   to be called "posterior"

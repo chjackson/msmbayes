@@ -9,7 +9,7 @@ qphaseapprox(
   qmatrix,
   pastates,
   shape,
-  scale = 1,
+  scale = NULL,
   family = "gamma",
   method = "moment",
   nphase = NULL,

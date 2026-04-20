@@ -117,7 +117,8 @@ all states.}
 
 \item{panphase}{Number of phases to use for each state given a
 phase-type Gamma or Weibull approximation.  Vector of same length
-as \code{pastates}. More phases allow a wider range of shape parameters.}
+as \code{pastates}. More phases allow a wider range of shape parameters.
+Defaults to 5.}
 
 \item{E}{By default, \code{msmbayes} fits a (non-hidden) Markov model.
 If \code{E} is supplied, then a Markov model with misclassification is
