@@ -1,27 +1,30 @@
 #' Simulate intermittently-observed data from a semi-Markov
 #' multi-state model with two states and reversible transitions.
 #' 
-#' Either or both states can have a general sojourn distribution.
+#' Either or both states can have any sojourn distribution that we
+#' know how to simulate from.
 #'
-#' @param nindiv number of individuals
+#' @param nindiv Number of individuals.
 #' 
-#' @param obstimes observation times, common between individuals
+#' @param obstimes Observation times, common between individuals.
 #'
 #' @param rfn1 Function to simulate from the sojourn distribution in
 #' state 2.  By default this is the exponential.
 #'
-#' @param pars1 List of arguments to be passed to `rfn1`, specifying
-#' parameter values for the sojourn distribution
+#' @param pars1 Named list of arguments and their values to be passed
+#'   to `rfn1`, specifying parameter values for the sojourn
+#'   distribution.
 #'
 #' @param rfn2 Function to simulate from the sojourn distribution in
 #' state 2.
 #'
-#' @param pars2 List of arguments to be passed to `rfn`, specifying
-#' parameter values for the sojourn distribution
+#' @param pars2 Named list of arguments and their values to be passed
+#'   to `rfn2`, specifying parameter values for the sojourn
+#'   distribution.
 #'
-#' @noRd
+#' @export
 sim_2state_smm <- function(nindiv, obstimes, rfn1=rexp, pars1=list(rate=1),
-                           rfn2, pars2){
+                           rfn2=exp, pars2=list(rate=1)){
   maxtime <- max(obstimes)
   done <- rep(FALSE, nindiv)
   tcur <- rep(0, nindiv)
