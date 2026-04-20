@@ -12,7 +12,7 @@ make_stan_aggdata <- function(dat, qm=NULL, cm=NULL, priors=NULL,
                               soj_priordata = NULL){
   if (length(dat[["time"]])==0)
     cli_inform("No observations in the data, carrying on and hoping for the best...")
-  dat_trans <- form_transition_data(dat, qm)
+  dat_trans <- form_transition_data(dat)
   dat_agg <- aggregate_transition_data(dat_trans, K=qm$K)
   dwide <- aggdata_towide(dat_agg, K=qm$K)
   covind <- as.array(dwide$covind)
@@ -35,7 +35,7 @@ make_stan_aggdata <- function(dat, qm=NULL, cm=NULL, priors=NULL,
               exactdeath_state = as.array(dwide$exactdeath_state),
               nx = cm$nx,
               nxuniq = cm$nxuniq,
-              consid = cm$tafdf$consid, 
+              consid = cm$tafdf$consid,
               nxq = as.array(cm$transdf$nxq),
               xstart = as.array(cm$transdf$xstart), # cmdstanr errors with NAs
               xend = as.array(cm$transdf$xend),
@@ -53,13 +53,13 @@ make_stan_aggdata <- function(dat, qm=NULL, cm=NULL, priors=NULL,
 #' @inheritParams make_stan_aggdata
 #'
 #' @param covariates Named covariates in their original form in the data,
-#' if requested.  Used for data summarisation 
+#' if requested.  Used for data summarisation
 #'
 #' @return A data frame with one row per transition, and columns for from-state, to-state, time lag and value of covariate at start of the interval.
 #' The covariate design matrix is stored in a "matrix column" \code{X}.
 #'
 #' @noRd
-form_transition_data <- function(dat, qm, covariates=NULL, time=TRUE){
+form_transition_data <- function(dat, covariates=NULL, time=TRUE){
   state <- dat[["state"]]
   nobs <- length(state)
   firstobs <- !duplicated(dat[["subject"]])
@@ -112,6 +112,7 @@ aggregate_transition_data <- function(dat,K){
     dplyr::right_join(tab_df, by=c("fromstate","tostate","timelag",
                                    "obstype","Xstr")) |>
     mutate(covind = match(Xstr, unique(dat$Xstr)),
+           tostate = as.numeric(as.character(tostate)),
            timelag = as.numeric(as.character(timelag)),
            exactdeath_state = ifelse(obstype==3, tostate, 0)) |>
     select(-subject)
