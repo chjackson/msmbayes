@@ -97,14 +97,14 @@ pnphase <- function(q, prate, arate, initp=NULL,
   pars <- vectorise_nphase(x, prate, arate)
   x <- pars$x
   ret <- numeric(length(x))
-  ret[x==0] <- 0;  ret[x==Inf] <- 1
+  ret[x<=0] <- 0;  ret[x==Inf] <- 1
   ret[is.na(x)] <- NA;  ret[is.nan(x)] <- NaN
 
   anyna <- function(y)any(is.na(y))
   na_pars <- apply(pars$prate, 1, anyna) | apply(pars$arate, 1, anyna)
   ret[na_pars] <- NA
 
-  done <- (x==0) | (x==Inf) | is.na(x) | is.nan(x) | na_pars
+  done <- (x<=0) | (x==Inf) | is.na(x) | is.nan(x) | na_pars
   pars <- subset_nphase_args(x, pars, done)
   nphase <- ncol(pars$arate)
   initp <- make_initp(initp, nphase)
@@ -121,6 +121,7 @@ pnphase <- function(q, prate, arate, initp=NULL,
     ret[!done] <- res
   }
   if (!lower.tail) ret <- 1 - ret
+  if (any(is.na(ret))) browser()
   ret
 }
 
@@ -394,11 +395,12 @@ rnphase <- function(n, prate, arate){
 ##' @rdname nphase
 ##' @aliases qnphase
 ##' @export
-qnphase <- function(p, prate, arate, lower.tail=TRUE, log.p=FALSE){
+qnphase <- function(p, prate, arate, lower.tail=TRUE, log.p=FALSE,
+                    method="expm"){
   if (log.p) p <- exp(p)
   if (!lower.tail) p <- 1 - p
-  qgeneric(pnphase, p=p, matargs=c("prate","arate"),
-                     prate=prate, arate=arate)
+  qgeneric(pnphase, p=p, matargs=c("prate","arate"), scalarargs=c("method"),
+                     prate=prate, arate=arate, method=method)
 }
 
 

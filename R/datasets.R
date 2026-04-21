@@ -2,7 +2,7 @@
 ##'
 ##' @aliases infsim infsim2
 ##' 
-##' The transition intensities used for the simulation are defined
+##' @details The transition intensities used for the simulation are defined
 ##' using a mean sojourn time of 180 days in the "test negative" state
 ##' and 10 days in the "test positive" state.
 ##'
@@ -13,9 +13,12 @@
 ##'
 ##' In the state data, state 1 is negative and 2 is positive.
 ##'
-##' For the model with 
 ##' 
-##' @format \code{infsim} has 3600 rows, with 36 state observations for each of 100 people.  Columns are:
+##' @format \code{infsim} has 3600 rows, with 36 state observations for each of 100 people.  A smaller dataset `infsim2` has only 360 rows, from 20 people, and
+##' is simulated using a sojourn time of 60 days in the test-negative state
+##' and 10 days in test-positive.
+##'
+##' Columns are:
 ##'
 ##' * `subject` Subject identifier
 ##' 
@@ -35,9 +38,6 @@
 ##'
 ##' * `statepc`: State simuated from a phase-type model with covariates (unused in any examples)
 ##'
-##' A smaller dataset `infsim2` has only 360 rows, from 20 people, and
-##' is simulated using a sojourn time of 60 days in the test-negative state
-##' and 10 days in test-positive.
 ##' 
 ##' @source Simulated
 ##'

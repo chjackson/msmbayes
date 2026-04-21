@@ -422,10 +422,12 @@ soj_prob_phase <- function(draws, t, state, new_data=NULL,
   prob_fn <- if (inverse) qnphase else pnphase
   for (i in 1:ntimes){
     for (j in 1:ncovvals){
-      surv[,j,i] <- 1 - prob_fn(t[i], prate[,covid_p==j], arate[,covid_a==j],
-                                method = method)
-      surv_mode[j,i] <- 1 - prob_fn(t[i], prate_mode[covid_p==j], arate_mode[covid_a==j],
-                                     method = method)
+      surv[,j,i]     <- prob_fn(t[i], prate[,covid_p==j],     arate[,covid_a==j], method = method)
+      surv_mode[j,i] <- prob_fn(t[i], prate_mode[covid_p==j], arate_mode[covid_a==j], method = method)
+      if (!inverse) {
+        surv[,j,i] <- 1 - surv[,j,i]
+        surv_mode[,j,i] <- 1 - surv_mode[,j,i]
+      }
     }
   }
   mode <- vecbycovs_to_df(surv_mode, new_data)$mode

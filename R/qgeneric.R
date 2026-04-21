@@ -2,16 +2,13 @@
 ##
 ## Generic function to find the quantiles of a distribution, given the
 ## equivalent probability distribution function.   Copied from the version
-## distributed in the flexsurv package. 
+## distributed in the flexsurv package.
 ##
-## This function is used by default for custom distributions for which a
-## quantile function is not provided.
 ##
-## It works by finding the root of the equation \eqn{h(q) = pdist(q) -
-## p = 0}.  Starting from the interval \eqn{(-1, 1)}, the interval
-## width is expanded by 50\% until \eqn{h()} is of opposite sign at
-## either end.  The root is then found using numerical methods
+## The root is found using numerical methods
 ## (\code{vuniroot} from the `rstpm2` package by Mark Clements).
+##
+## For msmbayes it was also modified to start the root finding search from an interval (0,1) and then expand upwards. 
 ##
 ## This assumes a suitably smooth, continuous distribution.
 ##
@@ -92,7 +89,7 @@ qgeneric <- function(pdist, p, matargs=NULL, scalarargs=NULL, ...)
         hind <- seq(along=p)[ind]
         n <- length(p[ind])
         ptmp <- numeric(n)
-        interval <- matrix(rep(c(-1, 1), n), ncol=2, byrow=TRUE)
+        interval <- matrix(rep(c(0, 1), n), ncol=2, byrow=TRUE)
         h <- function(y) {
             args <- lapply(args, function(x)x[hind])
             args.mat <- lapply(args.mat, function(x)x[hind,])
@@ -101,7 +98,7 @@ qgeneric <- function(pdist, p, matargs=NULL, scalarargs=NULL, ...)
             args <- c(args, args.mat, args.scalar)
             (do.call(pdist, args) - p)
         }
-        ptmp <- vuniroot(h, interval, tol=.Machine$double.eps, extendInt="yes", maxiter=10000)$root
+        ptmp <- vuniroot(h, interval, tol=.Machine$double.eps, extendInt="upX", maxiter=10000)$root
         ret[ind] <- ptmp
     }
     if (any(is.nan(ret))) warning("NaNs produced")

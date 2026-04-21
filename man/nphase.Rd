@@ -31,7 +31,7 @@ ncmoment_nphase(prate, arate, i, initp = NULL)
 
 rnphase(n, prate, arate)
 
-qnphase(p, prate, arate, lower.tail = TRUE, log.p = FALSE)
+qnphase(p, prate, arate, lower.tail = TRUE, log.p = FALSE, method = "expm")
 }
 \arguments{
 \item{x}{Value at which to evaluate the PDF, CDF, or hazard.}

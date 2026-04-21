@@ -23,8 +23,9 @@ vuniroot <-
         f.lower = f(lower, ...)
         f.upper = f(upper, ...)
     }
-    if (any(is.na(f.lower)))
-        stop("f.lower = f(lower) is NA at least once")
+    if (any(is.na(f.lower))){
+      stop("f.lower = f(lower) is NA at least once")
+      }
     if (any(is.na(f.upper)))
         stop("f.upper = f(upper) is NA at least once")
     Sig <- switch(match.arg(extendInt), yes = NULL, downX = -1,

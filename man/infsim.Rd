@@ -4,63 +4,13 @@
 \name{infsim}
 \alias{infsim}
 \alias{infsim2}
-\alias{The}
-\alias{transition}
-\alias{intensities}
-\alias{used}
-\alias{for}
-\alias{the}
-\alias{simulation}
-\alias{are}
-\alias{defined}
-\alias{using}
-\alias{a}
-\alias{mean}
-\alias{sojourn}
-\alias{time}
-\alias{of}
-\alias{180}
-\alias{days}
-\alias{in}
-\alias{"test}
-\alias{negative"}
-\alias{state}
-\alias{and}
-\alias{10}
-\alias{positive"}
-\alias{state.}
-\alias{For}
-\alias{model}
-\alias{with}
-\alias{covariates,}
-\alias{log}
-\alias{hazard}
-\alias{ratios}
-\alias{2}
-\alias{male}
-\alias{on}
-\alias{1-2}
-\alias{transition,}
-\alias{1}
-\alias{`age10`}
-\alias{-1}
-\alias{2-1}
-\alias{transition.}
-\alias{Baseline}
-\alias{female,}
-\alias{age}
-\alias{50}
-\alias{(i.e.}
-\alias{`age10=`}
-\alias{0).}
-\alias{In}
-\alias{data,}
-\alias{is}
-\alias{negative}
-\alias{positive.}
 \title{Simulated infection testing data}
 \format{
-\code{infsim} has 3600 rows, with 36 state observations for each of 100 people.  Columns are:
+\code{infsim} has 3600 rows, with 36 state observations for each of 100 people.  A smaller dataset \code{infsim2} has only 360 rows, from 20 people, and
+is simulated using a sojourn time of 60 days in the test-negative state
+and 10 days in test-positive.
+
+Columns are:
 \itemize{
 \item \code{subject} Subject identifier
 \item \code{days} Observation time (in days)
@@ -72,10 +22,6 @@
 \item \code{statep}: State simulated from a phase-type model (unused in any examples. See \code{data-raw/infsim.R} in the source for simulation settings)
 \item \code{statepc}: State simuated from a phase-type model with covariates (unused in any examples)
 }
-
-A smaller dataset \code{infsim2} has only 360 rows, from 20 people, and
-is simulated using a sojourn time of 60 days in the test-negative state
-and 10 days in test-positive.
 
 An object of class \code{data.frame} with 360 rows and 14 columns.
 }
@@ -89,5 +35,17 @@ infsim2
 }
 \description{
 Simulated infection testing data
+}
+\details{
+The transition intensities used for the simulation are defined
+using a mean sojourn time of 180 days in the "test negative" state
+and 10 days in the "test positive" state.
+
+For the model with covariates, the log hazard ratios are
+2 for male on the 1-2 transition, 1 for \code{age10} on the 1-2 transition,
+and -1 for \code{age10} on the 2-1 transition.  Baseline intensities are
+for female, age 50 (i.e. \verb{age10=} 0).
+
+In the state data, state 1 is negative and 2 is positive.
 }
 \keyword{datasets}
