@@ -121,7 +121,6 @@ pnphase <- function(q, prate, arate, initp=NULL,
     ret[!done] <- res
   }
   if (!lower.tail) ret <- 1 - ret
-  if (any(is.na(ret))) browser()
   ret
 }
 

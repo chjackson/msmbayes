@@ -426,7 +426,7 @@ soj_prob_phase <- function(draws, t, state, new_data=NULL,
       surv_mode[j,i] <- prob_fn(t[i], prate_mode[covid_p==j], arate_mode[covid_a==j], method = method)
       if (!inverse) {
         surv[,j,i] <- 1 - surv[,j,i]
-        surv_mode[,j,i] <- 1 - surv_mode[,j,i]
+        surv_mode[j,i] <- 1 - surv_mode[j,i]
       }
     }
   }
