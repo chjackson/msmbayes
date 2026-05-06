@@ -12,8 +12,6 @@
 ##'
 ##' @param family parametric family approximated by the phase-type distribution: `"weibull"` or `"gamma"`
 ##'
-##' @param method (Deprecated)
-##'
 ##' @param nphase Number of phases.
 ##'
 ##' @param canonical Return the phase-type parameters in canonical form (phase 1 sojourn rate, sojourn rate increments in subsequent states, absorption probabilities).  If `FALSE` then phase transition rates are returned.
@@ -26,7 +24,7 @@
 ##'
 ##' @export
 shapescale_to_rates <- function(shape, scale=1, family="gamma",
-                                canonical=FALSE, method="moment",
+                                canonical=FALSE, 
                                 nphase=3,
                                 list=FALSE, drop=TRUE){
   check_positive_number(shape)
@@ -35,23 +33,9 @@ shapescale_to_rates <- function(shape, scale=1, family="gamma",
   shape <- rep(shape, length.out=ml)
   scale <- rep(scale, length.out=ml)
   if (is.null(nphase)) nphase <- 3
-
-  if (method == "moment"){
-    rates <- shapescale_to_rates_moment(shape, scale, family, nphase)
-    if (canonical)
-      rates <- rates_to_canpars(rates)
-  } else if (method %in% c("kl_hermite","kl_linear")){
-    canparnames <- phase_cannames(nphase=nphase)
-    rates <- matrix(nrow=length(shape), ncol=length(canparnames))
-    colnames(rates) <- canparnames
-    for (i in seq_along(shape)){
-      rates[i,] <- shape_to_canpars_spline(shape[i], family, method, canparnames)
-      if (!canonical)
-        rates[i,] <- canpars_to_rates(rates[i,])
-      rates[i,] <- scale_rates(rates[i,], scale[i], canonical)
-    }
-  }
-
+  rates <- shapescale_to_rates_moment(shape, scale, family, nphase)
+  if (canonical)
+    rates <- rates_to_canpars(rates)
   if (list==TRUE)
     rates <- rates_to_list(rates, canonical)
   if (drop && (!list) && (length(shape)==1))
@@ -95,7 +79,7 @@ check_positive_number <- function(x){
 ##' @return Intensity matrix on the latent state space.
 ##'
 ##' @export
-qphaseapprox <- function(qmatrix, pastates, shape, scale=NULL, family="gamma", method="moment", nphase=NULL, att=FALSE){
+qphaseapprox <- function(qmatrix, pastates, shape, scale=NULL, family="gamma", nphase=NULL, att=FALSE){
   qm <- form_qmodel(qmatrix)
   pm <- form_phasetype(pastates = pastates, qm=list(Q=qmatrix), pafamily=family,
                        panphase = nphase)
@@ -104,7 +88,7 @@ qphaseapprox <- function(qmatrix, pastates, shape, scale=NULL, family="gamma", m
   if (is.null(scale)) scale <- rep(1, pm$npastates)
   for (i in 1:pm$npastates){
     rates <- shapescale_to_rates(shape[i], scale[i],
-                                 family=pm$pafamily[i], method=method, nphase=pm$nphase[pm$pastates][i], list=TRUE)
+                                 family=pm$pafamily[i], nphase=pm$nphase[pm$pastates][i], list=TRUE)
     pd <- qm$phasedata
     pdprog <- as.matrix(pd[pd$ttype=="prog" & pd$oldfrom==pastates[i], c("qrow","qcol")])
     pdabs <- as.matrix(pd[pd$ttype=="abs" & pd$oldfrom==pastates[i], c("qrow","qcol")])

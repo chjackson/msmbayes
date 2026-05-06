@@ -15,15 +15,15 @@ test_that("shapescale_to_rates errors and formats", {
 test_that("shapescale_to_rates approximates weibull and gamma distributions: moment method", {
 
   prates <- shapescale_to_rates(shape=1, scale=0.89,
-                                family="weibull", method="moment")
+                                family="weibull")
   prates <- shapescale_to_rates(shape=c(1.2, 1.3), scale=0.89,
-                                family="gamma", list=TRUE, method="moment")
+                                family="gamma", list=TRUE)
   expect_equal(
     pnphase(2, prate=prates$p, arate=prates$a),
     pgamma(2, shape=c(1.2, 1.3), scale=0.89), tolerance = 0.01)
 
   prates <- shapescale_to_rates(shape=c(1, 1.3), scale=0.89,
-                                family="gamma", list=TRUE, method="moment")
+                                family="gamma", list=TRUE)
 
   nmo <- gamma_nmo(shape=c(1.2, 1.3), scale=0.8)
   n3_moment_bounds(nmo$n2[1], n=5)

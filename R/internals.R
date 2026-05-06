@@ -3,7 +3,7 @@ msmbayes_form_internals <- function(data, state="state", time="time", subject="s
                                     Q, covariates=NULL, obstype=NULL, deathexact=FALSE,
                                     obstrue=NULL, censor_states=NULL,
                                     pastates=NULL, pafamily="gamma",
-                                    panphase=NULL, pamethod="moment",
+                                    panphase=NULL, 
                                     E=NULL, Efix=NULL,
                                     constraint=NULL, nphase=NULL,
                                     priors=NULL, soj_priordata=NULL,
@@ -11,7 +11,7 @@ msmbayes_form_internals <- function(data, state="state", time="time", subject="s
                                     call = caller_env()){
   qm <- qmobs <- form_qmodel(Q)
 
-  pm <- form_phasetype(nphase, qm, pastates, pafamily, panphase, pamethod, E, Efix, call)
+  pm <- form_phasetype(nphase, qm, pastates, pafamily, panphase, E, Efix, call)
   if (pm$phasetype){
     qm <- phase_expand_qmodel(qmobs, pm)
     qmobs <- attr(qm, "qmobs")

@@ -2,34 +2,7 @@
 
 functions {
   vector shapescale_to_rates(real shape, real scale,
-			     int nprates,
-			     vector train_data_x, // ntrain
-			     matrix train_data_y, // ntrain x nprates 
-			     matrix train_data_m, // ntrain x nprates
-			     int method,
-			     int family
-			     ){
-    vector[nprates] rates; 
-
-    if (method==1){
-      rates = phasetype_moment_match(shape, scale, nprates, family);
-    }
-    else { 
-      vector[nprates] canpars;
-      for (i in 1:nprates){
-	if (method==2)
-	  canpars[i] = spline_interp_linear(shape, train_data_x, train_data_y[,i], train_data_m[,i]);
-	else if (method==3)
-	  canpars[i] = spline_interp_hermite(shape, train_data_x, train_data_y[,i], train_data_m[,i]);
-      }
-      rates = canpars_to_rates(canpars, nprates) / scale;
-    }
-
-    return rates;
-  }
-
-  vector phasetype_moment_match(real shape, real scale,
-				int nprates, int family){
+			     int nprates, int family){
     real m1, n2, n3;
     real b, a, p, lam, mu;
     int n = (nprates+1) %/% 2; // nphase
@@ -99,64 +72,6 @@ functions {
     p = (b - 1)/a;
     solution[1] = p; solution[2] = a;
     return solution;
-  }
-
-  vector canpars_to_rates(vector canpars,
-			  int nprates){
-    vector[nprates] ret;
-    int nphase = (nprates+1) %/% 2;
-    real qsoj1 = canpars[1];
-    vector[nphase-1] incqsoj = canpars[2:nphase];
-    vector[nphase-1] pabs_notlast = canpars[(nphase+1):(2*nphase-1)];
-    vector[nphase]   qsoj = append_row(qsoj1, qsoj1 + cumulative_sum(incqsoj));
-    vector[nphase-1] qsoj_notlast = qsoj[1:(nphase-1)];
-    vector[nphase-1] arate_notlast = qsoj_notlast .* pabs_notlast;
-    real arate_last = qsoj[nphase];
-    vector[nphase]   arate = append_row(arate_notlast, arate_last);
-    vector[nphase-1] prate = qsoj_notlast - arate_notlast;
-    ret = append_row(prate, arate);
-    return ret;
-  }
-  
-  real spline_interp_linear(real x, // assumes inside x0
-			    vector x0, // assumes increasing order
-			    vector y0, vector m){
-    real ret;
-    if (x < x0[1]) // constant extrapolation outside bounds
-      ret = y0[1];
-    else if (x > x0[rows(x0)])
-      ret = y0[rows(x0)];
-    else { 
-      int i = findinterval(x, x0);
-      real dx = x0[i+1] - x0[i];
-      real dy = y0[i+1] - y0[i];
-      ret =  y0[i] + (x - x0[i]) * dy / dx;
-    }
-    return ret; 
-  }
-
-  real spline_interp_hermite(real x,
-			     vector x0, // assumes increasing order
-			     vector y0, vector m){
-    real ret;
-    if (x < x0[1]) // constant extrapolation outside bounds
-      ret = y0[1];
-    else if (x > x0[rows(x0)])
-      ret = y0[rows(x0)];
-    else { 
-      int i = findinterval(x, x0);
-      real h = x0[i+1] - x0[i];
-      real t = (x - x0[i])/h; 
-      real t1 = t - 1;
-      real h01 = t*t*(3 - 2*t);
-      real h00 = 1 - h01;
-      real tt1 = t*t1;
-      real h10 = tt1*t1;
-      real h11 = tt1*t;
-      ret = y0[i]*h00 + h*m[i]*h10 + y0[i+1]*h01 + h*m[i+1]*h11;
-    }
-    return ret; 
-
   }
 
   // as findInterval in R. 
@@ -254,18 +169,12 @@ data {
 
   // Data for phase-type approximation to shape/scale distributions
   array[npriorq] int<lower=1> priorq_inds; // indices of Markov intensities in logq_full, given direct priors
-  int<lower=1> ntrain;
-  vector[ntrain] traindat_x;
-  matrix[ntrain,npaqkl] traindat_y;
-  matrix[ntrain,npaqkl] traindat_m;
-  array[npastates,2] int<lower=1> traindat_inds;
   vector[npastates] logshapemean;
   vector<lower=0>[npastates] logshapesd;
   vector[npastates] logshapemin;
   vector[npastates] logshapemax;
   vector[npastates] logscalemean;
   vector<lower=0>[npastates] logscalesd;
-  int<lower=1,upper=3> pamethod;
   array[npastates] int<lower=1,upper=2> pafamily;
   array[npastates] int<lower=1> prates_start;
   array[npastates] int<lower=1> prates_end;
@@ -367,14 +276,8 @@ transformed parameters {
       vector[nqpars] q_full;    
 
       for (j in 1:npastates){
-	int tstart = traindat_inds[j,1];
-	int tend = traindat_inds[j,2];
 	prates[prates_start[j]:prates_end[j]] =
-	  shapescale_to_rates(shape[j], scale[j], npaq[j],
-			      traindat_x[tstart:tend],
-			      traindat_y[tstart:tend,],
-			      traindat_m[tstart:tend,],
-			      pamethod, pafamily[j]);
+	  shapescale_to_rates(shape[j], scale[j], npaq[j], pafamily[j]);
       }
 
       // define absorption probs in terms of log odds 

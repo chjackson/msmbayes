@@ -371,18 +371,8 @@ check_repeated_prior <- function(tafind, cm, loghr_user){
 logshape_bounds <- function(pm){
   if (pm$npastates==0)
     return(list(min=array(dim=0), max=array(dim=0)))
-  if (pm$pamethod=="moment"){
-    logshapemin <- rep(-Inf, length(pm$pafamily))
-    logshapemax <- log(shape_ubound(pm$nphase[pm$pastates], pm$pafamily))
-  } else {
-    traindatw <- phase5approx("weibull")$traindat
-    traindatg <- phase5approx("gamma")$traindat
-    wmin <- log(min(traindatw$a)); wmax <- log(max(traindatw$a))
-    gmin <- log(min(traindatg$a)); gmax <- log(max(traindatg$a))
-    pafamily <- match(pm$pafamily, c("weibull","gamma"))
-    logshapemin <- c(wmin, gmin)[pafamily]
-    logshapemax <- c(wmax, gmax)[pafamily]
-  }
+  logshapemin <- rep(-Inf, length(pm$pafamily))
+  logshapemax <- log(shape_ubound(pm$nphase[pm$pastates], pm$pafamily))
   list(min=logshapemin, max=logshapemax)
 }
 

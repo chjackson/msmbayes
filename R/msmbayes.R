@@ -323,7 +323,7 @@ msmbayes <- function(data, state="state", time="time", subject="subject",
                                obstype=obstype, deathexact=deathexact,
                                obstrue=obstrue, censor_states=censor_states,
                                pastates=pastates, pafamily=pafamily,
-                               panphase=panphase, pamethod="moment", E=E, Efix=Efix,
+                               panphase=panphase, E=E, Efix=Efix,
                                constraint=constraint,
                                nphase=nphase, priors=priors, soj_priordata=soj_priordata)
 

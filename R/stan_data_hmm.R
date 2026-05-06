@@ -99,10 +99,7 @@ pa_nulldata <- function(qm){
   dummy <- 1
   list(npaqkl = 0, npastates = 0, priorq_inds = as.array(qm$priorq_inds),
        noddsnext = qm$noddsnext,
-       ntrain = 1, traindat_x = array(dummy, dim=c(1)),
-       traindat_y = array(dummy, dim=c(1,0)), traindat_m = array(dummy, dim=c(1,0)),
-       traindat_inds = array(dim=c(0,2)),
-       pamethod = 1, pafamily = array(dim=0), npnext =  0,
+       pafamily = array(dim=0), npnext =  0,
        dest_base = array(dim=0), dest_state = array(dim=0),
        loind = array(dim=0), npaqall=0, paq_inds = array(dim=0),
        prates_inds = array(dim=0),
@@ -112,52 +109,30 @@ pa_nulldata <- function(qm){
 
 form_phaseapprox_standata <- function(qm,pm,qmobs){
   if (!pm$phaseapprox) return(pa_nulldata(qm))
-
-  traindatw <- phase5approx("weibull")$traindat
-  traindatg <- phase5approx("gamma")$traindat
-  traindat <- rbind(traindatw, traindatg)
-  traindatw_grad <- phase5approx("weibull")$grad
-  traindatg_grad <- phase5approx("gamma")$grad
-  traindat_grad <- rbind(traindatw_grad, traindatg_grad)
-  pafamily <- match(pm$pafamily, .pafamilies)
-  winds <- c(1, nrow(traindatw))
-  ginds <- winds + c(1, nrow(traindatg))
-  ## matrix npastates x 2
-  ## start and end row index into traindat for each approximated state
-  traindat_inds <- rbind(winds, ginds)[pafamily,,drop=FALSE]
-
   rdat <- qm$paratedata
   crdat <- qm$pacrdata
 
-  c(
-    list(npaqkl = qm$npaqkl,
-         priorq_inds = as.array(qm$priorq_inds),
-         npastates = pm$npastates,
-         ntrain = nrow(traindat),
-         traindat_x = traindat$a,
-         traindat_y = traindat[,phase_cannames(5)],
-         traindat_m = traindat_grad[,phase_cannames(5)],
-         traindat_inds = traindat_inds,
-         pamethod = match(pm$pamethod, c("moment", "kl_linear","kl_hermite")),
-         pafamily = as.array(match(pm$pafamily, c("gamma","weibull"))),
+  list(npaqkl = qm$npaqkl,
+       priorq_inds = as.array(qm$priorq_inds),
+       npastates = pm$npastates,
+       pafamily = as.array(match(pm$pafamily, .pafamilies)),
 
-         npnext = nrow(crdat),
-         dest_base = as.array(as.numeric(crdat$dest_base)),
-         dest_state = as.array(crdat$dest_state),
-         loind = as.array(crdat$loind),
+       npnext = nrow(crdat),
+       dest_base = as.array(as.numeric(crdat$dest_base)),
+       dest_state = as.array(crdat$dest_state),
+       loind = as.array(crdat$loind),
 
-         npaqall = nrow(rdat),
-         paq_inds = as.array(rdat$paq_inds),
-         pastate = as.array(rdat$pastate),
+       npaqall = nrow(rdat),
+       paq_inds = as.array(rdat$paq_inds),
+       pastate = as.array(rdat$pastate),
 
-         prates_start = as.array(tapply(rdat$prates_inds, rdat$pastate, min)),
-         prates_end = as.array(tapply(rdat$prates_inds, rdat$pastate, max)),
-         npaq = as.array(2*pm$nphase[pm$pastates] - 1),
+       prates_start = as.array(tapply(rdat$prates_inds, rdat$pastate, min)),
+       prates_end = as.array(tapply(rdat$prates_inds, rdat$pastate, max)),
+       npaq = as.array(2*pm$nphase[pm$pastates] - 1),
 
-         prates_inds = as.array(rdat$prates_inds),
-         prate_abs = as.array(rdat$prate_abs),
-         dest_inds = as.array(rdat$dest_inds),
-         noddsnext = qm$noddsnext
-         )
-  )
+       prates_inds = as.array(rdat$prates_inds),
+       prate_abs = as.array(rdat$prate_abs),
+       dest_inds = as.array(rdat$dest_inds),
+       noddsnext = qm$noddsnext
+       )
 }

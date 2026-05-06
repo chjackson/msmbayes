@@ -9,7 +9,6 @@ shapescale_to_rates(
   scale = 1,
   family = "gamma",
   canonical = FALSE,
-  method = "moment",
   nphase = 3,
   list = FALSE,
   drop = TRUE
@@ -23,8 +22,6 @@ shapescale_to_rates(
 \item{family}{parametric family approximated by the phase-type distribution: \code{"weibull"} or \code{"gamma"}}
 
 \item{canonical}{Return the phase-type parameters in canonical form (phase 1 sojourn rate, sojourn rate increments in subsequent states, absorption probabilities).  If \code{FALSE} then phase transition rates are returned.}
-
-\item{method}{(Deprecated)}
 
 \item{nphase}{Number of phases.}
 

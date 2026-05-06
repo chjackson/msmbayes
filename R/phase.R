@@ -9,7 +9,6 @@
 form_phasetype <- function(nphase=NULL, qm,
                            pastates=NULL, pafamily="gamma",
                            panphase=NULL,
-                           pamethod="kl_hermite",
                            E=NULL,
                            Efix=NULL,
                            call=caller_env()){
@@ -33,9 +32,10 @@ form_phasetype <- function(nphase=NULL, qm,
        pastates = pastates,
        npastates = length(pastates),
        pafamily = pafamily,
-       pamethod = pamethod,
        nstates_orig = max(pdat$oldinds))
 }
+
+.pafamilies <- c("gamma","weibull")
 
 check_pafamily <- function(pafamily, pastates){
   if (is.null(pastates)) return(NULL)

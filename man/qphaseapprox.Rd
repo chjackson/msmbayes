@@ -11,7 +11,6 @@ qphaseapprox(
   shape,
   scale = NULL,
   family = "gamma",
-  method = "moment",
   nphase = NULL,
   att = FALSE
 )
@@ -36,8 +35,6 @@ Ignored if \code{nphase} is supplied.}
 \item{scale}{scale parameter.  This can be vectorised.}
 
 \item{family}{parametric family approximated by the phase-type distribution: \code{"weibull"} or \code{"gamma"}}
-
-\item{method}{(Deprecated)}
 
 \item{nphase}{Only required for models with phase-type sojourn
 distributions specified directly (not through \code{pastates}).

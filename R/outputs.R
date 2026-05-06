@@ -619,6 +619,7 @@ soj_prob <- function(draws, t, state, new_data=NULL, method="analytic"){
 ##' @md
 ##' @export
 soj_quantile <- function(draws, p, state, new_data=NULL, method="analytic"){
+  time <- NULL
   if (length(state) > 1)
     cli_abort("{.var state} should be a single number")
   if (is_phasetype(draws) &&

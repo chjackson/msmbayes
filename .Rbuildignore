@@ -18,6 +18,9 @@ bin
 ^\.github$
 .Rprofile
 ^vignettes/articles$
-R/phaseapprox_msm.R
 ^\.positai$
 ^\.claude$
+R/uniformisation.R
+R/em_markov.R
+R/em_smm.R
+R/outputs_td.R
