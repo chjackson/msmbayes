@@ -108,8 +108,9 @@ all states.}
 
 \item{panphase}{Number of phases to use for each state given a
 phase-type Gamma or Weibull approximation.  Vector of same length
-as \code{pastates}. More phases allow a wider range of shape parameters.
-Defaults to 5.}
+as \code{pastates}. Using more phases allows a wider range of shape
+parameters, (see Figure 2 of the \code{msmbayes} paper) but does not
+create extra parameters.  Defaults to 3.}
 
 \item{nphase}{Only required for models with phase-type sojourn
 distributions specified directly (not through \code{pastates}).

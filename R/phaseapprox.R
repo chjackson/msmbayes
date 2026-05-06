@@ -27,21 +27,21 @@
 ##' @export
 shapescale_to_rates <- function(shape, scale=1, family="gamma",
                                 canonical=FALSE, method="moment",
-                                nphase=5,
+                                nphase=3,
                                 list=FALSE, drop=TRUE){
   check_positive_number(shape)
   check_positive_number(scale) # TESTME
   ml <- max(length(shape), length(scale))
   shape <- rep(shape, length.out=ml)
   scale <- rep(scale, length.out=ml)
-  if (is.null(nphase)) nphase <- 5
+  if (is.null(nphase)) nphase <- 3
 
   if (method == "moment"){
     rates <- shapescale_to_rates_moment(shape, scale, family, nphase)
     if (canonical)
       rates <- rates_to_canpars(rates)
   } else if (method %in% c("kl_hermite","kl_linear")){
-    canparnames <- phase_cannames(nphase=5)
+    canparnames <- phase_cannames(nphase=nphase)
     rates <- matrix(nrow=length(shape), ncol=length(canparnames))
     colnames(rates) <- canparnames
     for (i in seq_along(shape)){
@@ -56,7 +56,7 @@ shapescale_to_rates <- function(shape, scale=1, family="gamma",
     rates <- rates_to_list(rates, canonical)
   if (drop && (!list) && (length(shape)==1))
     rates <- as.numeric(rates) |>
-      setNames(if(canonical) phase_cannames(5) else phase_ratenames(5))
+      setNames(if(canonical) phase_cannames(nphase) else phase_ratenames(nphase))
   if ((!list) && (length(shape)>1))
     rates <- as.data.frame(rates)
   rates

@@ -5,7 +5,7 @@
 ##' @param prior_scale msmprior() objects
 ##' @return rvar with a sample from the prior of the mean
 ##' @noRd 
-prior_mean_weibull <- function(prior_shape, prior_scale, nphase=5, n=1000000){
+prior_mean_weibull <- function(prior_shape, prior_scale, nphase=3, n=1000000){
   rshape <- exp(msm::rtnorm(n, prior_shape$mean, prior_shape$sd,
                             upper=shape_ubound(nphase=nphase,
                                                family="weibull")))
@@ -18,7 +18,7 @@ prior_mean_weibull <- function(prior_shape, prior_scale, nphase=5, n=1000000){
 ##' @param prior_scale msmprior() objects
 ##' @return rvar with a sample from the prior of the mean
 ##' @noRd 
-prior_mean_gamma <- function(prior_shape, prior_scale, nphase=5, n=1000000){
+prior_mean_gamma <- function(prior_shape, prior_scale, nphase=3, n=1000000){
   rshape <- exp(msm::rtnorm(n, prior_shape$mean, prior_shape$sd,
                             upper=shape_ubound(nphase=nphase,
                                                family="gamma")))

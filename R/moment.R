@@ -240,7 +240,7 @@ in_moment_bounds <- function(n2, n3, n){
 ##'
 ##' @noRd
 shapescale_to_rates_moment <- function(shape, scale=1, family,
-                                       nphase=5){
+                                       nphase=3){
   nmoment_fn <- sprintf("%s_nmo",family)
   nmo <- do.call(nmoment_fn, list(shape=shape, scale=scale))
   inbounds <- in_case1_bounds(nmo[["n2"]], nmo[["n3"]], nphase)
@@ -251,7 +251,8 @@ shapescale_to_rates_moment <- function(shape, scale=1, family,
   ee1 <- erlang_exp(nmo[["m1"]], nmo[["n2"]], nmo[["n3"]], n=nphase)
   rates <- cbind(ee1$prate, ee1$arate)
 
-  # Exponential dist with rate 1/scale, for gamma and weibull
+  ## Exponential dist with rate 1/scale, for gamma and weibull
+  ## Hard code to avoid numerical problems near this boundary
   if (family %in% c("gamma","weibull"))
     rates[shape==1,] <- c(rep(0, nphase-1), 1/scale[shape==1], rep(0, nphase-1))
 

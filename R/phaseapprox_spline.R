@@ -66,7 +66,7 @@ scale_rates <- function(rates, scale, canonical=FALSE){
   rates
 }
 
-scale_canpars <- function(canpars, scale, nphase=5){
+scale_canpars <- function(canpars, scale, nphase=3){
   if (is.list(canpars)){
     canpars$qsoj <- canpars$qsoj / scale
     canpars$inc <- canpars$inc / scale

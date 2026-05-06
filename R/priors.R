@@ -379,7 +379,7 @@ logshape_bounds <- function(pm){
     traindatg <- phase5approx("gamma")$traindat
     wmin <- log(min(traindatw$a)); wmax <- log(max(traindatw$a))
     gmin <- log(min(traindatg$a)); gmax <- log(max(traindatg$a))
-    pafamily <- match(pm$pafamily, .pafamilies)
+    pafamily <- match(pm$pafamily, c("weibull","gamma"))
     logshapemin <- c(wmin, gmin)[pafamily]
     logshapemax <- c(wmax, gmax)[pafamily]
   }

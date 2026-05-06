@@ -10,7 +10,7 @@ shapescale_to_rates(
   family = "gamma",
   canonical = FALSE,
   method = "moment",
-  nphase = 5,
+  nphase = 3,
   list = FALSE,
   drop = TRUE
 )

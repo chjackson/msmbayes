@@ -7,7 +7,7 @@
 #'
 #' @noRd
 form_phasetype <- function(nphase=NULL, qm,
-                           pastates=NULL, pafamily="weibull",
+                           pastates=NULL, pafamily="gamma",
                            panphase=NULL,
                            pamethod="kl_hermite",
                            E=NULL,
@@ -39,8 +39,8 @@ form_phasetype <- function(nphase=NULL, qm,
 
 check_pafamily <- function(pafamily, pastates){
   if (is.null(pastates)) return(NULL)
-  pafamily <- rep(pafamily, length.out = length(pastates))
-  if (length(pafamily) != length(pastates)) # not used
+#  pafamily <- rep(pafamily, length.out = length(pastates))
+  if (!(length(pafamily) %in% c(1, length(pastates)))) 
     cli_abort("supplied {.var pastates} of length {length(pastates)}, but {.var pafamily} of length {length(pafamily)}")
   badpaf <- which(!(pafamily %in% .pafamilies))
   if (length(badpaf) > 0)
@@ -54,7 +54,7 @@ nphase_from_approx <- function(panphase, pastates=NULL, qm, call=caller_env()){
   nstates <- nrow(qm$Q)
   nphase <- rep(1, nstates)
   if (is.null(panphase)){
-    nphase[pastates] <- 5
+    nphase[pastates] <- 3
   } else {
     check_panphase(panphase, pastates, call)
     nphase[pastates] <- panphase

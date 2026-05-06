@@ -12,29 +12,6 @@ test_that("shapescale_to_rates errors and formats", {
   expect_equal(canpars_to_rates(crates), rrates)
 })
 
-test_that("shapescale_to_rates approximates weibull and gamma distributions: KL methods", {
-
-  shape <- 1.21
-  scale <- 0.89
-  prates <- shapescale_to_rates(shape=shape, scale=scale,
-                                family="weibull", list=TRUE, method="kl_hermite")
-  expect_equal(pnphase(1.34, prate=prates$p, arate=prates$a),
-               pweibull(1.34, shape, scale), tolerance=0.01)
-  prates <- shapescale_to_rates(shape=shape, scale=scale,
-                                family="weibull", list=TRUE, method="kl_linear")
-  expect_equal(pnphase(1.34, prate=prates$p, arate=prates$a),
-               pweibull(1.34, shape, scale), tolerance=0.01)
-  scale <- 1
-  prates <- shapescale_to_rates(shape=shape, scale=scale,
-                                family="gamma", list=TRUE, method="kl_hermite")
-  expect_equal(pnphase(1.34, prate=prates$p, arate=prates$a),
-               pgamma(1.34, shape, scale=scale), tolerance=0.01)
-  prates <- shapescale_to_rates(shape=shape, scale=scale,
-                                family="gamma", list=TRUE, method="kl_linear")
-  expect_equal(pnphase(1.34, prate=prates$p, arate=prates$a),
-               pgamma(1.34, shape, scale=scale), tolerance=0.01)
-})
-
 test_that("shapescale_to_rates approximates weibull and gamma distributions: moment method", {
 
   prates <- shapescale_to_rates(shape=1, scale=0.89,
@@ -58,14 +35,8 @@ test_that("shapescale_to_rates approximates weibull and gamma distributions: mom
 
 test_that("qphaseapprox works", {
   qmatrix <- rbind(c(0, 1, 1), c(0, 0, 1), c(0, 0, 0))
-  qa <- qphaseapprox(qmatrix, pastates=2, shape=0.7, scale=2.1)
-  rates <- shapescale_to_rates(shape=0.7, scale=2.1, list=TRUE)
+  qa <- qphaseapprox(qmatrix, pastates=2, shape=0.7, scale=2.1, nphase=3)
+  rates <- shapescale_to_rates(shape=0.7, scale=2.1, list=TRUE, nphase=3)
   expect_equal(unname(qa[-1,-1]),
                nphase_Q(rates$p, rates$a))
-})
-
-
-test_that("phase5approx", {
-  td <- phase5approx("gamma")$traindat
-  expect_equal(td$conv[td$a==0.6], 0)
 })

@@ -1,8 +1,8 @@
 #' Bayesian multi-state models for intermittently-observed data
 #'
 #' Fit a multi-state model to longitudinal data consisting of
-#' intermittent observation of a discrete state.  Bayesian estimation
-#' is used, via the Stan software.
+#' intermittent observation of a discrete state.  Bayesian, approximate
+#' Bayesian or maximum likelihood estimation is used, via the Stan software.
 #'
 #' @param data Data frame giving the observed data.
 #'
@@ -90,8 +90,9 @@
 #'
 #' @param panphase Number of phases to use for each state given a
 #'   phase-type Gamma or Weibull approximation.  Vector of same length
-#'   as `pastates`. More phases allow a wider range of shape parameters.
-#'   Defaults to 5.
+#'   as `pastates`. Using more phases allows a wider range of shape
+#'   parameters, (see Figure 2 of the `msmbayes` paper) but does not
+#'   create extra parameters.  Defaults to 3.
 #'
 #' @param E By default, `msmbayes` fits a (non-hidden) Markov model.
 #'   If `E` is supplied, then a Markov model with misclassification is
