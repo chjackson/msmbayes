@@ -18,8 +18,9 @@
 #'
 #' `"posterior"` to return `rvar` objects containing posterior samples.
 #'
-#' `"mode"` to return posterior modes (only applicable if model was fitted
-#' with posterior mode optimisation).
+#' `"mode"` to return the output evaluated at the posterior mode of
+#' the basic parameters (only applicable if model was fitted with
+#' posterior mode optimisation).
 #'
 #' @return An array or matrix of `rvar` objects or numbers, representing the
 #'   transition intensity matrix for each new prediction data point
@@ -585,6 +586,9 @@ standardize_to <- standardise_to
 ##'   `t` since state entry, as an `rvar` object. Other columns give
 ##'   the time and any covariate values.
 ##'
+##' Note this is the analogue of the survival probability, or one minus the
+##' CDF of the time-to-event distribution
+##'
 ##' See \code{\link{qdf}} for notes on the `rvar` format.
 ##'
 ##' @md
@@ -619,9 +623,9 @@ soj_quantile <- function(draws, p, state, new_data=NULL, method="analytic"){
     cli_abort("{.var state} should be a single number")
   if (is_phasetype(draws) &&
       state %in% attr(draws,"pmodel")$phased_states)
-    res <- soj_prob_phase(draws, p, state, new_data, method=method, inverse=TRUE)
+    res <- soj_prob_phase(draws, p, state, new_data, method=method, inverse_p=TRUE)
   else
-    res <- soj_prob_nonphase(draws, p, state, new_data, inverse=TRUE)
+    res <- soj_prob_nonphase(draws, p, state, new_data, inverse_p=TRUE)
   res |> rename(prob=time)
 }
 

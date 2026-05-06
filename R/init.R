@@ -12,11 +12,11 @@
 ##' parameter values within a rough order of magnitude.  The
 ##' auto-drawn initial values will then naturally be plausible.
 ##'
-##' For maximum likelihood estimation (with `priors="mle"`) currently
-##' Stan will draw initial values from the default (proper
+##' For maximum likelihood estimation (with `priors="mle"`) 
+##' initial values are drawn from the default (proper
 ##' non-uniform) priors (see \code{\link{msmprior}} for the
-##' definitions of these) even though when fitting the model, improper
-##' uniform priors are used.
+##' definitions of these) even though when fitting the model, these
+##' defaults are ignored and improper uniform priors are used.
 ##'
 ##' In any case, it is advised to use data where the covariate values
 ##' and time units are expressed on a roughly unit scale, so the

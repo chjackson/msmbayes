@@ -19,3 +19,4 @@ R/em_*
 R/uniformisation.R
 tests/testthat/test_em*
 R/outputs_td.R
+.positai

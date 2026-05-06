@@ -14,7 +14,7 @@ The same observation schemes are supported as in `msm`: intermittent observation
 
 Any transition structures are permitted for any models (any number of states, with or without cycles, with or without absorbing states).
 
-Models can be fitted with either Bayesian or maximum likelihood estimation, via any of the algorithms available in [Stan](http://mc-stan.org), whereas `msm` uses only maximum likelihood.
+Models can be fitted with Bayesian, approximate Bayesian or maximum likelihood estimation, via any of the algorithms available in [Stan](http://mc-stan.org), whereas `msm` uses only maximum likelihood.
 
 
 ## Advantages of msmbayes compared to msm

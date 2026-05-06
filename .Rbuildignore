@@ -19,3 +19,5 @@ bin
 .Rprofile
 ^vignettes/articles$
 R/phaseapprox_msm.R
+^\.positai$
+^\.claude$

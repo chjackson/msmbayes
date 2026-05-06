@@ -52,14 +52,18 @@ set.seed(1)
 
 test_that("Basic msmbayes model fit agrees with msm",{
   # true values 0.5, 3
+  system.time({
   draws <- msmbayes(data=infsim, state="state", time="months", subject="subject", Q=Q,
                     fit_method="optimize")
+  })
   summary(draws)
   bayes_ests <- summary(qdf(draws), ~quantile(.x, c(0.025, 0.975)))
   q12_bayes <- bayes_ests |> filter(from==1, to==2)
   q21_bayes <- bayes_ests |> filter(from==2, to==1)
 
-  inf_msm <- msm(state~months, subject=subject, data=infsim, qmatrix=Q)
+  system.time({
+    inf_msm <- msm(state~months, subject=subject, data=infsim, qmatrix=Q)
+  })
   qe <- qmatrix.msm(inf_msm)$estimates
   expect_true(q12_bayes[["2.5%"]] < qe[1,2] && qe[1,2] < q12_bayes[["97.5%"]])
   expect_true(q21_bayes[["2.5%"]] < qe[2,1] && qe[2,1] < q21_bayes[["97.5%"]])

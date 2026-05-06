@@ -25,6 +25,9 @@ distribution for the probability of remaining in \code{state} by time
 \code{t} since state entry, as an \code{rvar} object. Other columns give
 the time and any covariate values.
 
+Note this is the analogue of the survival probability, or one minus the
+CDF of the time-to-event distribution
+
 See \code{\link{qdf}} for notes on the \code{rvar} format.
 }
 \description{

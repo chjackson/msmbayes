@@ -23,8 +23,9 @@ this returns a 3D array with first dimension \code{ncovs=1}.}
 
 \item{type}{\code{"posterior"} to return \code{rvar} objects containing posterior samples.
 
-\code{"mode"} to return posterior modes (only applicable if model was fitted
-with posterior mode optimisation).}
+\code{"mode"} to return the output evaluated at the posterior mode of
+the basic parameters (only applicable if model was fitted with
+posterior mode optimisation).}
 }
 \value{
 An array or matrix of \code{rvar} objects or numbers, representing the
