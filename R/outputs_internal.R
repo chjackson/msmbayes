@@ -397,47 +397,65 @@ check_new_data <- function(new_data, call=caller_env()){
   ## hardhat takes care of checking valid factor levels
 }
 
+parate_internal <- function(draws, state, new_data=NULL, type="posterior"){
+  from <- fromobs <- ttype <- posterior <- covid <- NULL
+  qphase <- qdf(draws, new_data=new_data, keep_covid=TRUE) |>
+    filter(fromobs==state)
+  arateg <- qphase |> filter(ttype=="abs") |> group_by(from, covid)
+  if (type=="posterior"){
+    arate <- arateg |>
+      summarise(posterior = rvar_sum(posterior)) |> # sum over competing exit states
+      pull(posterior) |> draws_of()
+    prate <- qphase |> filter(ttype=="prog") |> pull(posterior) |> draws_of()
+  } else if (type=="mode") {
+    arate <- arateg |> summarise(mode = sum(mode)) |> pull(mode)
+    prate <- qphase |> filter(ttype=="prog") |> pull(mode)
+  } else cli_abort("unknown `type`")
+  list(p=prate, a=arate)
+}
+
 #' @param inverse_p if TRUE return the inverse of the CDF.  If FALSE return the
 #' "survival" prob, or 1 - CDF
 #' @noRd 
 soj_prob_phase <- function(draws, t, state, new_data=NULL,
                            method = "analytic", inverse_p=FALSE){
-  from <- fromobs <- ttype <- posterior <- covid <- NULL
-  qphase <- qdf(draws, new_data=new_data, keep_covid=TRUE) |>
-    filter(fromobs==state)
+  ttype <- posterior <- covid <- NULL
 
-  arateg <- qphase |> filter(ttype=="abs") |> group_by(from, covid)
-  arate <- arateg |>
-    summarise(posterior = rvar_sum(posterior)) |> # sum over competing exit states
-    pull(posterior) |> draws_of()
-
-  prate <- qphase |> filter(ttype=="prog") |> pull(posterior) |> draws_of()
-  arate_mode <- arateg |>
-    summarise(mode = sum(mode)) |> pull(mode)
-  prate_mode <- qphase |> filter(ttype=="prog") |> pull(mode)
-
+  pa <- parate_internal(draws, state, new_data)
   ntimes <- length(t)
   ncovvals <- max(NROW(new_data), 1)
-  covid_p <- rep(1:ncovvals, length.out=ncol(prate))
-  covid_a <- rep(1:ncovvals, length.out=ncol(arate))
+  covid_p <- rep(1:ncovvals, length.out=ncol(pa$p))
+  covid_a <- rep(1:ncovvals, length.out=ncol(pa$a))
   output <- array(0, dim=c(ndraws(draws), ncovvals, ntimes))
-  output_mode <- array(0, dim=c(ncovvals, ntimes))
   prob_fn <- if (inverse_p) qnphase else pnphase
   for (i in 1:ntimes){
     for (j in 1:ncovvals){
-      output[,j,i]     <- prob_fn(t[i], prate[,covid_p==j],     arate[,covid_a==j], method = method)
-      output_mode[j,i] <- prob_fn(t[i], prate_mode[covid_p==j], arate_mode[covid_a==j], method = method)
+      output[,j,i]     <- prob_fn(t[i], pa$p[,covid_p==j], pa$a[,covid_a==j], method = method)
       if (!inverse_p) {
         output[,j,i] <- 1 - output[,j,i]
-        output_mode[j,i] <- 1 - output_mode[j,i]
       }
     }
   }
-  mode <- vecbycovs_to_df(output_mode, new_data)$mode
+
   res <- data.frame(time = rep(t, ncovvals),
-                    posterior = as.vector(rvar(output)),
-                    mode = mode) |>
-    as_msmbres()
+                    posterior = as.vector(rvar(output)))
+
+  if (is_mode(draws)){
+    pa <- parate_internal(draws, state, new_data, type="mode")
+    output_mode <- array(0, dim=c(ncovvals, ntimes))
+    for (i in 1:ntimes){
+      for (j in 1:ncovvals){
+        output_mode[j,i] <- prob_fn(t[i], pa$p[covid_p==j], pa$a[covid_a==j], method = method)
+        if (!inverse_p) {
+          output_mode[j,i] <- 1 - output_mode[j,i]
+        }
+      }
+    }
+    res$mode <- vecbycovs_to_df(output_mode, new_data)$mode
+  } 
+
+  res <- as_msmbres(res)
+  
   if (!is.null(new_data))
     res <- res |>
       mutate(covid = rep(1:ncovvals, each=ntimes)) |>
