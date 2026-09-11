@@ -8,10 +8,11 @@ msmbayes_form_internals <- function(data, state="state", time="time", subject="s
                                     constraint=NULL, nphase=NULL,
                                     priors=NULL, soj_priordata=NULL,
                                     prior_sample = FALSE,
+                                    erlang = FALSE,
                                     call = caller_env()){
   qm <- qmobs <- form_qmodel(Q)
 
-  pm <- form_phasetype(nphase, qm, pastates, pafamily, panphase, E, Efix, call)
+  pm <- form_phasetype(nphase, qm, pastates, pafamily, panphase, E, Efix, erlang, call)
   if (pm$phasetype){
     qm <- phase_expand_qmodel(qmobs, pm)
     qmobs <- attr(qm, "qmobs")
@@ -193,7 +194,7 @@ check_censor_states <- function(censor_states, qm, call=caller_env()){
 
 ##' @return Matrix with one row per individual, one column per true state
 ##' @noRd
-form_initprobs <- function(initprobs=NULL, qm, em, dat, pm, call=caller_env()){
+form_initprobs <- function(initprobs=NULL, qm, em=NULL, dat, pm, call=caller_env()){
   initstate <- dat[["state"]][!duplicated(dat[["subject"]])]
   if (!is.null(initprobs))
     initprobs <- check_initprobs(initprobs, em, dat, pm, call)

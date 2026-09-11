@@ -48,6 +48,7 @@ shapescale_to_rates <- function(shape, scale=1, family="gamma",
 
 check_positive_number <- function(x){
   namex <- deparse(substitute(x))
+  if (is.na(x)) cli_abort("{.var namex} is NA or NaN")
   if (!is.numeric(x)) cli_abort("{.var {namex}} should be numeric")
   if (any(x < 0)) cli_abort("negative value for {.var {namex}} supplied")
 }
@@ -81,7 +82,7 @@ check_positive_number <- function(x){
 ##' @export
 qphaseapprox <- function(qmatrix, pastates, shape, scale=NULL, family="gamma", nphase=NULL, att=FALSE){
   qm <- form_qmodel(qmatrix)
-  pm <- form_phasetype(pastates = pastates, qm=list(Q=qmatrix), pafamily=family,
+  pm <- form_phasetype(pastates = pastates, qm=qm, pafamily=family,
                        panphase = nphase)
   qm <- phase_expand_qmodel(qm, pm)
   qnew <- pm$Qphase

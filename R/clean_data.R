@@ -9,7 +9,8 @@
 ##' @noRd
 check_data <- function(dat, state="state", time="time", subject="subject",
                        obstype=NULL, obstrue=NULL,
-                       qm=NULL, censor_states, prior_sample=FALSE, call=caller_env()){
+                       qm=NULL, censor_states=NULL,
+                       prior_sample=FALSE, call=caller_env()){
   check_data_frame(dat, call)
   check_dat_variables(dat=dat, time=time, subject=subject,
                       obstype=obstype, obstrue=obstrue, call=call)

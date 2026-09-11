@@ -11,6 +11,7 @@ form_phasetype <- function(nphase=NULL, qm,
                            panphase=NULL,
                            E=NULL,
                            Efix=NULL,
+                           erlang=FALSE,
                            call=caller_env()){
   Q <- qm$Q
   if (!is.null(pastates))
@@ -18,11 +19,12 @@ form_phasetype <- function(nphase=NULL, qm,
   else nphase <- check_nphase(nphase, qm, call)
   if (is.null(nphase) || all(nphase==1))
     return(list(phasetype=FALSE, phaseapprox=FALSE, npastates = 0,
+                nphase = rep(1, qm$K), 
                 pdat=NULL, E=NULL, Efix=NULL, Qphase=Q))
   pdat <- form_phasedata(nphase)
   E <- form_Ephase(nphase, E, Efix, Q, call)
   Efix <- form_Efixphase(E, nphase, Efix)
-  Qphase <- form_Qphase(Q, nphase, call=call)
+  Qphase <- form_Qphase(Q, nphase, erlang=erlang, call=call)
   unphased_states <- pdat$oldinds[!pdat$phase]
   phased_states <- unique(pdat$oldinds[pdat$phase])
   pafamily <- check_pafamily(pafamily, pastates)
@@ -32,7 +34,8 @@ form_phasetype <- function(nphase=NULL, qm,
        pastates = pastates,
        npastates = length(pastates),
        pafamily = pafamily,
-       nstates_orig = max(pdat$oldinds))
+       nstates_orig = max(pdat$oldinds),
+       erlang = erlang)
 }
 
 .pafamilies <- c("gamma","weibull")
@@ -40,7 +43,7 @@ form_phasetype <- function(nphase=NULL, qm,
 check_pafamily <- function(pafamily, pastates){
   if (is.null(pastates)) return(NULL)
 #  pafamily <- rep(pafamily, length.out = length(pastates))
-  if (!(length(pafamily) %in% c(1, length(pastates)))) 
+  if (!(length(pafamily) %in% c(1, length(pastates))))
     cli_abort("supplied {.var pastates} of length {length(pastates)}, but {.var pafamily} of length {length(pafamily)}")
   badpaf <- which(!(pafamily %in% .pafamilies))
   if (length(badpaf) > 0)
@@ -145,10 +148,14 @@ check_posint <- function(var, varname, call=caller_env()){
 form_phasedata <- function(nphase){
   pdat <- data.frame(oldinds = rep(seq_along(nphase), nphase))
   pdat$phase <- rep(nphase, nphase) > 1
-  pdat$type <- ifelse(!pdat$phase, "markov",
-               ifelse(duplicated(pdat$oldinds),
-                      "laterphase", "firstphase"))
   pdat$phaseinds <- sequence(nphase)
+  pdat$type <- ifelse(!pdat$phase,
+                      "markov",
+               ifelse(pdat$phaseinds == 1,
+                      "firstphase",
+               ifelse(pdat$phaseinds == rep(nphase, nphase),
+                      "lastphase",
+                      "midphase")))
   plabs <- ifelse(pdat$phase, paste0("p",pdat$phaseinds), "")
   pdat$label <- paste0(pdat$oldinds, plabs)
   pdat
@@ -224,12 +231,15 @@ form_Efixphase <- function(Ephase, nphase, Efix=NULL){
 #'
 #' @inheritParams msmbayes
 #'
+#' @param erlang If TRUE then this is an Erlang-Coxian model, where we
+#' remove exit rates from all phases apart from the first and last phase.
+#'
 #' @return Q matrix on the expanded state space.   The initial values
 #' are currently not used (Stan chooses these based on the priors), but
 #' the 0/1 structure is used to define the allowed transitions
 #'
 #' @noRd
-form_Qphase <- function(Q, nphase, call=caller_env()){
+form_Qphase <- function(Q, nphase, erlang=FALSE, call=caller_env()){
 
   pdat <- form_phasedata(nphase)
   type_old <- ifelse(nphase==1, "markov", "phased")
@@ -246,18 +256,19 @@ form_Qphase <- function(Q, nphase, call=caller_env()){
   Qnew[pdat$type=="markov",pdat$type %in% c("markov","firstphase")] <-
     Q[type_old=="markov" ,]
 
+
   ## Phase "absorptions", i.e exits from any phase of phased states to any other permitted state
   ## For initial value, assume absorption rates common between phases
-  inds <- rep(1 : n_phased_states, nphasep)
+  inds <- if (erlang) rep(1:n_phased_states, each=2) else rep(1 : n_phased_states, nphasep)
 
-  abs_inds <- matrix(
-    (rep(pdat$phase, nstnew) &
-       rep(pdat$type %in% c("markov","firstphase"), each=nstnew) &
-       !(pdat$oldinds[row(Qnew)] == pdat$oldinds[col(Qnew)])
-    ),
-    nrow=nstnew)
+  fromphase_inds <- if (erlang) pdat$type %in% c("firstphase","lastphase") else pdat$phase
+  fromphase_inds <- rep(fromphase_inds, nstnew)
+  toexit_inds <- rep(pdat$type %in% c("markov","firstphase"), each=nstnew)
+  tootherstate_inds <- !(pdat$oldinds[row(Qnew)] == pdat$oldinds[col(Qnew)])
+  abs_inds <- matrix(fromphase_inds & toexit_inds & tootherstate_inds, nrow=nstnew)
 
-  Qnew[pdat$phase, pdat$type %in% c("markov","firstphase")] <-
+  from_ind <- if (erlang) pdat$type %in% c("firstphase","lastphase") else pdat$phase
+  Qnew[from_ind, pdat$type %in% c("markov","firstphase")] <-
     Q[type_old=="phased",
       type_old %in% c("markov","phased"),drop=FALSE][inds,,drop=FALSE]
 
@@ -289,6 +300,7 @@ form_Qphase <- function(Q, nphase, call=caller_env()){
 ##' @return List describing the transition model structure on the latent model space
 ##' @noRd
 phase_expand_qmodel <- function(qm, pm){
+  if (!pm$phasetype) return(qm)
   Qnew <- pm$Qphase
   Qnew[Qnew>0] <- 1 # "initial values" unused but keep code in case
   qmnew <- list(Q = Qnew,
@@ -349,7 +361,10 @@ form_phaseapprox_ratedata <- function(qm, pm){
   for (i in 1:pm$npastates){
     np <- pm$nphase[pm$pastates[i]]
     rdat$praterow[rdat$pastate==i & rdat$ttype=="prog"] <- 1:(np-1)
-    rdat$praterow[rdat$pastate==i & rdat$ttype=="abs"] <- np:(2*np - 1)
+    if (pm$erlang)
+      rdat$praterow[rdat$pastate==i & rdat$ttype=="abs"] <- np:(np+1)
+    else
+      rdat$praterow[rdat$pastate==i & rdat$ttype=="abs"] <- np:(2*np - 1)
   }
   rdat$prate_abs <- as.numeric(rdat$ndest > 1 & rdat$ttype=="abs")
   nprates_by_state <- 2*pm$nphase - 1
