@@ -67,6 +67,7 @@
 ##' @export
 dnphase <- function(x, prate, arate, initp=NULL, method="expm"){
   pars <- vectorise_nphase(x, prate, arate)
+  x <- pars$x
   ret <- numeric(length(pars$x))
 
   ret[x<0] <- ret[x==Inf] <- 0
