@@ -59,6 +59,11 @@ remotes::install_github("chjackson/msmbayes")
 
 If you use it, please give feedback on [github issues](https://github.com/chjackson/msmbayes/issues), or [by email](mailto:chris.jackson@mrc-bsu.cam.ac.uk).
 
+ 
+## Papers about msmbayes
+
+* [Stable and practical semi-Markov modelling of intermittently-observed data (Jackson, Computational Statistics and Data Analysis, 2026)](https://doi.org/10.1016/j.csda.2026.108462).
+
 
 ## Slides from presentations about msmbayes
 
@@ -68,10 +73,6 @@ If you use it, please give feedback on [github issues](https://github.com/chjack
 
 * [Royal Statistical Society conference, Edinburgh, September 2025](https://chjackson.github.io/msmbayes/cjackson_rss25.pdf)
 
-
-## Papers about msmbayes
-
-* [Preprint: Stable and practical semi-Markov modelling of intermittently-observed data (Jackson)](https://arxiv.org/abs/2508.20949).
 
 
 <!-- badges: start -->

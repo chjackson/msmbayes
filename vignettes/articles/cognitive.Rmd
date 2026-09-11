@@ -12,7 +12,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-This file gives the code used for the analysis of the cognitive function data in Section 7 of the paper "Stable and practical semi-Markov modelling of intermittently-observed data" (Jackson).
+This file gives the code used for the analysis of the cognitive function data in Section 6 of the paper "Stable and practical semi-Markov modelling of intermittently-observed data" (Jackson).
 
 It is intended to show that the methodology in the paper and the `msmbayes` package can be easily used in practice.  Though for actually learning the package, it is better to start with other documentation given on the [package site](https://chjackson.github.io/msmbayes), in particular the Examples vignette and function references.
 
