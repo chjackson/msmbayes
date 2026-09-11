@@ -1,8 +1,8 @@
 ##' @name msmbayes_init
 ##'
-##' Initial values in msmbayes models 
+##' @description Initial values in msmbayes models 
 ##'
-##' In most cases it should not be necessary to supply explicit
+##' @details In most cases it should not be necessary to supply explicit
 ##' initial values when fitting a model in msmbayes.
 ##'
 ##' For Bayesian estimation, msmbayes will draw initial values from

@@ -1,7 +1,7 @@
 ## Note first 3 moments of phase-type approx match those of the Weibull and Gamma
 
 ##'
-##' @param prior_shape 
+##' @param prior_shape docme 
 ##' @param prior_scale msmprior() objects
 ##' @return rvar with a sample from the prior of the mean
 ##' @noRd 
@@ -14,7 +14,7 @@ prior_mean_weibull <- function(prior_shape, prior_scale, nphase=3, n=1000000){
 }
 
 ##'
-##' @param prior_shape 
+##' @param prior_shape docme
 ##' @param prior_scale msmprior() objects
 ##' @return rvar with a sample from the prior of the mean
 ##' @noRd 
