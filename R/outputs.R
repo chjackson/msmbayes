@@ -631,6 +631,33 @@ soj_quantile <- function(draws, p, state, new_data=NULL, method="analytic"){
 }
 
 
+##' Hazard function of the sojourn distribution in a state of a msmbayes model
+##'
+##' @inheritParams soj_prob
+##'
+##' @details For the phase-type sojourn distribution, this is computed
+##' using \code{\link{hnphase}}.
+##'
+##' @return A data frame with column `posterior` giving the posterior
+##'   distribution for the hazard of leaving `state`, at time `t` since
+##'   state entry, as an `rvar` object. Other columns give the time and
+##'   any covariate values.
+##'
+##' @seealso \code{\link{soj_prob}}, \code{\link{soj_quantile}}
+##'
+##' @md
+##' @export
+soj_haz <- function(draws, t, state, new_data=NULL, method="analytic"){
+  if (length(state) > 1)
+    cli_abort("{.var state} should be a single number")
+  if (is_phasetype(draws) &&
+      state %in% attr(draws,"pmodel")$phased_states)
+    soj_haz_phase(draws, t, state, new_data, method=method)
+  else
+    soj_haz_nonphase(draws, t, state, new_data)
+}
+
+
 ##' Summarise posteriors for shape and scale parameters for the sojourn distribution in a semi-Markov msmbayes model
 ##'
 ##' In models with covariates on the scale parameter, this currently only presents these parameters for covariate values of zero.

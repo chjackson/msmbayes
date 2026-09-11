@@ -492,6 +492,69 @@ soj_prob_nonphase <- function(draws, t, state, new_data=NULL, inverse_p=FALSE){
   res
 }
 
+#' @noRd
+soj_haz_phase <- function(draws, t, state, new_data=NULL, method="analytic"){
+  ttype <- posterior <- covid <- NULL
+
+  pa <- parate_internal(draws, state, new_data)
+  ntimes <- length(t)
+  ncovvals <- max(NROW(new_data), 1)
+  covid_p <- rep(1:ncovvals, length.out=ncol(pa$p))
+  covid_a <- rep(1:ncovvals, length.out=ncol(pa$a))
+  output <- array(0, dim=c(ndraws(draws), ncovvals, ntimes))
+  for (i in 1:ntimes){
+    for (j in 1:ncovvals){
+      output[,j,i] <- hnphase(t[i], pa$p[,covid_p==j], pa$a[,covid_a==j], method = method)
+    }
+  }
+
+  res <- data.frame(time = rep(t, ncovvals),
+                    posterior = as.vector(rvar(output)))
+
+  if (is_mode(draws)){
+    pa <- parate_internal(draws, state, new_data, type="mode")
+    output_mode <- array(0, dim=c(ncovvals, ntimes))
+    for (i in 1:ntimes){
+      for (j in 1:ncovvals){
+        output_mode[j,i] <- hnphase(t[i], pa$p[covid_p==j], pa$a[covid_a==j], method = method)
+      }
+    }
+    res$mode <- vecbycovs_to_df(output_mode, new_data)$mode
+  }
+
+  res <- as_msmbres(res)
+
+  if (!is.null(new_data))
+    res <- res |>
+      mutate(covid = rep(1:ncovvals, each=ntimes)) |>
+      left_join(new_data |> mutate(covid=1:n()), by="covid") |>
+      select(-covid)
+  res
+}
+
+soj_haz_nonphase <- function(draws, t, state, new_data=NULL){
+  vecid <- time <- NULL
+  qv <- - qmatrix(draws, new_data=new_data, drop=FALSE)[, state, state] |> draws_of()
+  qv_mode <- if (is_mode(draws)) - qmatrix(draws, new_data=new_data, drop=FALSE, type="mode")[, state, state] else NULL
+  ntimes <- length(t)
+  ncovvals <- dim(qv)[2]
+  output <- array(0, dim=c(ndraws(draws), ncovvals, ntimes))
+  output_mode <- if (is_mode(draws)) array(0, dim=c(ncovvals, ntimes)) else NULL
+  for (i in 1:ntimes){
+    output[,,i] <- qv
+    if (is_mode(draws)) output_mode[,i] <- qv_mode
+  }
+  mode <- vecbycovs_to_df(output_mode, new_data)$mode
+  res <- rvar(output) |>
+    vecbycovs_to_df(new_data) |>
+    mutate(mode = mode) |>
+    mutate(time = t[vecid]) |>
+    relocate(time) |>
+    select(-vecid) |>
+    as_msmbres()
+  res
+}
+
 loglik_internal <- function(draws, type="posterior"){
   if (type=="mode" && !is_mode(draws)) return(NULL)
   td <- tidy_draws(if (type=="posterior") draws else get_mode_draws(draws))

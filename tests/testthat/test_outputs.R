@@ -102,6 +102,35 @@ test_that("soj_prob",{
 
 })
 
+test_that("soj_haz",{
+  nd <- data.frame(sex=c("male","female"))
+  expect_no_error({
+    soj_haz(infsim_model, t=c(5), state=2)
+    soj_haz(infsim_model, t=c(5,10), state=2)
+    soj_haz(infsim_modelc, t=c(5,10), new_data = nd, state=2)
+    soj_haz(infsim_modelp, t=c(5,10), state=2)
+    soj_haz(infsim_modelpc, t=c(5,10), new_data = nd, state=2)
+  })
+  expect_error(
+    soj_haz(infsim_model, t=c(5), state=c(1,2)),
+    "`state` should be a single number")
+
+  ## for a non-phase-type (exponential) sojourn, the hazard is constant
+  ## and equal to minus the diagonal of the generator matrix
+  hz <- soj_haz(infsim_model, t=c(5,10), state=2)
+  q <- qmatrix(infsim_model)
+  expect_equal(mean(hz$posterior[1]), mean(-q[2,2]), ignore_attr=TRUE)
+  expect_equal(mean(hz$posterior[1]), mean(hz$posterior[2]))
+
+  ## for a phase-type sojourn, the hazard should agree with a finite
+  ## difference approximation of -d/dt log(survival) at the posterior mode
+  eps <- 1e-5
+  sp1 <- soj_prob(infsim_modelp, t=5, state=2)$mode
+  sp2 <- soj_prob(infsim_modelp, t=5+eps, state=2)$mode
+  fd_haz <- -(log(sp2) - log(sp1)) / eps
+  expect_equal(soj_haz(infsim_modelp, t=5, state=2)$mode, fd_haz, tolerance=1e-3)
+})
+
 Q <- rbind(c(0, 1), c(1, 0))
 draws <- msmbayes(data=infsim,  time="months", Q=Q,
                   fit_method="optimize", draws=0)
