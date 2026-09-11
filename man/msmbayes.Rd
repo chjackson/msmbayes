@@ -278,15 +278,15 @@ about the mean sojourn times.  Experimental, undocumented feature.}
 
 \item{fit_method}{Quoted string specifying the algorithm to fit the
 model.  \code{"sample"} uses NUTS/HMC MCMC, via
-\code{\link[rstan:stanmodel-method-sampling]{rstan::sampling()}}.  This is the default unless \code{priors="mle"}.
+\code{\link[rstan:sampling]{rstan::sampling()}}.  This is the default unless \code{priors="mle"}.
 Alternatives are
 
 \code{"optimize"} to use posterior mode optimization (with respect
 to parameters on the log scale) followed by Laplace approximation
-around the mode (via \code{\link[rstan:stanmodel-method-optimizing]{rstan::optimizing()}}). This is the default
+around the mode (via \code{\link[rstan:optimizing]{rstan::optimizing()}}). This is the default
 if \code{priors="mle"}.
 
-\code{"variational"} to use variational Bayes (via \code{\link[rstan:stanmodel-method-vb]{rstan::vb()}}).
+\code{"variational"} to use variational Bayes (via \code{\link[rstan:vb]{rstan::vb()}}).
 
 \code{"pathfinder"}, to use the Pathfinder variational algorithm
 via \code{cmdstanr}.  This requires \code{cmdstan} and \code{cmdstanr} to be

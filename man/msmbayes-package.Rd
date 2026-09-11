@@ -22,4 +22,9 @@ Useful links:
 \author{
 \strong{Maintainer}: Christopher Jackson \email{chris.jackson@mrc-bsu.cam.ac.uk} (\href{https://orcid.org/0000-0002-6656-8913}{ORCID})
 
+Authors:
+\itemize{
+  \item Christopher Jackson \email{chris.jackson@mrc-bsu.cam.ac.uk} (\href{https://orcid.org/0000-0002-6656-8913}{ORCID})
+}
+
 }
