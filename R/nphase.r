@@ -17,10 +17,16 @@
 #' These functions work in a vectorised way, so that alternative
 #' parameter values or evaluation values `x` can be supplied.  The
 #' number of alternative values is determined from the number of rows
-#' `nrep` of `arate`.  Then if necessary, `prate` and `x` are
+#' of `arate`.  Then if necessary, `prate` and `x` are
 #' replicated to match the size of `arate`.
 #'
-#' @param n Number of random samples to generate.
+#' @param n Number of random samples to generate, for \code{rnphase}.  If
+#'   `prate` or `arate` is a matrix with more than one row, its rows are
+#'   recycled to length `n` and one random number is generated per row,
+#'   in the same fashion as the `mean` and `sd` arguments of
+#'   \code{\link{rnorm}}.  In particular if `n` equals the number of rows
+#'   of `arate`, then exactly one random number is generated for the
+#'   parameters given by each row.
 #'
 #' @param x Value at which to evaluate the PDF, CDF, or hazard.
 #'
@@ -196,12 +202,14 @@ skewness_nphase <- function(prate, arate, initp=NULL){
 ##' @export
 ncmoment_nphase <- function(prate, arate, i, initp=NULL){
   pars <- check_prate_arate(prate, arate)
-  S <- nphase_generator(pars$prate, pars$arate)
   initp <- make_initp(initp, pars$nphase)
-  Spow <- diag(nrow(S))
-  for (j in 1:i)
-    Spow <- Spow %*% solve(-S)
-  factorial(i) * sum(initp %*% Spow)
+  vapply(seq_len(pars$nrep), function(r){
+    S <- nphase_generator(pars$prate[r,], pars$arate[r,])
+    Spow <- diag(pars$nphase)
+    for (j in 1:i)
+      Spow <- Spow %*% solve(-S)
+    factorial(i) * sum(initp %*% Spow)
+  }, numeric(1))
 }
 
 vectorise_nphase <- function(x, prate, arate){
@@ -375,10 +383,16 @@ h5phase <- function(x, p1, p2, p3, p4, a1, a2, a3, a4, a5, method="expm"){
 ##' @aliases rnphase
 ##' @export
 rnphase <- function(n, prate, arate){
-  Q <- nphase_Q(prate, arate)
-  absstate <- nrow(Q)
+  if (length(n) > 1) n <- length(n)
+  pars <- check_prate_arate(prate, arate)
+  nrep <- pars$nrep
+  ind <- rep(1:nrep, length.out=n)
+  prate <- pars$prate[ind, , drop=FALSE]
+  arate <- pars$arate[ind, , drop=FALSE]
   time <- numeric(n)
   for (i in 1:n){
+    Q <- nphase_Q(prate[i,], arate[i,])
+    absstate <- nrow(Q)
     sm <- msm::sim.msm(qmatrix=Q, maxtime=Inf)
     if (any(sm$states==absstate)){
       time[i] <- sm$times[sm$states==absstate]
