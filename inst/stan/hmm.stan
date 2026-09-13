@@ -74,7 +74,7 @@ functions {
     return solution;
   }
 
-  // as findInterval in R. 
+  // as findInterval in R.
   // For use here, x should not be outside range of x0
   int findinterval(real x, vector x0){
     int ret;
@@ -91,19 +91,127 @@ functions {
     return ret;
   }
 
-  
+  // Log-likelihood contribution from a slice of individuals (indexed by
+  // "ind"), for the hidden Markov model forward algorithm.  This is
+  // written so that it can be used either directly (for the whole data,
+  // as a plain function call) or via reduce_sum (applied to slices of
+  // individuals
+  // May or may not save memory, see https://discourse.mc-stan.org/t/memory-usage-in-model-with-matrix-exponentials/39879/12
+
+  real partial_loglik(array[] int ind, int start, int end,
+		       data int K, data int misc, data int ntlc,
+		       data array[] int starti, data array[] int TI,
+		       data array[,] real initprobs,
+		       data array[] int obs, data array[,] int censdat,
+		       data array[] int obstype, data array[] int obstrue,
+		       data array[] int tlcid, data array[] real timelag,
+		       array[] matrix Q,
+		       array[] vector E){
+    real ll = 0;
+    array[K] real mp_jk; // marg prob of data up to time t and true state k at time t, given true state j at time t-1 (recomputed every t, k)
+
+    // Compute P = matrix_exp(Q*timelag) on demand, only for the distinct
+    // (timelag,cov) combinations actually needed by this slice of
+    // individuals, rather than for the whole dataset outside reduce_sum.
+    // This lets the nested autodiff memory used by matrix_exp get
+    // recovered once this slice's contribution to the gradient has been
+    // computed, instead of persisting for the whole model evaluation - see
+    // https://discourse.mc-stan.org/t/memory-usage-in-model-with-matrix-exponentials/39879/12
+    array[ntlc] int tlc_pos = rep_array(0, ntlc);
+    int n_needed = 0;
+    for (idx in 1:size(ind)){
+      int i = ind[idx];
+      if (TI[i] > 1){
+	for (t in 2:TI[i]){
+	  int oi = starti[i] - 1 + t;
+	  if ((obstype[oi] == 1 || obstype[oi] == 3) && tlc_pos[tlcid[oi]] == 0){
+	    n_needed += 1;
+	    tlc_pos[tlcid[oi]] = n_needed;
+	  }
+	}
+      }
+    }
+    array[n_needed] matrix[K,K] P_local;
+    for (j in 1:ntlc){
+      if (tlc_pos[j] > 0){
+	P_local[tlc_pos[j]] = matrix_exp(Q[j,,] * timelag[j]);
+      }
+    }
+
+    for (idx in 1:size(ind)){
+      int i = ind[idx];
+      array[TI[i],K] real mp; // marg prob of data up to time t and true state k at time t.
+      real outcome_prob;
+
+      // each person's first observation
+      for (k in 1:K){
+	int censor = (obs[starti[i]]==0);
+	if (!misc || (misc && censor && obstrue[starti[i]]))
+	  outcome_prob = censdat[starti[i],k];
+	else if (misc && censor && !obstrue[starti[i]])
+	  outcome_prob = dot_product(to_vector(E[k,1:K]), to_vector(censdat[starti[i],1:K])); // observe "obs state in censor set".  so sum E over outcomes in censor set
+	else if (misc && !censor)
+	  outcome_prob = E[k,obs[starti[i]]];
+	mp[1,k] = outcome_prob * initprobs[i, k];
+      }
+
+      if (TI[i]>1){
+	for (t in 2:TI[i]){ // subsequent observations after the first
+	  int oi = starti[i] - 1 + t;
+	  for (k in 1:K){
+	    for (j in 1:K){
+
+	      real trans_prob;
+	      if (obstype[oi]==1){
+		trans_prob = P_local[tlc_pos[tlcid[oi]],j,k];
+	      }
+	      else if (obstype[oi]==2){
+		trans_prob = exp(Q[tlcid[oi],j,j]*timelag[tlcid[oi]]);
+		if (j != k)
+		  trans_prob = trans_prob*Q[tlcid[oi],j,k];
+	      }
+	      else if (obstype[oi]==3){
+		trans_prob = 0;
+		// note msm assumes the state is known when obstype 3
+		// so its code (lik.c:update_likhidden) is simpler
+		for (r in 1:K){
+		  if (r != k)
+		    trans_prob += P_local[tlc_pos[tlcid[oi]],j,r] * Q[tlcid[oi],r,k];
+		}
+	      }
+	      int censor = (obs[oi]==0);
+	      if (!misc || (misc && censor && obstrue[oi]))
+		outcome_prob = censdat[oi,k]; // observe "true state in censor set". likelihood contribution is an 0/1 indicator
+	      else if (misc && censor && !obstrue[oi])
+		outcome_prob = dot_product(to_vector(E[k,1:K]), to_vector(censdat[oi,1:K])); // observe "obs state in censor set".  so sum E over outcomes in censor set
+	      else if (misc && !censor)
+		outcome_prob = E[k,obs[oi]];
+
+	      mp_jk[j] = mp[t-1,j] * trans_prob * outcome_prob;
+	    }
+	    mp[t,k] = sum(mp_jk[1:K]);
+	  }
+	}
+      }
+      ll += log(sum(mp[TI[i],1:K]));
+    }
+    return ll;
+  }
+
+
 }
 
 data {
   int<lower=1> K; // number of states, equal to number of observed states
   int<lower=1> T; // total number of time points
-  int<lower=0> nqpars; 
+  int<lower=0> nqpars;
   int<lower=0> nepars;
   int<lower=1> nindiv;
   int<lower=0> nefix;
   int<lower=0,upper=1> misc; // is there any state misclassification (e.g. 0 if basic phasetype model or censored states, 1 if misclassification on top of those)
   int<lower=0,upper=1> mle; // If 1 then omit the prior - equivalent to MLE for pars on log scale
-  
+  int<lower=0> grainsize; // grainsize for reduce_sum parallelisation of the likelihood over individuals.  0 to disable reduce_sum and use a plain loop instead
+
   array[nindiv] int<lower=1> starti; // starting index in the data for each individual
   array[nindiv] int<lower=1> TI; // number of observations per individual
 
@@ -130,15 +238,15 @@ data {
   array[T,K] int<lower=0,upper=1> censdat;
 
   int npastates; // number of states on observable space that have phase-type approximations
-  int npaqkl; // TODO only applicable to spline phaseapprox method 
+  int npaqkl; // TODO only applicable to spline phaseapprox method
   int npriorq; // number of Markov intensities
   array[npriorq] real logqmean;        // mean of normal prior on markov log(q)
   array[npriorq] real<lower=0> logqsd; // sd of normal prior on log(q)
 
   int<lower=0> nxuniq; // number of unique covariate effects on intensities
   int<lower=0> nx; // total number of covariates on the intensities including repeated constrained ones
-  array[nqpars] int<lower=0> xstart; // starting index into X for each transition. 0 if no covariates on that transition 
-  array[nqpars] int<lower=0> xend;   // ending index into X for each transition 
+  array[nqpars] int<lower=0> xstart; // starting index into X for each transition. 0 if no covariates on that transition
+  array[nqpars] int<lower=0> xend;   // ending index into X for each transition
   array[nqpars] int<lower=0> nxq;    // number of covariates per transition
   int<lower=0> ntafs;                        // number of covariate effects, including replicated user-constrained ones,
   //                                          //   but excluding repeated multipliers on phase transition rates
@@ -154,10 +262,10 @@ data {
 
   matrix[ntlc,ntafs+nrrnext] X;              // all model matrices, column-binded together and keeping only rows corresponding to distinct (timelag, covariates)
   array[nxuniq] real loghrmean;        // mean of normal prior on covariate effects on Markov states
-  array[nxuniq] real<lower=0> loghrsd; // sd 
+  array[nxuniq] real<lower=0> loghrsd; // sd
 
   array[nrrnext] real logrrnextmean;        // prior mean for log RR for competing exit states in pastates models
-  array[nrrnext] real<lower=0> logrrnextsd; // sd 
+  array[nrrnext] real<lower=0> logrrnextsd; // sd
 
   // Prior pseudo-data for sojourn distribution
   int<lower=0> nsoj;
@@ -180,7 +288,7 @@ data {
   array[npastates] int<lower=1> prates_end;
   array[npastates] int<lower=1> npaq;
 
-  // For phase-type approximations with competing exit states. 
+  // For phase-type approximations with competing exit states.
   // NOTE TODO competing exit states not otherwise supported with phase-type models
   int<lower=0> npnext;    // number of competing destination states out of phaseapprox states, not including where there is only one destination
   array[npnext] int<lower=0,upper=1> dest_base;  // indicator for the first absorption destination per state
@@ -189,7 +297,7 @@ data {
 
   int npaqall; // total number of rates (out of nqpars) relating to phaseapprox state
   array[npaqall] int<lower=1,upper=nqpars>    paq_inds; // index into q_full for each of these
-  array[npaqall] int<lower=1>                 prates_inds; // index into prates for each of these TODO 
+  array[npaqall] int<lower=1>                 prates_inds; // index into prates for each of these TODO
   array[npaqall] int<lower=1,upper=npastates> pastate;   // which of 1:npastates these relate to
   array[npaqall] int<lower=0,upper=1>         prate_abs; // is this a competing absorption rate (no if only one destination)
   array[npaqall] int dest_inds;                          // index from 1:npnext for each of these (or 0 if a prog rate)
@@ -203,7 +311,7 @@ data {
 parameters {
   vector[npriorq] logq_markov; // vector of Markov transition intensities
 
-  // log shape/scale parameters for phase-type shape/scale models 
+  // log shape/scale parameters for phase-type shape/scale models
   vector<lower=logshapemin,upper=logshapemax>[npastates] logshape;
   vector[npastates] logscale;
 
@@ -211,7 +319,7 @@ parameters {
   vector[nxuniq] loghr_uniq;    // log hazard ratios for covariates
   vector[noddsnext] logoddsnext;  // log odds of competing destinations from phase-type approximated states
   vector[nrrnext] logrrnext;          // log RRs for covariate effects on relative risk of competing exit states
-} 
+}
 
 
 transformed parameters {
@@ -231,12 +339,12 @@ transformed parameters {
 
   // JUST FOR MISCLASSIFICATION MODELS
   if (nepars > 0){
-    array[K] real sumodds; // sum of error odds over each state 
+    array[K] real sumodds; // sum of error odds over each state
     array[nepars] real oddse;  // error odds ers / err for those that are modelled, not fixed by the user or by the model structure
     for (i in 1:K){
       sumodds[i] = 1; // odds for diagonal e[rr]/e[rr]
     }
-    for (i in 1:nepars){ // modelled ones 
+    for (i in 1:nepars){ // modelled ones
       oddse[i] = exp(logoddse[i]);
       sumodds[erow[i]] = sumodds[erow[i]] + oddse[i];
     }
@@ -258,29 +366,29 @@ transformed parameters {
   for (j in 1:K) {
     E[j,j] = 1 - sum(E[j,1:K]);
   }
-    
+
   vector[npastates] shape = exp(logshape);
   vector[npastates] scale = exp(logscale);
 
   // Parameters for competing transition probabilities out of phaseapprox states
   vector[npnext] pnext;    // transition probabilities from phaseapprox states to competing destinations
-    
-  vector[nqpars] logq;    
-    
-  // JUST PHASEAPPROX MODELS 
+
+  vector[nqpars] logq;
+
+  // JUST PHASEAPPROX MODELS
   if (npastates > 0)
     {
-      vector[npaqall] prates; 
+      vector[npaqall] prates;
       vector[npnext] odds;    // transition odds from phaseapprox states
       vector[npastates] sumoddsa;  // sum of competing odds within a state (including 1 for the first destination)
-      vector[nqpars] q_full;    
+      vector[nqpars] q_full;
 
       for (j in 1:npastates){
 	prates[prates_start[j]:prates_end[j]] =
 	  shapescale_to_rates(shape[j], scale[j], npaq[j], pafamily[j]);
       }
 
-      // define absorption probs in terms of log odds 
+      // define absorption probs in terms of log odds
       if (npnext > 0){
 	for (i in 1:npnext){
 	  if (dest_base[i]==1) {
@@ -298,7 +406,7 @@ transformed parameters {
 
       for (i in 1:npaqall){
 	if (npnext > 0 && prate_abs[i]){
-	  q_full[paq_inds[i]] = prates[prates_inds[i]] * 
+	  q_full[paq_inds[i]] = prates[prates_inds[i]] *
 	    pnext[dest_inds[i]];
 	} else {
 	  q_full[paq_inds[i]] = prates[prates_inds[i]];
@@ -316,18 +424,17 @@ transformed parameters {
     for (i in 1:npriorq){ // will equal nqpars for non-PA models
       logq[i] = logq_markov[i];
     }
-  }    
-    
+  }
+
   {
 
     // transition intensity matrix, with some entries fixed to zero
-    array[ntlc] matrix[K,K] Q; 
+    array[ntlc] matrix[K,K] Q;
     // emission (error or misclassification) matrix
     // j,k entry: prob of observing k given true state j.  some entries fixed to zero
     vector[nqpars] qtmp;
-    array[ntlc] matrix[K,K] P;
 
-    for (i in 1:ntafs){  logtaf[i] = loghr_uniq[consid[i]];  }  // perhaps we could shortcut these two steps but lets see 
+    for (i in 1:ntafs){  logtaf[i] = loghr_uniq[consid[i]];  }  // perhaps we could shortcut these two steps but lets see
     for (i in 1:nx){  loghr[i] = logtaf[tafid[i]];  }
 
     // abstract this block into a function?
@@ -347,70 +454,26 @@ transformed parameters {
 	Q[j,k,k] =  - sum(Q[j,k,1:K]);  // constrain rows to add to zero
       }
     }
-    // Shouldn't really need a different Q for each time lag, just for different covs. Done for convenience.  Scope for efficiency savings here.
-    for (i in 1:ntlc){
-      P[i,,] = matrix_exp(Q[i,,]*timelag[i]);
+    // Note: P = matrix_exp(Q*timelag) is now computed on demand inside
+    // partial_loglik, only for the (timelag,cov) combinations needed by
+    // each reduce_sum slice, rather than precomputed here for all ntlc
+    // combinations - see comment in partial_loglik above.
+
+    array[nindiv] int ind_seq; // 1:nindiv, individual ids to slice over with reduce_sum
+    for (i in 1:nindiv) ind_seq[i] = i;
+
+    if (grainsize > 0){
+      loglik += reduce_sum(partial_loglik, ind_seq, grainsize,
+			    K, misc, ntlc, starti, TI, initprobs,
+			    obs, censdat, obstype, obstrue, tlcid, timelag,
+			    Q, E);
+    } else {
+      loglik += partial_loglik(ind_seq, 1, nindiv,
+				K, misc, ntlc, starti, TI, initprobs,
+				obs, censdat, obstype, obstrue, tlcid, timelag,
+				Q, E);
     }
-  
-    array[K] real mp_jk; // marg prob of data up to time t and true state k at time t, given true state j at time t-1 (recomputed every t, k)
 
-    for (i in 1:nindiv){
-      array[TI[i],K] real mp; // marg prob of data up to time t and true state k at time t.
-      real misc_prob, outcome_prob;
-    
-      // each person's first observation
-      for (k in 1:K){
-	int censor = (obs[starti[i]]==0);
-	if (!misc || (misc && censor && obstrue[starti[i]]))
-	  outcome_prob = censdat[starti[i],k];
-	else if (misc && censor && !obstrue[starti[i]])
-	  outcome_prob = dot_product(to_vector(E[k,1:K]), to_vector(censdat[starti[i],1:K])); // observe "obs state in censor set".  so sum E over outcomes in censor set
-	else if (misc && !censor)
-	  outcome_prob = E[k,obs[starti[i]]];
-	mp[1,k] = outcome_prob * initprobs[i, k];
-      }
-
-      if (TI[i]>1){
-	for (t in 2:TI[i]){ // subsequent observations after the first
-	  int oi = starti[i] - 1 + t;
-	  for (k in 1:K){
-	    for (j in 1:K){
-
-	      real trans_prob;
-	      if (obstype[oi]==1){
-		trans_prob = P[tlcid[oi],j,k];
-	      } 
-	      else if (obstype[oi]==2){
-		trans_prob = exp(Q[tlcid[oi],j,j]*timelag[tlcid[oi]]);
-		if (j != k)
-		  trans_prob = trans_prob*Q[tlcid[oi],j,k];
-	      }
-	      else if (obstype[oi]==3){
-		trans_prob = 0;
-		// note msm assumes the state is known when obstype 3
-		// so its code (lik.c:update_likhidden) is simpler 
-		for (r in 1:K){
-		  if (r != k)
-		    trans_prob += P[tlcid[oi],j,r] * Q[tlcid[oi],r,k];
-		}
-	      }
-	      int censor = (obs[oi]==0);
-	      if (!misc || (misc && censor && obstrue[oi]))
-		outcome_prob = censdat[oi,k]; // observe "true state in censor set". likelihood contribution is an 0/1 indicator
-	      else if (misc && censor && !obstrue[oi])
-		outcome_prob = dot_product(to_vector(E[k,1:K]), to_vector(censdat[oi,1:K])); // observe "obs state in censor set".  so sum E over outcomes in censor set
-	      else if (misc && !censor)
-		outcome_prob = E[k,obs[oi]];
-
-	      mp_jk[j] = mp[t-1,j] * trans_prob * outcome_prob;
-	    }
-	    mp[t,k] = sum(mp_jk[1:K]);
-	  }
-	}
-      }
-      loglik += log(sum(mp[TI[i],1:K]));
-    }
-  
     if (nsoj > 0){
       matrix[K,K] Ptmp;
       real sprob;
@@ -422,19 +485,19 @@ transformed parameters {
     }
   }
 
-  
+
   if (!mle){
     for (i in 1:npriorq){
       logprior += normal_lpdf(logq_markov[i] | logqmean[i], logqsd[i]); // or could be gamma
     }
     for (i in 1:npastates){
-      logprior += normal_lpdf(logshape[i] | logshapemean[i], logshapesd[i]) - 
+      logprior += normal_lpdf(logshape[i] | logshapemean[i], logshapesd[i]) -
 	log(normal_cdf(logshapemax[i] | logshapemean[i], logshapesd[i]) -
 	    normal_cdf(logshapemin[i] | logshapemean[i], logshapesd[i]));
       // i.e. logshape[i] ~ normal(logshapemean[i], logshapesd[i])T[logshapemin[i],logshapemax[i]];
 
       logprior += normal_lpdf(logscale[i] | logscalemean[i], logscalesd[i]);
-    }  
+    }
     if (nxuniq > 0){
       for (i in 1:nxuniq){
 	logprior += normal_lpdf(loghr_uniq[i] | loghrmean[i], loghrsd[i]);
@@ -458,7 +521,7 @@ transformed parameters {
   }
 
   logpost = logprior + loglik;
-} 
+}
 
 model {
   target += logpost;

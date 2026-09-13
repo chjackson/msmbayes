@@ -251,6 +251,24 @@
 #' @param soj_priordata Synthetic data that represents prior information
 #' about the mean sojourn times.  Experimental, undocumented feature.
 #'
+#' @param grainsize Only used for hidden Markov models, i.e. models with
+#'   misclassification (`E`) or censored states (`censor_states`), including
+#'   phase-type approximation models with these features, which are fitted
+#'   with the Stan file `hmm.stan`.
+#'
+#'   The individual likelihood contributions in this model are computed with
+#'   [`reduce_sum`](https://mc-stan.org/docs/stan-users-guide/parallelization.html#reduce-sum),
+#'   which can reduce peak memory use (and, given a suitably-configured Stan
+#'   installation supporting multiple threads, wall-clock time) for models
+#'   with many individuals.  `grainsize` controls the (approximate) number of
+#'   individuals handled in each partial sum evaluated by `reduce_sum`.  The
+#'   default of 1 lets Stan choose the partitioning automatically, which is
+#'   the recommended setting in most cases.
+#'
+#'   Set `grainsize=0` to disable `reduce_sum` and revert to a plain loop
+#'   over individuals, e.g. for comparison, debugging, or if `reduce_sum`
+#'   is not required or is found not to be beneficial.
+#'
 #' @param fit_method Quoted string specifying the algorithm to fit the
 #'   model.  \code{"sample"} uses NUTS/HMC MCMC, via
 #'   [rstan::sampling()].  This is the default unless `priors="mle"`.
@@ -314,6 +332,7 @@ msmbayes <- function(data, state="state", time="time", subject="subject",
                      priors = NULL,
                      prob_initstate = NULL,
                      soj_priordata = NULL,
+                     grainsize = 1,
                      fit_method = NULL,
                      keep_data = FALSE,
                      ...){
@@ -337,7 +356,8 @@ msmbayes <- function(data, state="state", time="time", subject="subject",
                                  em=m$em, pm=m$pm, qmobs=m$qmobs,
                                  priors = m$priors,
                                  prob_initstate = prob_initstate,
-                                 soj_priordata = m$soj_priordata)
+                                 soj_priordata = m$soj_priordata,
+                                 grainsize = grainsize)
     stanfile <- "hmm"
   }
 

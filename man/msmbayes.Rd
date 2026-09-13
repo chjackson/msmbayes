@@ -25,6 +25,7 @@ msmbayes(
   priors = NULL,
   prob_initstate = NULL,
   soj_priordata = NULL,
+  grainsize = 1,
   fit_method = NULL,
   keep_data = FALSE,
   ...
@@ -275,6 +276,24 @@ ignored.}
 
 \item{soj_priordata}{Synthetic data that represents prior information
 about the mean sojourn times.  Experimental, undocumented feature.}
+
+\item{grainsize}{Only used for hidden Markov models, i.e. models with
+misclassification (\code{E}) or censored states (\code{censor_states}), including
+phase-type approximation models with these features, which are fitted
+with the Stan file \code{hmm.stan}.
+
+The individual likelihood contributions in this model are computed with
+\href{https://mc-stan.org/docs/stan-users-guide/parallelization.html#reduce-sum}{\code{reduce_sum}},
+which can reduce peak memory use (and, given a suitably-configured Stan
+installation supporting multiple threads, wall-clock time) for models
+with many individuals.  \code{grainsize} controls the (approximate) number of
+individuals handled in each partial sum evaluated by \code{reduce_sum}.  The
+default of 1 lets Stan choose the partitioning automatically, which is
+the recommended setting in most cases.
+
+Set \code{grainsize=0} to disable \code{reduce_sum} and revert to a plain loop
+over individuals, e.g. for comparison, debugging, or if \code{reduce_sum}
+is not required or is found not to be beneficial.}
 
 \item{fit_method}{Quoted string specifying the algorithm to fit the
 model.  \code{"sample"} uses NUTS/HMC MCMC, via
