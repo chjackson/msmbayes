@@ -26,6 +26,7 @@ msmbayes(
   prob_initstate = NULL,
   soj_priordata = NULL,
   grainsize = 1,
+  matrix_exp_grad = c("analytic", "autodiff"),
   fit_method = NULL,
   keep_data = FALSE,
   ...
@@ -294,6 +295,18 @@ the recommended setting in most cases.
 Set \code{grainsize=0} to disable \code{reduce_sum} and revert to a plain loop
 over individuals, e.g. for comparison, debugging, or if \code{reduce_sum}
 is not required or is found not to be beneficial.}
+
+\item{matrix_exp_grad}{Only used for hidden Markov models (as for
+\code{grainsize}). How the gradient of the transition probability matrix
+\eqn{P = \exp(tQ)} with respect to the parameters is computed.
+\code{"analytic"} (the default) uses an exact analytic formula for the
+derivative of the matrix exponential, which uses much less memory.
+\code{"autodiff"} uses Stan's automatic differentiation through its
+\code{matrix_exp} function, whose memory use grows with the number of
+distinct (time lag, covariate value) combinations in the data and
+with the magnitude of the transition intensities, and can be
+prohibitive for large data sets.  Both give the same results, up to
+floating point error.}
 
 \item{fit_method}{Quoted string specifying the algorithm to fit the
 model.  \code{"sample"} uses NUTS/HMC MCMC, via

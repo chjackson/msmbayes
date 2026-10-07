@@ -7,6 +7,9 @@
 #' @param grainsize Grainsize for \code{reduce_sum} parallelisation of the
 #'   likelihood over individuals in \code{hmm.stan}.  0 disables
 #'   \code{reduce_sum} and computes the likelihood with a plain loop instead.
+#' @param mexp_ad 1 to use the analytic derivative of the matrix
+#'   exponential (`matrix_exp_ad()` in \code{hmm.stan}), 0 to use Stan's
+#'   autodiff through \code{matrix_exp()}.
 #'
 #' One row per time point
 #'
@@ -14,7 +17,8 @@
 make_stan_obsdata <- function(dat, qm=NULL, cm=NULL,
                               em=NULL, pm=NULL, qmobs=qmobs, priors=NULL,
                               prob_initstate=NULL,
-                              soj_priordata=NULL, grainsize=1, call=caller_env()){
+                              soj_priordata=NULL, grainsize=1, mexp_ad=1L,
+                              call=caller_env()){
   na_code <- 0 # keep Stan happy
   if (length(dat[["time"]])==0)
     cli_inform("No observations in the data, carrying on and hoping for the best...")
@@ -55,6 +59,7 @@ make_stan_obsdata <- function(dat, qm=NULL, cm=NULL,
     nefix = length(em$efix),
     misc = as.integer(em$ne > 0),
     grainsize = grainsize,
+    mexp_ad = as.integer(mexp_ad),
 
     starti = as.array(which(!duplicated(dat[["subject"]]))),
     TI = as.array(TI),

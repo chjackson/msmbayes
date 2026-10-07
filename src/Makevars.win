@@ -8,3 +8,5 @@ PKG_CXXFLAGS = $(shell "$(R_HOME)/bin$(R_ARCH_BIN)/Rscript" -e "RcppParallel::Cx
 PKG_LIBS = $(shell "$(R_HOME)/bin$(R_ARCH_BIN)/Rscript" -e "RcppParallel::RcppParallelLibs()") $(shell "$(R_HOME)/bin$(R_ARCH_BIN)/Rscript" -e "StanHeaders:::LdFlags()")
 
 CXX_STD = CXX17
+PKG_CXXFLAGS += -Wa,-mbig-obj
+PKG_CPPFLAGS += -include ../inst/include/matrix_exp_ad_fwd.hpp

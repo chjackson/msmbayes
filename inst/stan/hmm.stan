@@ -1,6 +1,19 @@
 
 
 functions {
+  // Matrix exponential with an analytic reverse-mode derivative, defined in
+  // C++ in inst/include/matrix_exp_ad.hpp. Same value as matrix_exp(), but
+  // stores only the K*K result on the autodiff tape rather than every
+  // operation of the Pade approximation and scaling-and-squaring steps.
+  matrix matrix_exp_ad(matrix A);
+
+  // exp(A), via matrix_exp_ad() if mexp_ad == 1, or Stan's matrix_exp()
+  // (autodiffed through) if mexp_ad == 0.
+  matrix mexp(matrix A, data int mexp_ad){
+    if (mexp_ad == 1) return matrix_exp_ad(A);
+    return matrix_exp(A);
+  }
+
   vector shapescale_to_rates(real shape, real scale,
 			     int nprates, int family){
     real m1, n2, n3;
@@ -100,6 +113,7 @@ functions {
 
   real partial_loglik(array[] int ind, int start, int end,
 		       data int K, data int misc, data int ntlc,
+		       data int mexp_ad,
 		       data array[] int starti, data array[] int TI,
 		       data array[,] real initprobs,
 		       data array[] int obs, data array[,] int censdat,
@@ -134,7 +148,7 @@ functions {
     array[n_needed] matrix[K,K] P_local;
     for (j in 1:ntlc){
       if (tlc_pos[j] > 0){
-	P_local[tlc_pos[j]] = matrix_exp(Q[j,,] * timelag[j]);
+	P_local[tlc_pos[j]] = mexp(Q[j,,] * timelag[j], mexp_ad);
       }
     }
 
@@ -210,6 +224,7 @@ data {
   int<lower=0> nefix;
   int<lower=0,upper=1> misc; // is there any state misclassification (e.g. 0 if basic phasetype model or censored states, 1 if misclassification on top of those)
   int<lower=0,upper=1> mle; // If 1 then omit the prior - equivalent to MLE for pars on log scale
+  int<lower=0,upper=1> mexp_ad; // 1 to use matrix_exp_ad() (analytic derivative of the matrix exponential), 0 to use Stan's matrix_exp() (autodiff)
   int<lower=0> grainsize; // grainsize for reduce_sum parallelisation of the likelihood over individuals.  0 to disable reduce_sum and use a plain loop instead
 
   array[nindiv] int<lower=1> starti; // starting index in the data for each individual
@@ -464,12 +479,12 @@ transformed parameters {
 
     if (grainsize > 0){
       loglik += reduce_sum(partial_loglik, ind_seq, grainsize,
-			    K, misc, ntlc, starti, TI, initprobs,
+			    K, misc, ntlc, mexp_ad, starti, TI, initprobs,
 			    obs, censdat, obstype, obstrue, tlcid, timelag,
 			    Q, E);
     } else {
       loglik += partial_loglik(ind_seq, 1, nindiv,
-				K, misc, ntlc, starti, TI, initprobs,
+				K, misc, ntlc, mexp_ad, starti, TI, initprobs,
 				obs, censdat, obstype, obstrue, tlcid, timelag,
 				Q, E);
     }
@@ -478,7 +493,7 @@ transformed parameters {
       matrix[K,K] Ptmp;
       real sprob;
       for (i in 1:nsoj){
-	Ptmp = matrix_exp(Q[sojtlcid[i],,]*sojtime[i]);
+	Ptmp = mexp(Q[sojtlcid[i],,]*sojtime[i], mexp_ad);
 	sprob = Ptmp[sojstate[i],sojstate[i]];
 	loglik += binomial_lpmf(sojy[i] | sojn[i], sprob);
       }

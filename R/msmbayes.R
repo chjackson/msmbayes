@@ -269,6 +269,18 @@
 #'   over individuals, e.g. for comparison, debugging, or if `reduce_sum`
 #'   is not required or is found not to be beneficial.
 #'
+#' @param matrix_exp_grad Only used for hidden Markov models (as for
+#'   `grainsize`). How the gradient of the transition probability matrix
+#'   \eqn{P = \exp(tQ)} with respect to the parameters is computed.
+#'   `"analytic"` (the default) uses an exact analytic formula for the
+#'   derivative of the matrix exponential, which uses much less memory.
+#'   `"autodiff"` uses Stan's automatic differentiation through its
+#'   `matrix_exp` function, whose memory use grows with the number of
+#'   distinct (time lag, covariate value) combinations in the data and
+#'   with the magnitude of the transition intensities, and can be
+#'   prohibitive for large data sets.  Both give the same results, up to
+#'   floating point error.
+#'
 #' @param fit_method Quoted string specifying the algorithm to fit the
 #'   model.  \code{"sample"} uses NUTS/HMC MCMC, via
 #'   [rstan::sampling()].  This is the default unless `priors="mle"`.
@@ -333,10 +345,12 @@ msmbayes <- function(data, state="state", time="time", subject="subject",
                      prob_initstate = NULL,
                      soj_priordata = NULL,
                      grainsize = 1,
+                     matrix_exp_grad = c("analytic", "autodiff"),
                      fit_method = NULL,
                      keep_data = FALSE,
                      ...){
 
+  matrix_exp_grad <- match.arg(matrix_exp_grad)
   m <- msmbayes_form_internals(data=data, state=state, time=time, subject=subject,
                                Q=Q, covariates=covariates,
                                obstype=obstype, deathexact=deathexact,
@@ -357,7 +371,8 @@ msmbayes <- function(data, state="state", time="time", subject="subject",
                                  priors = m$priors,
                                  prob_initstate = prob_initstate,
                                  soj_priordata = m$soj_priordata,
-                                 grainsize = grainsize)
+                                 grainsize = grainsize,
+                                 mexp_ad = as.integer(matrix_exp_grad == "analytic"))
     stanfile <- "hmm"
   }
 
@@ -407,7 +422,14 @@ cmdstanr_fit <- function(stanfile, standat, fit_method, call=caller_env(), ...){
   exe_path <- if (file.exists(local_exe_path)) local_exe_path else if (file.exists(pkg_exe_path)) pkg_exe_path else NULL
 
   ## this will compile the Stan model if needed
-  stanmod <- cmdstanr::cmdstan_model(stan_file = stan_path, exe_file = exe_path)
+  ## hmm.stan uses matrix_exp_ad(), defined in C++ in a user header
+  if (stanfile == "hmm") {
+    user_header <- file.path(dirname(stan_path), "hmm_user_header.hpp")
+    stanmod <- cmdstanr::cmdstan_model(stan_file = stan_path, exe_file = exe_path,
+                                       user_header = user_header,
+                                       stanc_options = list("allow-undefined" = TRUE))
+  } else
+    stanmod <- cmdstanr::cmdstan_model(stan_file = stan_path, exe_file = exe_path)
   if (fit_method %in% .cmdstanr_fit_methods)
     fit <- stanmod[[fit_method]](data=standat, ...)
   else cli_abort("unknown {.str fit_method} {.str {fit_method}} for {.var cmdstanr}")
