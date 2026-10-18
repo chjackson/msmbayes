@@ -410,6 +410,9 @@ rstan_fit <- function(stanfile, standat, fit_method, ...){
     opt <- do.call(rstan::optimizing, args)
     fit <- opt$theta_tilde
     opt$theta_tilde <- NULL
+    ## Methods(functions) which refer to namespace from session where the model was fit
+    ## Remove these as they pull in mess.  Numbers are in log_p, log_g anyway
+    opt$log_prob <- opt$grad_log_prob <- NULL
     attr(fit, "opt") <- opt
   }
   else if (fit_method == "variational")
