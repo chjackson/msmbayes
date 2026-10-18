@@ -23,6 +23,7 @@ prior_to_rvar <- function(mean, sd, n=1000){
   for (i in 1:nvars){
     sam <- qnorm(pp)
     sam <- sd[i]*(sam - mean(sam))/sd(sam) + mean[i]
+    sam <- sample(sam) # preserve quantiles, but break perfect correlation 
     res[i] <- posterior::rvar(sam)
   }
   res
@@ -104,6 +105,7 @@ prior_logq_db <- function(priors, qm, n){
 prior_mst_db <- function(priors, qm, pm, qdb){
   if (pm$phaseapprox) return(NULL)
   rvar <- NULL
+  qdb <- qdb[match(paste(qm$qrow, qm$qcol), paste(qdb$from, qdb$to)), ] 
   data.frame(
     name = "mst",
     from = 1:qm$K,
