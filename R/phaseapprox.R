@@ -28,7 +28,7 @@ shapescale_to_rates <- function(shape, scale=1, family="gamma",
                                 nphase=3,
                                 list=FALSE, drop=TRUE){
   check_positive_number(shape)
-  check_positive_number(scale) # TESTME
+  check_positive_number(scale)
   ml <- max(length(shape), length(scale))
   shape <- rep(shape, length.out=ml)
   scale <- rep(scale, length.out=ml)
@@ -48,8 +48,8 @@ shapescale_to_rates <- function(shape, scale=1, family="gamma",
 
 check_positive_number <- function(x){
   namex <- deparse(substitute(x))
-  if (is.na(x)) cli_abort("{.var namex} is NA or NaN")
   if (!is.numeric(x)) cli_abort("{.var {namex}} should be numeric")
+  if (any(is.na(x))) cli_abort("{.var {namex}} contains NA or NaN")
   if (any(x < 0)) cli_abort("negative value for {.var {namex}} supplied")
 }
 

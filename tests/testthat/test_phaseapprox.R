@@ -6,6 +6,11 @@ test_that("shapescale_to_rates errors and formats", {
   expect_equal(rl$p[[2]], rv[[2]])
   expect_error(shapescale_to_rates(shape="foo"), "should be numeric")
   expect_error(shapescale_to_rates(shape=-1), "negative value")
+  expect_error(shapescale_to_rates(shape=c(1, -1)), "negative value")
+  expect_error(shapescale_to_rates(shape=c(1, NA)), "NA or NaN")
+  expect_error(shapescale_to_rates(shape=1, scale=c(1, -1)), "negative value")
+  expect_error(shapescale_to_rates(shape=1, scale=c(NaN, 1)), "NA or NaN")
+  expect_error(shapescale_to_rates(shape=1, scale="foo"), "should be numeric")
 
   crates <- shapescale_to_rates(shape=1.2, scale=0.9, list=FALSE, canonical=TRUE)
   rrates <- shapescale_to_rates(shape=1.2, scale=0.9, list=FALSE, canonical=FALSE)
