@@ -251,6 +251,38 @@
 #' @param soj_priordata Synthetic data that represents prior information
 #' about the mean sojourn times.  Experimental, undocumented feature.
 #'
+#' @param grainsize Only used for hidden Markov models, i.e. models with
+#'   misclassification (`E`) or censored states (`censor_states`), including
+#'   phase-type approximation models.
+#'
+#'   This allows the likelihood contributions for groups of
+#'   individuals to be computed in parallel using
+#'   [`reduce_sum`](https://mc-stan.org/docs/stan-users-guide/parallelization.html#reduce-sum),
+#'   which can reduce peak memory use (and, given a
+#'   suitably-configured Stan installation supporting multiple
+#'   threads, wall-clock time) for models with many individuals.
+#'   `grainsize` controls the (approximate) number of individuals
+#'   handled in each partial sum evaluated by `reduce_sum`.  The
+#'   standard setting of 1 lets Stan choose the partitioning
+#'   automatically, which is the recommended setting in most cases.
+#'
+#'   This is switched off by default (`grainsize=0`).
+#'
+#' @param matrix_exp_grad Only used for hidden Markov models (as for
+#'   `grainsize`). How the gradient of the transition probability matrix
+#'   \eqn{P = \exp(tQ)} with respect to the parameters is computed.
+#'   `"analytic"` (the default) uses an exact analytic formula for the
+#'   derivative of the matrix exponential, which uses much less memory.
+#' 
+#'   `"autodiff"` uses Stan's automatic differentiation through its
+#'   `matrix_exp` function, whose memory use grows with the number of
+#'   distinct (time lag, covariate value) combinations in the data and
+#'   with the magnitude of the transition intensities, and can be
+#'   prohibitive for large data sets.  Both give the same results, up to
+#'   floating point error.   This is kept as an option for backwards
+#'   compatibility, but it is deprecated and will be removed in due
+#'   course. 
+#'
 #' @param fit_method Quoted string specifying the algorithm to fit the
 #'   model.  \code{"sample"} uses NUTS/HMC MCMC, via
 #'   [rstan::sampling()].  This is the default unless `priors="mle"`.
@@ -314,10 +346,13 @@ msmbayes <- function(data, state="state", time="time", subject="subject",
                      priors = NULL,
                      prob_initstate = NULL,
                      soj_priordata = NULL,
+                     grainsize = 0,
+                     matrix_exp_grad = c("analytic", "autodiff"),
                      fit_method = NULL,
                      keep_data = FALSE,
                      ...){
 
+  matrix_exp_grad <- match.arg(matrix_exp_grad)
   m <- msmbayes_form_internals(data=data, state=state, time=time, subject=subject,
                                Q=Q, covariates=covariates,
                                obstype=obstype, deathexact=deathexact,
@@ -337,7 +372,9 @@ msmbayes <- function(data, state="state", time="time", subject="subject",
                                  em=m$em, pm=m$pm, qmobs=m$qmobs,
                                  priors = m$priors,
                                  prob_initstate = prob_initstate,
-                                 soj_priordata = m$soj_priordata)
+                                 soj_priordata = m$soj_priordata,
+                                 grainsize = grainsize,
+                                 mexp_ad = as.integer(matrix_exp_grad == "analytic"))
     stanfile <- "hmm"
   }
 
@@ -387,7 +424,13 @@ cmdstanr_fit <- function(stanfile, standat, fit_method, call=caller_env(), ...){
   exe_path <- if (file.exists(local_exe_path)) local_exe_path else if (file.exists(pkg_exe_path)) pkg_exe_path else NULL
 
   ## this will compile the Stan model if needed
-  stanmod <- cmdstanr::cmdstan_model(stan_file = stan_path, exe_file = exe_path)
+  if (stanfile == "hmm") {
+    user_header <- file.path(dirname(stan_path), "hmm_user_header.hpp") # for matrix_exp_ad()
+    stanmod <- cmdstanr::cmdstan_model(stan_file = stan_path, exe_file = exe_path,
+                                       user_header = user_header,
+                                       stanc_options = list("allow-undefined" = TRUE))
+  } else
+    stanmod <- cmdstanr::cmdstan_model(stan_file = stan_path, exe_file = exe_path)
   if (fit_method %in% .cmdstanr_fit_methods)
     fit <- stanmod[[fit_method]](data=standat, ...)
   else cli_abort("unknown {.str fit_method} {.str {fit_method}} for {.var cmdstanr}")
