@@ -25,3 +25,4 @@ R/em_markov.R
 R/em_smm.R
 R/outputs_td.R
 tests/slow
+^\.gitattributes$

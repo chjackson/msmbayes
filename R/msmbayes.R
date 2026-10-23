@@ -316,7 +316,7 @@
 #'
 #' @return A data frame in the \code{draws} format of the
 #'   \pkg{posterior} package, containing draws from the posterior of
-#'   the model parameters.
+#'   the model parameters.
 #'
 #' Attributes are added to give information about the model structure,
 #' and a class `"msmbayes"` is prepended.
