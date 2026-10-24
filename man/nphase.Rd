@@ -57,7 +57,13 @@ matrix exponential is determined using numerical methods, via
 
 \item{i}{which moment to return from \code{ncmoment_nphase}}
 
-\item{n}{Number of random samples to generate.}
+\item{n}{Number of random samples to generate, for \code{rnphase}.  If
+\code{prate} or \code{arate} is a matrix with more than one row, its rows are
+recycled to length \code{n} and one random number is generated per row,
+in the same fashion as the \code{mean} and \code{sd} arguments of
+\code{\link{rnorm}}.  In particular if \code{n} equals the number of rows
+of \code{arate}, then exactly one random number is generated for the
+parameters given by each row.}
 
 \item{p}{Probability at which to evaluate the quantile}
 
@@ -85,6 +91,6 @@ non-central moments of the distribution.
 These functions work in a vectorised way, so that alternative
 parameter values or evaluation values \code{x} can be supplied.  The
 number of alternative values is determined from the number of rows
-\code{nrep} of \code{arate}.  Then if necessary, \code{prate} and \code{x} are
+of \code{arate}.  Then if necessary, \code{prate} and \code{x} are
 replicated to match the size of \code{arate}.
 }

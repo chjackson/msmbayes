@@ -59,4 +59,4 @@ LinkingTo:
     StanHeaders (>= 2.18.0)
 SystemRequirements: GNU make
 Config/Needs/website: rmarkdown
-Config/roxygen2/version: 8.0.0
+Config/roxygen2/version: 8.1.0
