@@ -1,3 +1,20 @@
+# Version 0.4 (2026/10/24)
+
+* Improved speed and memory use when fitting semi-Markov and misclassification, from implementing analytic derivatives of the matrix exponential.
+
+* HMMs can optionally use parallel processing to evaluate the likelihood (`grainsize` argument to `msm`)
+
+* Default number of phases in the phase-type approximation model changed to 3.
+
+* `soj_haz()` function to calculate the hazard of the sojourn distribution for a set of times, for semi-Markov models.
+
+* `soj_quantile()` function to calculate quantiles of the sojourn distribution for semi-Markov models.
+
+* Utility `sim_2state_smm()` to simulate from a reversible 2-state semi-Markov model with generic sojourn distributions.
+
+* Miscellaneous bug fixes (see github commits)
+
+
 # Version 0.3 (2025/08/27)
 
 * `msmbayes()` now supports semi-Markov models with phase-type approximations to Weibull and Gamma sojourn distributions.
