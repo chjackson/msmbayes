@@ -1,7 +1,7 @@
 url: https://chjackson.github.io/msmbayes/
 template:
   bootstrap: 5
-  math-rendering: mathjax
+  math-rendering: katex
   assets: web_assets
 reference:
 - title: Exploratory data analysis
