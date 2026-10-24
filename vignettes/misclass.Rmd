@@ -138,5 +138,8 @@ draws_fix <- msmbayes(data=cav, state="state", time="years", subject="PTNUM",
 
 Using a prior is a compromise between fixing these parameters and attempting to identify them
 from data.   An advantage of the Bayesian approach is that, as long as the computational
-algorithm works, we have a valid posterior.   Then if the marginal posterior for this parameter is the same as the prior, we can deduce there is no information in the data about this particular parameter. If this prior is defensible, we still have a useful model for the data. 
+algorithm works, we have a valid posterior.   Then if the marginal posterior for this parameter 
+is the same as the prior, we can deduce there is no information in the data about this particular 
+parameter.  In the non-Bayesian approach taken in the `msm` package, lack of 
+information in the data typically leads to the model fit not converging - which is less helpful.
 

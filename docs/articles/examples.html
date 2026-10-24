@@ -71,7 +71,7 @@
 Jackson <a href="mailto:chris.jackson@mrc-bsu.cam.ac.uk" class="email">chris.jackson@mrc-bsu.cam.ac.uk</a>
 </h4>
             
-            <h4 data-toc-skip class="date">2025-08-28</h4>
+            <h4 data-toc-skip class="date">2026-10-24</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/chjackson/msmbayes/blob/HEAD/vignettes/examples.Rmd" class="external-link"><code>vignettes/examples.Rmd</code></a></small>
       <div class="d-none name"><code>examples.Rmd</code></div>
@@ -101,7 +101,7 @@ longitudinal study where people are repeatedly tested for an
 infection.</p>
 <p>We assume a two-state multi-state model, with states “test positive”
 and “test negative”.</p>
-<p><img src="../reference/figures/twostate.png" alt="A two-state Markov model" width="400px"></p>
+<p><img src="../reference/figures/twostate.png" class="r-plt" alt="A two-state Markov model" width="400px"></p>
 <p>The data are simulated from a continuous-time Markov model with the
 following transition intensity matrix. Expressed in days or months,
 respectively, this is</p>
@@ -285,10 +285,10 @@ chains have converged (as here).</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://mc-stan.org/bayesplot/" class="external-link">bayesplot</a></span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://mc-stan.org/bayesplot/reference/MCMC-traces.html" class="external-link">mcmc_trace</a></span><span class="op">(</span><span class="va">draws</span>, pars<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"logq[1]"</span>,<span class="st">"logq[2]"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p><img src="examples_files/figure-html/unnamed-chunk-7-1.png" width="700"></p>
+<p><img src="examples_files/figure-html/unnamed-chunk-7-1.png" class="r-plt" alt="" width="700"></p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://mc-stan.org/bayesplot/reference/MCMC-distributions.html" class="external-link">mcmc_dens</a></span><span class="op">(</span><span class="va">draws</span>, pars<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"logq[1]"</span>,<span class="st">"logq[2]"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p><img src="examples_files/figure-html/unnamed-chunk-7-2.png" width="700"></p>
+<p><img src="examples_files/figure-html/unnamed-chunk-7-2.png" class="r-plt" alt="" width="700"></p>
 <p>The <code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code> function can be used to summarise the
 basic parameter estimates (transition intensities here). This gives a
 summary of the posterior for each parameter (variable
@@ -301,10 +301,10 @@ labelled <code>mst</code>.</p>
 <pre><code><span><span class="co">## <span style="color: #949494;"># A tibble: 4 × 7</span></span></span>
 <span><span class="co">##   name   from    to     posterior  rhat prior_string                prior</span></span>
 <span><span class="co">##   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;rvar[1d]&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                  <span style="color: #949494; font-style: italic;">&lt;rvar[1d]&gt;</span></span></span>
-<span><span class="co">## <span style="color: #BCBCBC;">1</span> q         1     2  0.17 <span style="color: #949494;">± 0.093</span>  1.00 0.14 (0.0027, 6.7)   0.92 <span style="color: #949494;">± 3.5</span>  </span></span>
-<span><span class="co">## <span style="color: #BCBCBC;">2</span> q         2     1  3.64 <span style="color: #949494;">± 2.072</span>  1.00 0.14 (0.0027, 6.7)   0.92 <span style="color: #949494;">± 3.5</span>  </span></span>
-<span><span class="co">## <span style="color: #BCBCBC;">3</span> mst       1    <span style="color: #BB0000;">NA</span>  6.70 <span style="color: #949494;">± 1.591</span>  1.00 7.4 (0.15, 369)     50.07 <span style="color: #949494;">± 192.1</span></span></span>
-<span><span class="co">## <span style="color: #BCBCBC;">4</span> mst       2    <span style="color: #BB0000;">NA</span>  0.30 <span style="color: #949494;">± 0.071</span>  1.00 7.4 (0.15, 369)     50.07 <span style="color: #949494;">± 192.1</span></span></span></code></pre>
+<span><span class="co">## <span style="color: #BCBCBC;">1</span> q         1     2  0.17 <span style="color: #949494;">± 0.093</span>  1.00 0.14 (0.0027, 6.8)   0.96 <span style="color: #949494;">± 4.4</span>  </span></span>
+<span><span class="co">## <span style="color: #BCBCBC;">2</span> q         2     1  3.64 <span style="color: #949494;">± 2.072</span>  1.00 0.14 (0.0027, 6.8)   0.96 <span style="color: #949494;">± 4.4</span>  </span></span>
+<span><span class="co">## <span style="color: #BCBCBC;">3</span> mst       1    <span style="color: #BB0000;">NA</span>  6.70 <span style="color: #949494;">± 1.591</span>  1.00 7.4 (0.15, 372)     52.22 <span style="color: #949494;">± 237.6</span></span></span>
+<span><span class="co">## <span style="color: #BCBCBC;">4</span> mst       2    <span style="color: #BB0000;">NA</span>  0.30 <span style="color: #949494;">± 0.071</span>  1.00 7.4 (0.15, 372)     52.22 <span style="color: #949494;">± 237.6</span></span></span></code></pre>
 <p>The mean sojourn times are estimated to be (within estimation error)
 close to the true values of 6 and 0.33 months, as expected.</p>
 <p>Set <code>time=TRUE</code> to summarise the <span class="math inline">\(1/q_{rs}\)</span> (mean times to event, ignoring
@@ -316,8 +316,8 @@ set <code>log=TRUE</code> to summarise the <span class="math inline">\(\log(q_{r
 <pre><code><span><span class="co">## <span style="color: #949494;"># A tibble: 2 × 7</span></span></span>
 <span><span class="co">##   name   from    to    posterior  rhat prior_string              prior</span></span>
 <span><span class="co">##   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;rvar[1d]&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                <span style="color: #949494; font-style: italic;">&lt;rvar[1d]&gt;</span></span></span>
-<span><span class="co">## <span style="color: #BCBCBC;">1</span> time      1     2  6.7 <span style="color: #949494;">± 1.591</span>  1.01 7.39 (0.1482, 368.5)   50 <span style="color: #949494;">± 192</span></span></span>
-<span><span class="co">## <span style="color: #BCBCBC;">2</span> time      2     1  0.3 <span style="color: #949494;">± 0.071</span>  1.00 7.39 (0.1482, 368.5)   50 <span style="color: #949494;">± 192</span></span></span></code></pre>
+<span><span class="co">## <span style="color: #BCBCBC;">1</span> time      1     2  6.7 <span style="color: #949494;">± 1.591</span>  1.01 7.39 (0.1468, 371.9)   52 <span style="color: #949494;">± 238</span></span></span>
+<span><span class="co">## <span style="color: #BCBCBC;">2</span> time      2     1  0.3 <span style="color: #949494;">± 0.071</span>  1.00 7.39 (0.1468, 371.9)   52 <span style="color: #949494;">± 238</span></span></span></code></pre>
 <p>The <code>summary</code> output also gives the “Rhat” convergence
 diagnostic, which should be close to 1.0 if the MCMC estimation has
 converged (<a href="https://mc-stan.org/rstan/reference/Rhat.html" class="external-link">see
@@ -628,7 +628,7 @@ models</a></p></li>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.3.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
 </div>
 
     </footer>

@@ -23,7 +23,7 @@ vignette: >
 To fit a model with non-exponential sojourn distributions (semi-Markov
 model) in `msmbayes`, the easiest way is to use phase-type
 approximations to Weibull and Gamma distributions, as explained in the
-[vignette about this technique](semimarkov.html)  These represent the sojourn distribution with two parameters - which may be all that is possible to identify from data
+[vignette about this technique](semimarkov.html).  These represent the sojourn distribution with two parameters - which may be all that is possible to identify from data
 where the state is only intermittently observed.
 
 A more advanced approach to semi-Markov modelling in `msmbayes` is to
