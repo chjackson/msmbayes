@@ -295,8 +295,7 @@ automatically, which is the recommended setting in most cases.
 
 This is switched off by default (\code{grainsize=0}).}
 
-\item{matrix_exp_grad}{Only used for hidden Markov models (as for
-\code{grainsize}). How the gradient of the transition probability matrix
+\item{matrix_exp_grad}{How the gradient of the transition probability matrix
 \eqn{P = \exp(tQ)} with respect to the parameters is computed.
 \code{"analytic"} (the default) uses an exact analytic formula for the
 derivative of the matrix exponential, which uses much less memory.

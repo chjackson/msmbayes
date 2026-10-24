@@ -1,6 +1,6 @@
 # Version 0.4 (2026/10/24)
 
-* Improved speed and memory use when fitting semi-Markov and misclassification, from implementing analytic derivatives of the matrix exponential.
+* Improved speed and memory use when fitting Markov, semi-Markov and misclassification models, from implementing analytic derivatives of the matrix exponential.
 
 * HMMs can optionally use parallel processing to evaluate the likelihood (`grainsize` argument to `msm`)
 

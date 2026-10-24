@@ -20,7 +20,7 @@
 //
 // This file is included inside the model's namespace: by
 // stan_meta_header.hpp for the rstan models compiled into the package, and
-// by inst/stan/hmm_user_header.hpp for cmdstanr. It therefore contains no
+// by inst/stan/user_header.hpp for cmdstanr. It therefore contains no
 // #include directives or namespace of its own. See matrix_exp_ad_fwd.hpp
 // for why the rstan build also needs a forward declaration.
 
@@ -39,11 +39,19 @@ auto matrix_exp_ad(const T_A& A, std::ostream* pstream__) {
     stan::arena_t<Eigen::Matrix<var, -1, -1>> res
         = stan::math::matrix_exp(Eigen::MatrixXd(A_val));
     stan::math::reverse_pass_callback([A_arena, A_val, res, K]() mutable {
+      // L(A^T, G) is linear in G, so G is scaled to unit 1-norm before
+      // forming B, and the result scaled back. Otherwise a large G (e.g.
+      // from large counts divided by small probabilities) inflates the
+      // norm of B, and hence the number of squarings in matrix_exp(B),
+      // losing accuracy.
+      const double G_norm = res.adj().cwiseAbs().colwise().sum().maxCoeff();
+      if (G_norm == 0)
+        return;
       Eigen::MatrixXd B = Eigen::MatrixXd::Zero(2 * K, 2 * K);
       B.topLeftCorner(K, K) = A_val.transpose();
       B.bottomRightCorner(K, K) = A_val.transpose();
-      B.topRightCorner(K, K) = res.adj();
-      A_arena.adj() += stan::math::matrix_exp(B).topRightCorner(K, K);
+      B.topRightCorner(K, K) = res.adj() / G_norm;
+      A_arena.adj() += G_norm * stan::math::matrix_exp(B).topRightCorner(K, K);
     });
     return Eigen::Matrix<var, -1, -1>(res);
   }

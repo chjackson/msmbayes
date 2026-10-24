@@ -268,8 +268,7 @@
 #'
 #'   This is switched off by default (`grainsize=0`).
 #'
-#' @param matrix_exp_grad Only used for hidden Markov models (as for
-#'   `grainsize`). How the gradient of the transition probability matrix
+#' @param matrix_exp_grad How the gradient of the transition probability matrix
 #'   \eqn{P = \exp(tQ)} with respect to the parameters is computed.
 #'   `"analytic"` (the default) uses an exact analytic formula for the
 #'   derivative of the matrix exponential, which uses much less memory.
@@ -365,7 +364,8 @@ msmbayes <- function(data, state="state", time="time", subject="subject",
   if (!m$em$hmm){
     standat <- make_stan_aggdata(dat=m$data, qm = m$qm, cm = m$cm,
                                  priors = m$priors,
-                                 soj_priordata = m$soj_priordata)
+                                 soj_priordata = m$soj_priordata,
+                                 mexp_ad = as.integer(matrix_exp_grad == "analytic"))
     stanfile <- "msm"
   } else {
     standat <- make_stan_obsdata(dat=m$data, qm=m$qm, cm=m$cm,
@@ -424,13 +424,10 @@ cmdstanr_fit <- function(stanfile, standat, fit_method, call=caller_env(), ...){
   exe_path <- if (file.exists(local_exe_path)) local_exe_path else if (file.exists(pkg_exe_path)) pkg_exe_path else NULL
 
   ## this will compile the Stan model if needed
-  if (stanfile == "hmm") {
-    user_header <- file.path(dirname(stan_path), "hmm_user_header.hpp") # for matrix_exp_ad()
-    stanmod <- cmdstanr::cmdstan_model(stan_file = stan_path, exe_file = exe_path,
-                                       user_header = user_header,
-                                       stanc_options = list("allow-undefined" = TRUE))
-  } else
-    stanmod <- cmdstanr::cmdstan_model(stan_file = stan_path, exe_file = exe_path)
+  user_header <- file.path(dirname(stan_path), "user_header.hpp") # for matrix_exp_ad()
+  stanmod <- cmdstanr::cmdstan_model(stan_file = stan_path, exe_file = exe_path,
+                                     user_header = user_header,
+                                     stanc_options = list("allow-undefined" = TRUE))
   if (fit_method %in% .cmdstanr_fit_methods)
     fit <- stanmod[[fit_method]](data=standat, ...)
   else cli_abort("unknown {.str fit_method} {.str {fit_method}} for {.var cmdstanr}")
