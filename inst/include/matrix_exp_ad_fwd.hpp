@@ -16,4 +16,8 @@ namespace model_hmm_namespace {
 template <typename T_A>
 auto matrix_exp_ad(const T_A& A, std::ostream* pstream__);
 }
+namespace model_msm_namespace {
+template <typename T_A>
+auto matrix_exp_ad(const T_A& A, std::ostream* pstream__);
+}
 #endif
