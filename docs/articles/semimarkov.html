@@ -6,13 +6,8 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title>Semi-Markov models with msmbayes • msmbayes</title>
-<!-- mathjax math --><script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" integrity="sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI=" crossorigin="anonymous"></script><script>
-  window.MathJax = {
-    chtml: {
-      fontURL: "https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/output/chtml/fonts/woff-v2"
-    }
-  };
-</script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<!-- katex math --><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg" crossorigin="anonymous"></script><script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" integrity="sha384-43gviWU0YVjaDtb/GhzOouOXtZMP/7XUzwPTstBeZFe/+rCMvRwr4yROQP43s0Xk" crossorigin="anonymous" onload="renderMathInElement(document.body);"></script><script src="../katex-auto.js"></script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
@@ -71,7 +66,7 @@
 Jackson <a href="mailto:chris.jackson@mrc-bsu.cam.ac.uk" class="email">chris.jackson@mrc-bsu.cam.ac.uk</a>
 </h4>
             
-            <h4 data-toc-skip class="date">2025-08-28</h4>
+            <h4 data-toc-skip class="date">2026-10-24</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/chjackson/msmbayes/blob/HEAD/vignettes/semimarkov.Rmd" class="external-link"><code>vignettes/semimarkov.Rmd</code></a></small>
       <div class="d-none name"><code>semimarkov.Rmd</code></div>
@@ -107,35 +102,38 @@ and are based on well-understood parametric distributions.</p>
 <div class="section level2">
 <h2 id="phase-type-shape-scale-distributions">Phase-type shape-scale distributions<a class="anchor" aria-label="anchor" href="#phase-type-shape-scale-distributions"></a>
 </h2>
-<p>The distribution has two parameters: shape <span class="math inline">\(a\)</span> and scale <span class="math inline">\(b\)</span>. The probability distribution function
-is defined by</p>
-<p><span class="math display">\[ F(x | a, b) = F_p(x |
-\boldsymbol{\lambda}  = b \mathbf{h}(a)) \]</span></p>
-<p>where <span class="math inline">\(F_p(x |
-\boldsymbol{\lambda})\)</span> is a phase-type distribution (with 5
-phases by default) and vector of transition rates <span class="math inline">\(\boldsymbol{\lambda}\)</span>. The shape and scale
-are mapped to the phase-type transition rates through a function <span class="math inline">\(\mathbf{h}()\)</span>, determined so that the
-first three moments of the phase-type distribution are the same as those
-of the Weibull or a Gamma, for a wide range of shape parameters. This
-function is pre-determined (using the formulae from <a href="https://doi.org/10.1081/STM-200056210" class="external-link">Bobbio et al.</a>) and
-stored in the <code>msmbayes</code> package. A default of 5 phases is
-used. This process will be described more formally in a forthcoming
-paper, but for now, the code is in the package source
+<p>The distribution has two parameters: shape <span class="math inline">a</span> and scale <span class="math inline">b</span>. The probability distribution function is
+defined by</p>
+<p><span class="math display"> F(x | a, b) = F_p(x |
+\boldsymbol{\lambda}  = b \mathbf{h}(a)) </span></p>
+<p>where <span class="math inline">F_p(x | \boldsymbol{\lambda})</span>
+is a phase-type distribution (with 5 phases by default) and vector of
+transition rates <span class="math inline">\boldsymbol{\lambda}</span>.
+The shape and scale are mapped to the phase-type transition rates
+through a function <span class="math inline">\mathbf{h}()</span>,
+determined so that the first three moments of the phase-type
+distribution are the same as those of the Weibull or a Gamma, for a wide
+range of shape parameters. This function is pre-determined (using the
+formulae from <a href="https://doi.org/10.1081/STM-200056210" class="external-link">Bobbio et
+al.</a>) and stored in the <code>msmbayes</code> package. A default of 5
+phases is used. This process will be described more formally in a
+forthcoming paper, but for now, the code is in the package source
 (<code>phaseapprox</code> branch).</p>
 <ul>
-<li><p>Covariates can be applied to the scale parameter <span class="math inline">\(b\)</span>, as a linear model on <span class="math inline">\(\log(b)\)</span>, giving an accelerated failure
-time model.</p></li>
+<li><p>Covariates can be applied to the scale parameter <span class="math inline">b</span>, as a linear model on <span class="math inline">\log(b)</span>, giving an accelerated failure time
+model.</p></li>
 <li><p>Additional assumptions are needed if there are multiple
-alternative states <span class="math inline">\(s\)</span> that an
-individual can transition to immediately on leaving a state <span class="math inline">\(r\)</span> that has a phase-type approximation. In
+alternative states <span class="math inline">s</span> that an individual
+can transition to immediately on leaving a state <span class="math inline">r</span> that has a phase-type approximation. In
 <code>msmbayes</code>, this transition is governed by a constant “next
-state” probability <span class="math inline">\(\pi_{rs}\)</span>, as is
-done in <a href="https://doi.org/10.1007/s11222-012-9360-6" class="external-link">Titman,
-2014</a>. This assumes that the transition probability does not depend
-on the length of time spent in state <span class="math inline">\(r\)</span> (the supplementary material to <a href="https://doi.org/10.1007/s11222-012-9360-6" class="external-link">Titman, 2014</a>
+state” probability <span class="math inline">\pi_{rs}</span>, as is done
+in <a href="https://doi.org/10.1007/s11222-012-9360-6" class="external-link">Titman, 2014</a>.
+This assumes that the transition probability does not depend on the
+length of time spent in state <span class="math inline">r</span> (the
+supplementary material to <a href="https://doi.org/10.1007/s11222-012-9360-6" class="external-link">Titman, 2014</a>
 discusses more flexible alternatives).</p></li>
-<li><p>Covariates can also be applied to <span class="math inline">\(\pi_{rs}\)</span> via a multiplicative model on
-the odds of transition.</p></li>
+<li><p>Covariates can also be applied to <span class="math inline">\pi_{rs}</span> via a multiplicative model on the
+odds of transition.</p></li>
 </ul>
 </div>
 <div class="section level2">
@@ -200,17 +198,17 @@ explanation of the <code>rvar</code> format used in the column
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">drawsg</span>, pars<span class="op">=</span><span class="st">"shape"</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">## <span style="color: #949494;"># A tibble: 2 × 6</span></span></span>
-<span><span class="co">##   name  from    posterior  mode prior_string          prior</span></span>
-<span><span class="co">##   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;rvar[1d]&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>            <span style="color: #949494; font-style: italic;">&lt;rvar[1d]&gt;</span></span></span>
-<span><span class="co">## <span style="color: #BCBCBC;">1</span> shape 1      1.1 <span style="color: #949494;">± 0.38</span>  1.02 1.0 (0.38, 2.66)  1.1 <span style="color: #949494;">± 0.6</span></span></span>
-<span><span class="co">## <span style="color: #BCBCBC;">2</span> shape 2      1.0 <span style="color: #949494;">± 0.12</span>  1.00 1.0 (0.38, 2.66)  1.1 <span style="color: #949494;">± 0.6</span></span></span></code></pre>
+<span><span class="co">##   name  from   posterior  mode prior_string          prior</span></span>
+<span><span class="co">##   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;rvar[1d]&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>            <span style="color: #949494; font-style: italic;">&lt;rvar[1d]&gt;</span></span></span>
+<span><span class="co">## <span style="color: #BCBCBC;">1</span> shape 1       1 <span style="color: #949494;">± 0.38</span>  1.03 1.0 (0.38, 2.66)  1.1 <span style="color: #949494;">± 0.6</span></span></span>
+<span><span class="co">## <span style="color: #BCBCBC;">2</span> shape 2       1 <span style="color: #949494;">± 0.44</span>  1.01 1.0 (0.38, 2.66)  1.1 <span style="color: #949494;">± 0.6</span></span></span></code></pre>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">drawsw</span>, pars<span class="op">=</span><span class="st">"shape"</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">## <span style="color: #949494;"># A tibble: 2 × 6</span></span></span>
 <span><span class="co">##   name  from    posterior  mode prior_string          prior</span></span>
 <span><span class="co">##   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;rvar[1d]&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>            <span style="color: #949494; font-style: italic;">&lt;rvar[1d]&gt;</span></span></span>
-<span><span class="co">## <span style="color: #BCBCBC;">1</span> shape 1      1.0 <span style="color: #949494;">± 0.18</span>  1.04 1.0 (0.61, 1.63)   1 <span style="color: #949494;">± 0.26</span></span></span>
-<span><span class="co">## <span style="color: #BCBCBC;">2</span> shape 2      1.1 <span style="color: #949494;">± 0.25</span>  1.13 1.0 (0.61, 1.63)   1 <span style="color: #949494;">± 0.26</span></span></span></code></pre>
+<span><span class="co">## <span style="color: #BCBCBC;">1</span> shape 1      1.0 <span style="color: #949494;">± 0.19</span>  1.05 1.0 (0.61, 1.63)   1 <span style="color: #949494;">± 0.26</span></span></span>
+<span><span class="co">## <span style="color: #BCBCBC;">2</span> shape 2      1.1 <span style="color: #949494;">± 0.27</span>  1.13 1.0 (0.61, 1.63)   1 <span style="color: #949494;">± 0.26</span></span></span></code></pre>
 </div>
 <div class="section level4">
 <h4 id="choice-of-priors">Choice of priors<a class="anchor" aria-label="anchor" href="#choice-of-priors"></a>
@@ -250,16 +248,16 @@ unclear how that might be set up with an intermittently-observed
 multistate model)</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/loglik.html">loglik</a></span><span class="op">(</span><span class="va">drawsg</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">##       name     posterior        mode</span></span>
-<span><span class="co">## 1   loglik -143.7 ± 2.21 -142.235930</span></span>
-<span><span class="co">## 2 logprior   -5.8 ± 0.77   -5.399696</span></span>
-<span><span class="co">## 3  logpost -149.5 ± 2.29 -147.635626</span></span></code></pre>
+<pre><code><span><span class="co">##       name    posterior        mode</span></span>
+<span><span class="co">## 1   loglik -144.5 ± 4.0 -142.234781</span></span>
+<span><span class="co">## 2 logprior   -6.5 ± 1.8   -5.372464</span></span>
+<span><span class="co">## 3  logpost -151.0 ± 5.3 -147.607245</span></span></code></pre>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/loglik.html">loglik</a></span><span class="op">(</span><span class="va">drawsw</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">##       name     posterior        mode</span></span>
-<span><span class="co">## 1   loglik -144.8 ± 9.2  -142.200516</span></span>
-<span><span class="co">## 2 logprior   -4.7 ± 1.4    -3.886514</span></span>
-<span><span class="co">## 3  logpost -149.5 ± 10.0 -146.087029</span></span></code></pre>
+<span><span class="co">## 1   loglik -151.8 ± 66.1 -142.179576</span></span>
+<span><span class="co">## 2 logprior   -5.2 ± 5.9    -3.781163</span></span>
+<span><span class="co">## 3  logpost -157.0 ± 71.3 -145.960740</span></span></code></pre>
 </div>
 <div class="section level4">
 <h4 id="sojourn-distribution">Sojourn distribution<a class="anchor" aria-label="anchor" href="#sojourn-distribution"></a>
@@ -282,7 +280,7 @@ and a lot of uncertainty.</p>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_ribbon.html" class="external-link">geom_ribbon</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>ymin<span class="op">=</span><span class="va">q5</span>, ymax<span class="op">=</span><span class="va">q95</span>, fill<span class="op">=</span><span class="va">Model</span><span class="op">)</span>, alpha<span class="op">=</span><span class="fl">0.2</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span> </span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">xlab</a></span><span class="op">(</span><span class="st">"Months"</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">ylab</a></span><span class="op">(</span><span class="st">"Probability of remaining in state 1"</span><span class="op">)</span></span></code></pre></div>
-<p><img src="semimarkov_files/figure-html/unnamed-chunk-4-1.png" width="700"></p>
+<p><img src="semimarkov_files/figure-html/unnamed-chunk-4-1.png" class="r-plt" alt="" width="700"></p>
 <p>The mean of the sojourn distribution, the mean time to the next
 transition on entry to a state, is given by <code><a href="../reference/mean_sojourn.html">mean_sojourn()</a></code>.
 The mean of the phase-type approximation should agree with the mean of
@@ -295,14 +293,14 @@ Gamma distribution, which has mean defined by
 <pre><code><span><span class="co">## <span style="color: #949494;"># A tibble: 2 × 3</span></span></span>
 <span><span class="co">##   state    posterior  mode</span></span>
 <span><span class="co">##   <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;rvar[1d]&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
-<span><span class="co">## <span style="color: #BCBCBC;">1</span>     1  1.61 <span style="color: #949494;">± 0.78</span> 1.51 </span></span>
-<span><span class="co">## <span style="color: #BCBCBC;">2</span>     2  0.29 <span style="color: #949494;">± 0.14</span> 0.261</span></span></code></pre>
+<span><span class="co">## <span style="color: #BCBCBC;">1</span>     1  1.65 <span style="color: #949494;">± 1.01</span> 1.52 </span></span>
+<span><span class="co">## <span style="color: #BCBCBC;">2</span>     2  0.27 <span style="color: #949494;">± 0.16</span> 0.262</span></span></code></pre>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">shape</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">drawsg</span>, pars<span class="op">=</span><span class="st">"shape"</span><span class="op">)</span></span>
 <span><span class="va">scale</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">drawsg</span>, pars<span class="op">=</span><span class="st">"scale"</span><span class="op">)</span></span>
 <span><span class="va">shape</span><span class="op">$</span><span class="va">posterior</span> <span class="op">*</span> <span class="va">scale</span><span class="op">$</span><span class="va">posterior</span></span></code></pre></div>
 <pre><code><span><span class="co">## rvar&lt;4000&gt;[2] <span style="color: #949494;">mean ± sd:</span></span></span>
-<span><span class="co">## [1] 1.61 ± 0.78  0.29 ± 0.14</span></span></code></pre>
+<span><span class="co">## [1] 1.65 ± 1.01  0.27 ± 0.16</span></span></code></pre>
 </div>
 </div>
 <div class="section level3">
@@ -325,19 +323,21 @@ data about these parameters.</p>
 <span>                   pastates<span class="op">=</span><span class="fl">1</span><span class="op">:</span><span class="fl">2</span>,</span>
 <span>                   priors <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="../reference/msmprior.html">msmprior</a></span><span class="op">(</span><span class="st">"logshape"</span>, mean<span class="op">=</span><span class="fl">0</span>, sd<span class="op">=</span><span class="fl">0.4</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>                   covariates <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/scale.html" class="external-link">scale</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span> <span class="op">~</span> <span class="va">male</span>, <span class="fu"><a href="https://rdrr.io/r/base/scale.html" class="external-link">scale</a></span><span class="op">(</span><span class="fl">2</span><span class="op">)</span> <span class="op">~</span> <span class="va">male</span><span class="op">)</span>,</span>
-<span>                   Q<span class="op">=</span><span class="va">Q</span>, fit_method<span class="op">=</span><span class="st">"optimize"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/loglik.html">loglik</a></span><span class="op">(</span><span class="va">drawsc</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">##       name posterior       mode</span></span>
-<span><span class="co">## 1   loglik -151 ± 21 -142.13004</span></span>
-<span><span class="co">## 2 logprior  -12 ± 1   -11.02586</span></span>
-<span><span class="co">## 3  logpost -163 ± 21 -153.15590</span></span></code></pre>
+<span>                   Q<span class="op">=</span><span class="va">Q</span>, fit_method<span class="op">=</span><span class="st">"optimize"</span><span class="op">)</span></span></code></pre></div>
+<pre><code><span><span class="co">## Warning in .local(object, ...): non-zero return code in optimizing</span></span></code></pre>
 <div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/loglik.html">loglik</a></span><span class="op">(</span><span class="va">drawsc</span><span class="op">)</span></span></code></pre></div>
+<pre><code><span><span class="co">##       name   posterior      mode</span></span>
+<span><span class="co">## 1   loglik -150 ± 17.6 -142.1279</span></span>
+<span><span class="co">## 2 logprior  -12 ± 1.3   -11.0203</span></span>
+<span><span class="co">## 3  logpost -162 ± 17.7 -153.1482</span></span></code></pre>
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">drawsc</span>, pars <span class="op">=</span> <span class="st">"shape"</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">## <span style="color: #949494;"># A tibble: 2 × 6</span></span></span>
 <span><span class="co">##   name  from    posterior  mode prior_string           prior</span></span>
 <span><span class="co">##   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;rvar[1d]&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>             <span style="color: #949494; font-style: italic;">&lt;rvar[1d]&gt;</span></span></span>
-<span><span class="co">## <span style="color: #BCBCBC;">1</span> shape 1      1.1 <span style="color: #949494;">± 0.38</span> 1.04  1.0 (0.46, 2.19)  1.1 <span style="color: #949494;">± 0.45</span></span></span>
-<span><span class="co">## <span style="color: #BCBCBC;">2</span> shape 2      1.0 <span style="color: #949494;">± 0.12</span> 1.000 1.0 (0.46, 2.19)  1.1 <span style="color: #949494;">± 0.45</span></span></span></code></pre>
+<span><span class="co">## <span style="color: #BCBCBC;">1</span> shape 1      1.1 <span style="color: #949494;">± 0.36</span> 1.04  1.0 (0.46, 2.19)  1.1 <span style="color: #949494;">± 0.45</span></span></span>
+<span><span class="co">## <span style="color: #BCBCBC;">2</span> shape 2      1.0 <span style="color: #949494;">± 0.14</span> 1.000 1.0 (0.46, 2.19)  1.1 <span style="color: #949494;">± 0.45</span></span></span></code></pre>
 <div class="section level4">
 <h4 id="time-acceleration-factors">Time acceleration factors<a class="anchor" aria-label="anchor" href="#time-acceleration-factors"></a>
 </h4>
@@ -351,16 +351,16 @@ returned by <code><a href="../reference/logtaf.html">taf()</a></code>, which app
 to the <code>posterior</code> column of this object, as explained <a href="examples.html#rvar">here</a>). Note also <code>taf(...)</code> is
 an alternative to <code>summary(..., pars="taf")</code>.</p>
 </blockquote>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/logtaf.html">taf</a></span><span class="op">(</span><span class="va">drawsc</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">##   from name posterior     mode</span></span>
-<span><span class="co">## 1    1 male  20 ± 101 2.768362</span></span>
-<span><span class="co">## 2    2 male  18 ± 79  2.556254</span></span></code></pre>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<span><span class="co">## 1    1 male   15 ± 62 2.751458</span></span>
+<span><span class="co">## 2    2 male   13 ± 50 2.531223</span></span></code></pre>
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="fu"><a href="../reference/logtaf.html">taf</a></span><span class="op">(</span><span class="va">drawsc</span><span class="op">)</span>, <span class="op">~</span><span class="fu"><a href="https://rdrr.io/r/stats/quantile.html" class="external-link">quantile</a></span><span class="op">(</span><span class="va">.x</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.025</span>, <span class="fl">0.5</span>, <span class="fl">0.975</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">##   from name     mode       2.5%      50%    97.5%</span></span>
-<span><span class="co">## 1    1 male 2.768362 0.05896570 2.953502 157.0297</span></span>
-<span><span class="co">## 2    2 male 2.556254 0.05309879 2.614734 145.5197</span></span></code></pre>
+<span><span class="co">## 1    1 male 2.751458 0.08012185 2.917579 115.1142</span></span>
+<span><span class="co">## 2    2 male 2.531223 0.07008792 2.584790 106.7616</span></span></code></pre>
 </div>
 <div class="section level4">
 <h4 id="outputs-from-fitted-models-by-covariates">Outputs from fitted models by covariates<a class="anchor" aria-label="anchor" href="#outputs-from-fitted-models-by-covariates"></a>
@@ -386,46 +386,42 @@ observable states or the latent phases.</p></li>
 over 12 months, is computed here for two different covariate values (men
 and women). If <code>nd</code> is not supplied, the output is returned
 for covariate values of zero.</p>
-<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">nd</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>male<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>,<span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/totlos.html">totlos</a></span><span class="op">(</span><span class="va">drawsc</span>, t<span class="op">=</span><span class="fl">12</span>, new_data<span class="op">=</span><span class="va">nd</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">## <span style="color: #949494;"># A tibble: 4 × 4</span></span></span>
 <span><span class="co">## <span style="color: #949494;"># Groups:   state [2]</span></span></span>
 <span><span class="co">##   state    posterior  male  mode</span></span>
 <span><span class="co">##   <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;rvar[1d]&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
-<span><span class="co">## <span style="color: #BCBCBC;">1</span>     1  10.3 <span style="color: #949494;">± 0.37</span>     0 10.3 </span></span>
-<span><span class="co">## <span style="color: #BCBCBC;">2</span>     1  10.2 <span style="color: #949494;">± 0.45</span>     1 10.2 </span></span>
-<span><span class="co">## <span style="color: #BCBCBC;">3</span>     2   1.7 <span style="color: #949494;">± 0.37</span>     0  1.66</span></span>
-<span><span class="co">## <span style="color: #BCBCBC;">4</span>     2   1.8 <span style="color: #949494;">± 0.45</span>     1  1.81</span></span></code></pre>
+<span><span class="co">## <span style="color: #BCBCBC;">1</span>     1  10.2 <span style="color: #949494;">± 0.41</span>     0 10.3 </span></span>
+<span><span class="co">## <span style="color: #BCBCBC;">2</span>     1  10.1 <span style="color: #949494;">± 0.46</span>     1 10.2 </span></span>
+<span><span class="co">## <span style="color: #BCBCBC;">3</span>     2   1.8 <span style="color: #949494;">± 0.41</span>     0  1.66</span></span>
+<span><span class="co">## <span style="color: #BCBCBC;">4</span>     2   1.9 <span style="color: #949494;">± 0.46</span>     1  1.81</span></span></code></pre>
 <p>Or for a standard population whose distribution matches the observed
 distribution of covariates in the data frame <code>nd</code>, here 50%
 men and 50% women:</p>
-<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/totlos.html">totlos</a></span><span class="op">(</span><span class="va">drawsc</span>, t<span class="op">=</span><span class="fl">12</span>, new_data<span class="op">=</span><span class="fu"><a href="../reference/standardise_to.html">standardise_to</a></span><span class="op">(</span><span class="va">nd</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">## <span style="color: #949494;"># A tibble: 2 × 3</span></span></span>
 <span><span class="co">##   state    posterior  mode</span></span>
 <span><span class="co">##   <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;rvar[1d]&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
-<span><span class="co">## <span style="color: #BCBCBC;">1</span>     1  10.2 <span style="color: #949494;">± 0.41</span> 10.2 </span></span>
-<span><span class="co">## <span style="color: #BCBCBC;">2</span>     2   1.8 <span style="color: #949494;">± 0.41</span>  1.77</span></span></code></pre>
+<span><span class="co">## <span style="color: #BCBCBC;">1</span>     1  10.2 <span style="color: #949494;">± 0.44</span> 10.2 </span></span>
+<span><span class="co">## <span style="color: #BCBCBC;">2</span>     2   1.8 <span style="color: #949494;">± 0.44</span>  1.77</span></span></code></pre>
 <p>We may also break down the total length of time spent in each of the
 five latent phases that comprise a stay in state 1 or state 2, though
 this is only of academic interest. These are the states of the hidden
 Markov model that is used to implement the semi-Markov model.</p>
-<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/totlos.html">totlos</a></span><span class="op">(</span><span class="va">drawsc</span>, t<span class="op">=</span><span class="fl">12</span>, states<span class="op">=</span><span class="st">"phase"</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">## <span style="color: #949494;"># A tibble: 10 × 5</span></span></span>
-<span><span class="co">##    state      posterior          mode stateobs statephase</span></span>
-<span><span class="co">##    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;rvar[1d]&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;int&gt;</span></span></span>
-<span><span class="co">## <span style="color: #BCBCBC;"> 1</span> 1p1    8.441 <span style="color: #949494;">± 1.207</span> 10.1                 1          1</span></span>
-<span><span class="co">## <span style="color: #BCBCBC;"> 2</span> 1p2    0.513 <span style="color: #949494;">± 0.311</span>  0.064<span style="text-decoration: underline;">3</span>              1          2</span></span>
-<span><span class="co">## <span style="color: #BCBCBC;"> 3</span> 1p3    0.472 <span style="color: #949494;">± 0.280</span>  0.062<span style="text-decoration: underline;">9</span>              1          3</span></span>
-<span><span class="co">## <span style="color: #BCBCBC;"> 4</span> 1p4    0.431 <span style="color: #949494;">± 0.255</span>  0.061<span style="text-decoration: underline;">4</span>              1          4</span></span>
-<span><span class="co">## <span style="color: #BCBCBC;"> 5</span> 1p5    0.393 <span style="color: #949494;">± 0.238</span>  0.060<span style="text-decoration: underline;">0</span>              1          5</span></span>
-<span><span class="co">## <span style="color: #BCBCBC;"> 6</span> 2p1    1.607 <span style="color: #949494;">± 0.358</span>  1.66                2          1</span></span>
-<span><span class="co">## <span style="color: #BCBCBC;"> 7</span> 2p2    0.037 <span style="color: #949494;">± 0.029</span>  0.000<span style="text-decoration: underline;">000</span>051<span style="text-decoration: underline;">8</span>        2          2</span></span>
-<span><span class="co">## <span style="color: #BCBCBC;"> 8</span> 2p3    0.036 <span style="color: #949494;">± 0.028</span>  0.000<span style="text-decoration: underline;">000</span>050<span style="text-decoration: underline;">9</span>        2          3</span></span>
-<span><span class="co">## <span style="color: #BCBCBC;"> 9</span> 2p4    0.036 <span style="color: #949494;">± 0.028</span>  0.000<span style="text-decoration: underline;">000</span>050<span style="text-decoration: underline;">0</span>        2          4</span></span>
-<span><span class="co">## <span style="color: #BCBCBC;">10</span> 2p5    0.035 <span style="color: #949494;">± 0.027</span>  0.000<span style="text-decoration: underline;">000</span>049<span style="text-decoration: underline;">2</span>        2          5</span></span></code></pre>
+<pre><code><span><span class="co">## <span style="color: #949494;"># A tibble: 6 × 5</span></span></span>
+<span><span class="co">##   state     posterior      mode stateobs statephase</span></span>
+<span><span class="co">##   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;rvar[1d]&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;int&gt;</span></span></span>
+<span><span class="co">## <span style="color: #BCBCBC;">1</span> 1p1    8.02 <span style="color: #949494;">± 1.523</span> 10.0             1          1</span></span>
+<span><span class="co">## <span style="color: #BCBCBC;">2</span> 1p2    1.18 <span style="color: #949494;">± 0.738</span>  0.150           1          2</span></span>
+<span><span class="co">## <span style="color: #BCBCBC;">3</span> 1p3    1.02 <span style="color: #949494;">± 0.611</span>  0.144           1          3</span></span>
+<span><span class="co">## <span style="color: #BCBCBC;">4</span> 2p1    1.55 <span style="color: #949494;">± 0.404</span>  1.66            2          1</span></span>
+<span><span class="co">## <span style="color: #BCBCBC;">5</span> 2p2    0.12 <span style="color: #949494;">± 0.099</span>  0.000<span style="text-decoration: underline;">495</span>        2          2</span></span>
+<span><span class="co">## <span style="color: #BCBCBC;">6</span> 2p3    0.11 <span style="color: #949494;">± 0.096</span>  0.000<span style="text-decoration: underline;">483</span>        2          3</span></span></code></pre>
 </div>
 </div>
 <div class="section level3">
@@ -446,7 +442,7 @@ the rate of transition from illness to death.</p>
 called “state”, “time”, and “subject”, we do not need to name them
 explicitly in the call to <code><a href="../reference/msmbayes.html">msmbayes()</a></code>.</p>
 </blockquote>
-<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">Qid</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>,<span class="fl">1</span>,<span class="fl">1</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>,<span class="fl">0</span>,<span class="fl">1</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>,<span class="fl">0</span>,<span class="fl">0</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">draws</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/msmbayes.html">msmbayes</a></span><span class="op">(</span>data<span class="op">=</span><span class="va">illdeath_data</span>, pastates<span class="op">=</span><span class="fl">1</span>,</span>
 <span>                  covariates <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/scale.html" class="external-link">scale</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span> <span class="op">~</span> <span class="va">sex</span>,</span>
@@ -463,11 +459,11 @@ respectively.</p>
 <p>The effects of covariates on progression are represented differently
 for each of these states. For the risk of death from illness, the
 covariate effect is a hazard ratio.</p>
-<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">draws</span>, pars<span class="op">=</span><span class="st">"hr"</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">##          name from to posterior     mode   prior_string             prior</span></span>
-<span><span class="co">## 1 hr(sexmale)    2  3 6.6 ± 6.6 4.782825 1 (0, 3.2e+08) 4.3e+11 ± 2.2e+13</span></span>
-<span><span class="co">## 2 hr(sexmale)    2  3 6.6 ± 6.6 4.782825 1 (0, 3.2e+08) 4.3e+11 ± 2.2e+13</span></span></code></pre>
+<span><span class="co">## 1 hr(sexmale)    2  3 1.6 ± 1.3 1.310705 1 (0, 3.2e+08) 4.3e+11 ± 2.2e+13</span></span>
+<span><span class="co">## 2 hr(sexmale)    2  3 1.6 ± 1.3 1.310705 1 (0, 3.2e+08) 4.3e+11 ± 2.2e+13</span></span></code></pre>
 <p>For a person in state 1, without the illness, there are two aspects
 of the covariate effect.</p>
 <ul>
@@ -480,14 +476,11 @@ this parameter has the same interpretation as the hazard ratio.</p></li>
 risk of death without the illness, relative to a “baseline” risk of
 getting the illness.</p></li>
 </ul>
-<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb34"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">draws</span>, pars<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"taf"</span>,<span class="st">"rrnext"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">##              name from to        posterior       mode   prior_string</span></span>
-<span><span class="co">## 1    taf(sexmale)    1 NA    2.6 ± 1.9     2.01522152 1 (0, 3.2e+08)</span></span>
-<span><span class="co">## 2 rrnext(sexmale)    1  3 2174.9 ± 68510.3 0.05788637 1 (0, 3.2e+08)</span></span>
-<span><span class="co">##               prior</span></span>
-<span><span class="co">## 1 4.3e+11 ± 2.2e+13</span></span>
-<span><span class="co">## 2 4.3e+11 ± 2.2e+13</span></span></code></pre>
+<pre><code><span><span class="co">##              name from to posterior     mode   prior_string             prior</span></span>
+<span><span class="co">## 1    taf(sexmale)    1 NA 1.4 ± 1.1 1.089302 1 (0, 3.2e+08) 4.3e+11 ± 2.2e+13</span></span>
+<span><span class="co">## 2 rrnext(sexmale)    1  3 3.0 ± 5.7 1.314705 1 (0, 3.2e+08) 4.3e+11 ± 2.2e+13</span></span></code></pre>
 </div>
 <div class="section level4">
 <h4 id="summarising-outputs-by-covariates">Summarising outputs by covariates<a class="anchor" aria-label="anchor" href="#summarising-outputs-by-covariates"></a>
@@ -502,36 +495,36 @@ this model, suppose we are interested in the total time spent alive over
 for each covariate category to be compared (using
 <code><a href="../reference/standardise_to.html">standardise_to()</a></code> as above, if necessary, to marginalise
 over other covariates).</p>
-<div class="sourceCode" id="cb34"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb36"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">tl</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/totlos.html">totlos</a></span><span class="op">(</span><span class="va">draws</span>, t<span class="op">=</span><span class="fl">24</span>, new_data <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>sex<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"male"</span>,<span class="st">"female"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">tl</span></span></code></pre></div>
 <pre><code><span><span class="co">## <span style="color: #949494;"># A tibble: 6 × 4</span></span></span>
 <span><span class="co">## <span style="color: #949494;"># Groups:   state [3]</span></span></span>
 <span><span class="co">##   state     posterior sex      mode</span></span>
 <span><span class="co">##   <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;rvar[1d]&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
-<span><span class="co">## <span style="color: #BCBCBC;">1</span>     1   1.31 <span style="color: #949494;">± 0.40</span> female  1.28 </span></span>
-<span><span class="co">## <span style="color: #BCBCBC;">2</span>     1   0.85 <span style="color: #949494;">± 0.55</span> male    1.16 </span></span>
-<span><span class="co">## <span style="color: #BCBCBC;">3</span>     2   0.72 <span style="color: #949494;">± 0.48</span> female  0.648</span></span>
-<span><span class="co">## <span style="color: #BCBCBC;">4</span>     2   0.22 <span style="color: #949494;">± 0.17</span> male    0.293</span></span>
-<span><span class="co">## <span style="color: #BCBCBC;">5</span>     3  21.96 <span style="color: #949494;">± 0.62</span> female 22.1  </span></span>
-<span><span class="co">## <span style="color: #BCBCBC;">6</span>     3  22.93 <span style="color: #949494;">± 0.65</span> male   22.5</span></span></code></pre>
+<span><span class="co">## <span style="color: #BCBCBC;">1</span>     1   0.89 <span style="color: #949494;">± 0.32</span> female  0.895</span></span>
+<span><span class="co">## <span style="color: #BCBCBC;">2</span>     1   0.73 <span style="color: #949494;">± 0.29</span> male    0.740</span></span>
+<span><span class="co">## <span style="color: #BCBCBC;">3</span>     2   1.33 <span style="color: #949494;">± 0.66</span> female  1.29 </span></span>
+<span><span class="co">## <span style="color: #BCBCBC;">4</span>     2   0.91 <span style="color: #949494;">± 0.49</span> male    0.878</span></span>
+<span><span class="co">## <span style="color: #BCBCBC;">5</span>     3  21.78 <span style="color: #949494;">± 0.72</span> female 21.8  </span></span>
+<span><span class="co">## <span style="color: #BCBCBC;">6</span>     3  22.36 <span style="color: #949494;">± 0.57</span> male   22.4</span></span></code></pre>
 <p>Posterior samples are then extracted for the time in state 1 and the
 time in state 2 separately, for men and women separately.
 <code>tl_12_male</code> (and <code>tl_12_female</code>) will then
 comprise two <code>rvar</code> objects.</p>
-<div class="sourceCode" id="cb36"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">tl_12_male</span> <span class="op">&lt;-</span> <span class="va">tl</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">state</span> <span class="op"><a href="https://mc-stan.org/posterior/reference/match.html" class="external-link">%in%</a></span> <span class="fl">1</span><span class="op">:</span><span class="fl">2</span>, <span class="va">sex</span><span class="op">==</span><span class="st">"male"</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/pull.html" class="external-link">pull</a></span><span class="op">(</span><span class="va">posterior</span><span class="op">)</span> </span>
-<span><span class="va">tl_12_female</span> <span class="op">&lt;-</span> <span class="va">tl</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">state</span> <span class="op"><a href="https://mc-stan.org/posterior/reference/match.html" class="external-link">%in%</a></span> <span class="fl">1</span><span class="op">:</span><span class="fl">2</span>, <span class="va">sex</span><span class="op">==</span><span class="st">"female"</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/pull.html" class="external-link">pull</a></span><span class="op">(</span><span class="va">posterior</span><span class="op">)</span></span>
+<div class="sourceCode" id="cb38"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">tl_12_male</span> <span class="op">&lt;-</span> <span class="va">tl</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">state</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fl">1</span><span class="op">:</span><span class="fl">2</span>, <span class="va">sex</span><span class="op">==</span><span class="st">"male"</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/pull.html" class="external-link">pull</a></span><span class="op">(</span><span class="va">posterior</span><span class="op">)</span> </span>
+<span><span class="va">tl_12_female</span> <span class="op">&lt;-</span> <span class="va">tl</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">state</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fl">1</span><span class="op">:</span><span class="fl">2</span>, <span class="va">sex</span><span class="op">==</span><span class="st">"female"</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/pull.html" class="external-link">pull</a></span><span class="op">(</span><span class="va">posterior</span><span class="op">)</span></span>
 <span><span class="va">tl_12_male</span></span></code></pre></div>
 <pre><code><span><span class="co">## rvar&lt;4000&gt;[2] <span style="color: #949494;">mean ± sd:</span></span></span>
-<span><span class="co">## [1] 0.85 ± 0.55  0.22 ± 0.17</span></span></code></pre>
+<span><span class="co">## [1] 0.73 ± 0.29  0.91 ± 0.49</span></span></code></pre>
 <p>The posterior samples for state 1 and state 2 are added together to
 give the posterior sample for the time spent alive. This is done for
 women and men separately. Note <code>rvar_sum</code> is needed for this,
 not the standard</p>
 <p>Finally we obtain a posterior sample <code>tl_diff</code> for the
 difference in the expected time spent alive for men and women.</p>
-<div class="sourceCode" id="cb38"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb40"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://mc-stan.org/posterior/" class="external-link">posterior</a></span><span class="op">)</span></span>
 <span><span class="va">tl_diff</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://mc-stan.org/posterior/reference/rvar-summaries-within-draws.html" class="external-link">rvar_sum</a></span><span class="op">(</span><span class="va">tl_12_female</span><span class="op">)</span> <span class="op">-</span> <span class="fu"><a href="https://mc-stan.org/posterior/reference/rvar-summaries-within-draws.html" class="external-link">rvar_sum</a></span><span class="op">(</span><span class="va">tl_12_male</span><span class="op">)</span> </span></code></pre></div>
 <blockquote>
@@ -548,15 +541,15 @@ recommend summarising the posterior distribution of a quantity of
 interest. This might be done in different ways, e.g. as a 95% credible
 interval, or a posterior probability of exceeding a value of practical
 interest (e.g. 0, or a clinically important value):</p>
-<div class="sourceCode" id="cb39"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb41"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">tl_diff</span>, <span class="op">~</span><span class="fu"><a href="https://rdrr.io/r/stats/quantile.html" class="external-link">quantile</a></span><span class="op">(</span><span class="va">.x</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.025</span>, <span class="fl">0.5</span>, <span class="fl">0.975</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">## <span style="color: #949494;"># A tibble: 1 × 4</span></span></span>
 <span><span class="co">##   variable `2.5%` `50%` `97.5%`</span></span>
 <span><span class="co">##   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
-<span><span class="co">## <span style="color: #BCBCBC;">1</span> tl_diff  -<span style="color: #BB0000;">0.656</span> 0.893    2.82</span></span></code></pre>
-<div class="sourceCode" id="cb41"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/infsim.html">mean</a></span><span class="op">(</span><span class="va">tl_diff</span> <span class="op">&gt;</span> <span class="fl">0</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">## [1] 0.8735</span></span></code></pre>
+<span><span class="co">## <span style="color: #BCBCBC;">1</span> tl_diff   -<span style="color: #BB0000;">1.16</span> 0.553    2.53</span></span></code></pre>
+<div class="sourceCode" id="cb43"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">tl_diff</span> <span class="op">&gt;</span> <span class="fl">0</span><span class="op">)</span></span></code></pre></div>
+<pre><code><span><span class="co">## [1] 0.747</span></span></code></pre>
 </div>
 </div>
 </div>
@@ -571,7 +564,7 @@ interest (e.g. 0, or a clinically important value):</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.3.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
 </div>
 
     </footer>
