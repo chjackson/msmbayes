@@ -1,6 +1,17 @@
 // Bayesian version of the standard Markov multi-state model for intermittently-observed data (Kalbfleisch and Lawless JASA 1985).  
 
 functions {
+  // Matrix exponential with an analytic reverse-mode derivative, defined in
+  // C++ in inst/include/matrix_exp_ad.hpp. See hmm.stan.
+  matrix matrix_exp_ad(matrix A);
+
+  // exp(A), via matrix_exp_ad() if mexp_ad == 1, or Stan's matrix_exp()
+  // (autodiffed through) if mexp_ad == 0.
+  matrix mexp(matrix A, data int mexp_ad){
+    if (mexp_ad == 1) return matrix_exp_ad(A);
+    return matrix_exp(A);
+  }
+
   vector validate_probs(vector P){
     real psum; 
     vector[size(P)] Pret = P;
@@ -33,6 +44,7 @@ data {
 
   int<lower=0> nqpars; // number of allowed transitions [ fixed q not yet supported ]
   int<lower=0,upper=1> mle; // If 1 then omit the prior - equivalent to MLE for pars on log scale
+  int<lower=0,upper=1> mexp_ad; // 1 to use matrix_exp_ad() (analytic derivative of the matrix exponential), 0 to use Stan's matrix_exp() (autodiff)
 
   array[nqpars] int<lower=1,upper=K> qrow; // row of Q corresponding to each qvec
   array[nqpars] int<lower=1,upper=K> qcol; // col of Q corresponding to each qvec
@@ -119,7 +131,7 @@ transformed parameters {
     }
     for (i in 1:N){
       // perhaps inefficient to repeatedly calculate P if any (covind,timelag) are repeated.
-      P = matrix_exp(Q[covind[i],,]*timelag[i]); 
+      P = mexp(Q[covind[i],,]*timelag[i], mexp_ad);
       probs = validate_probs(to_vector(P[fromstate[i],]));
 
       // exclude any structural zeros to avoid infinite gradient when probs=0
@@ -152,7 +164,7 @@ transformed parameters {
       matrix[K,K] Ptmp;
       real sprob;
       for (i in 1:nsoj){
-	Ptmp = matrix_exp(Q[sojtlcid[i],,]*sojtime[i]);
+	Ptmp = mexp(Q[sojtlcid[i],,]*sojtime[i], mexp_ad);
 	sprob = Ptmp[sojstate[i],sojstate[i]];
 	loglik += binomial_lpmf(sojy[i] | sojn[i], sprob);
       }

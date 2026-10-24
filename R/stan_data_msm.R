@@ -6,10 +6,13 @@
 #' @param qm List with info about transition model structure
 #' @param cm List with info about covariate model
 #' @inheritParams msmbayes
+#' @param mexp_ad 1 to use the analytic derivative of the matrix
+#'   exponential (`matrix_exp_ad()` in \code{msm.stan}), 0 to use Stan's
+#'   autodiff through \code{matrix_exp()}.
 #'
 #' @noRd
 make_stan_aggdata <- function(dat, qm=NULL, cm=NULL, priors=NULL,
-                              soj_priordata = NULL){
+                              soj_priordata = NULL, mexp_ad = 1L){
   if (length(dat[["time"]])==0)
     cli_inform("No observations in the data, carrying on and hoping for the best...")
   dat_trans <- form_transition_data(dat)
@@ -21,6 +24,7 @@ make_stan_aggdata <- function(dat, qm=NULL, cm=NULL, priors=NULL,
   res <- list(K = qm$K,
               N = nrow(dwide),
               nqpars = qm$nqpars,
+              mexp_ad = as.integer(mexp_ad),
               qrow = as.array(qm$qrow),
               qcol = as.array(qm$qcol),
               qfixrow = as.array(qm$qfixrow),
