@@ -1,0 +1,79 @@
+# Workflow derived from https://github.com/r-lib/actions/tree/v2/examples
+# Need help debugging build failures? Start at https://github.com/r-lib/actions#where-to-find-help
+#
+# Builds the pkgdown site on demand, for any branch. Run it from the
+# Actions tab ("Run workflow", then choose the branch), or with
+#   gh workflow run pkgdown.yaml --ref <branch> [-f commit_docs=true]
+#
+# The built site is always uploaded as an artifact, which can be
+# downloaded from the run's summary page to preview it. If commit_docs
+# is ticked, the rebuilt docs/ is also committed back to the branch. On
+# master, that updates the live site, which GitHub Pages serves from
+# master:/docs.
+on:
+  workflow_dispatch:
+    inputs:
+      commit_docs:
+        description: 'Commit the rebuilt docs/ back to the branch'
+        type: boolean
+        default: false
+
+name: pkgdown.yaml
+
+concurrency:
+  group: pkgdown-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions: read-all
+
+jobs:
+  pkgdown:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-pandoc@v2
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          extra-repositories: 'https://mc-stan.org/r-packages'
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: any::pkgdown, local::.
+          needs: website
+
+      - name: Install CmdStan
+        run: |
+          cmdstanr::check_cmdstan_toolchain(fix = TRUE)
+          cmdstanr::install_cmdstan()
+        shell: Rscript {0}
+
+      - name: Build site
+        run: pkgdown::build_site(new_process = FALSE, install = FALSE)
+        shell: Rscript {0}
+
+      - name: Upload site
+        uses: actions/upload-artifact@v4
+        with:
+          name: pkgdown-site
+          path: docs
+
+      - name: Commit docs/ to the branch
+        if: ${{ inputs.commit_docs }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs
+          if git diff --cached --quiet; then
+            echo "docs/ unchanged, nothing to commit"
+          else
+            git commit -m "Rebuild pkgdown site"
+            git push
+          fi
