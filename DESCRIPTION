@@ -45,7 +45,7 @@ Suggests:
 LazyData: true
 LazyDataCompression: gzip
 VignetteBuilder: knitr
-URL: https://github.com/chjackson/msmbayes
+URL: https://github.com/chjackson/msmbayes, https://chjackson.github.io/msmbayes
 BugReports: https://github.com/chjackson/msmbayes/issues
 Additional_repositories: https://mc-stan.org/r-packages
 Config/testthat/edition: 3
