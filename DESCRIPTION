@@ -58,5 +58,5 @@ LinkingTo:
     rstan (>= 2.18.1),
     StanHeaders (>= 2.18.0)
 SystemRequirements: GNU make
-Config/Needs/website: rmarkdown
+Config/Needs/website: rmarkdown, forcats, gt, ggdist, ggstance, cowplot
 Config/roxygen2/version: 8.1.0

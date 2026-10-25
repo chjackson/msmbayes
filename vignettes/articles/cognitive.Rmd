@@ -23,7 +23,10 @@ Additional files sourced from this one (the data and additional R code) are avai
 ```{r setup, message=FALSE}
 library(msmbayes)
 library(msm)
-library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(forcats)
 library(gt)
 library(posterior)
 source("elsa_priors.R")
