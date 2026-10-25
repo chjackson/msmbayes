@@ -6,15 +6,10 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title>Misclassification multi-state models in msmbayes • msmbayes</title>
-<!-- mathjax math --><script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" integrity="sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI=" crossorigin="anonymous"></script><script>
-  window.MathJax = {
-    chtml: {
-      fontURL: "https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/output/chtml/fonts/woff-v2"
-    }
-  };
-</script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
-<script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
+<!-- katex math --><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg" crossorigin="anonymous"></script><script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" integrity="sha384-43gviWU0YVjaDtb/GhzOouOXtZMP/7XUzwPTstBeZFe/+rCMvRwr4yROQP43s0Xk" crossorigin="anonymous" onload="renderMathInElement(document.body);"></script><script src="../katex-auto.js"></script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
+<script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Misclassification multi-state models in msmbayes">
 </head>
@@ -26,7 +21,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">msmbayes</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -71,9 +66,9 @@
 Jackson <a href="mailto:chris.jackson@mrc-bsu.cam.ac.uk" class="email">chris.jackson@mrc-bsu.cam.ac.uk</a>
 </h4>
             
-            <h4 data-toc-skip class="date">2026-10-24</h4>
+            <h4 data-toc-skip class="date">2026-10-25</h4>
       
-      <small class="dont-index">Source: <a href="https://github.com/chjackson/msmbayes/blob/HEAD/vignettes/misclass.Rmd" class="external-link"><code>vignettes/misclass.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/chjackson/msmbayes/blob/master/vignettes/misclass.Rmd" class="external-link"><code>vignettes/misclass.Rmd</code></a></small>
       <div class="d-none name"><code>misclass.Rmd</code></div>
     </div>
 
@@ -180,15 +175,15 @@ probabilities<a class="anchor" aria-label="anchor" href="#specifiying-prior-dist
 </h3>
 <p>In <code>msmbayes</code>, normal prior distributions are assumed for
 the <em>log odds</em> of misclassification. Denote the misclassification
-error probability by <span class="math inline">\(e_{rs}\)</span>, the
-probability that an individual in state <span class="math inline">\(r\)</span> is observed in state <span class="math inline">\(s\)</span>. The corresponding log odds of
-misclassification is <span class="math inline">\(log(e_{rs} /
-e_{rr})\)</span>, the log odds of being misclassified in state <span class="math inline">\(s\)</span>, relative to no misclassification.</p>
+error probability by <span class="math inline">e_{rs}</span>, the
+probability that an individual in state <span class="math inline">r</span> is observed in state <span class="math inline">s</span>. The corresponding log odds of
+misclassification is <span class="math inline">log(e_{rs} /
+e_{rr})</span>, the log odds of being misclassified in state <span class="math inline">s</span>, relative to no misclassification.</p>
 <p>The default normal(0,1) for these log odds parameters is intended to
 give a roughly uniform distribution on the scale of probabilities.</p>
 <p>To specify the mean and SD of these normal priors by hand, use
 <code>msmprior</code> as follows, with <code>loe(r,s)</code> indicating
-the log-odds of misclassication of state <span class="math inline">\(r\)</span> as state <span class="math inline">\(s\)</span>.</p>
+the log-odds of misclassication of state <span class="math inline">r</span> as state <span class="math inline">s</span>.</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">priors</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="../reference/msmprior.html">msmprior</a></span><span class="op">(</span><span class="st">"loe(1,2)"</span>, mean<span class="op">=</span><span class="op">-</span><span class="fl">2</span>, sd<span class="op">=</span><span class="fl">0.2</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">draws_prior</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/msmbayes.html">msmbayes</a></span><span class="op">(</span>data<span class="op">=</span><span class="va">cav</span>, state<span class="op">=</span><span class="st">"state"</span>, time<span class="op">=</span><span class="st">"years"</span>, subject<span class="op">=</span><span class="st">"PTNUM"</span>, </span>
@@ -201,23 +196,24 @@ the log-odds of misclassication of state <span class="math inline">\(r\)</span> 
 <span><span class="co">## <span style="color: #BCBCBC;">2</span>     2     1  0.165 <span style="color: #949494;">± 0.0328</span> 0.163 </span></span>
 <span><span class="co">## <span style="color: #BCBCBC;">3</span>     2     3  0.080 <span style="color: #949494;">± 0.0192</span> 0.077<span style="text-decoration: underline;">3</span></span></span>
 <span><span class="co">## <span style="color: #BCBCBC;">4</span>     3     2  0.135 <span style="color: #949494;">± 0.0383</span> 0.130</span></span></code></pre>
-<p>If there is only one potential misclassification <span class="math inline">\(s\)</span> for some state <span class="math inline">\(r\)</span>, then the log odds of misclassification
-is just the standard logit of <span class="math inline">\(e_{rs}\)</span>. In the above model, the prior
-median 95% credible interval implied by the normal(-2, 0.2) prior can be
-deduced by taking the inverse logit of the prior quantiles. This prior
-is fairly tight around a misclassification probability of 0.1, and
-appears to have the effect of pulling it away from the value estimated
-from the data.</p>
+<p>If there is only one potential misclassification <span class="math inline">s</span> for some state <span class="math inline">r</span>, then the log odds of misclassification is
+just the standard logit of <span class="math inline">e_{rs}</span>. In
+the above model, the prior median 95% credible interval implied by the
+normal(-2, 0.2) prior can be deduced by taking the inverse logit of the
+prior quantiles. This prior is fairly tight around a misclassification
+probability of 0.1, and appears to have the effect of pulling it away
+from the value estimated from the data.</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/stats/Logistic.html" class="external-link">plogis</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">qnorm</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.025</span>, <span class="fl">0.5</span>, <span class="fl">0.975</span><span class="op">)</span>, <span class="op">-</span><span class="fl">2</span>, <span class="fl">0.2</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">## [1] 0.08378533 0.11920292 0.16686547</span></span></code></pre>
 <p>With multiple misclassification possibilities per true state, a
 multinomial logit transform is needed. To deduce the prior beliefs about
 probabilities implied by a particular prior mean and SD, a simple
-approach is to use simulation. For a particular true state <span class="math inline">\(r\)</span>, simulate from the normal priors for
-all potential observed states <span class="math inline">\(s\)</span>,
-then use an inverse multinomial logit transform to deduce the
-corresponding sample for the set of <span class="math inline">\(e_{rs}\)</span>, which satisfies <span class="math inline">\(\sum_s e_{rs} = 1\)</span>.</p>
+approach is to use simulation. For a particular true state <span class="math inline">r</span>, simulate from the normal priors for all
+potential observed states <span class="math inline">s</span>, then use
+an inverse multinomial logit transform to deduce the corresponding
+sample for the set of <span class="math inline">e_{rs}</span>, which
+satisfies <span class="math inline">\sum_s e_{rs} = 1</span>.</p>
 </div>
 <div class="section level3">
 <h3 id="fixed-misclassification-probabilities">Fixed misclassification probabilities<a class="anchor" aria-label="anchor" href="#fixed-misclassification-probabilities"></a>
@@ -242,8 +238,9 @@ attempting to identify them from data. An advantage of the Bayesian
 approach is that, as long as the computational algorithm works, we have
 a valid posterior. Then if the marginal posterior for this parameter is
 the same as the prior, we can deduce there is no information in the data
-about this particular parameter. If this prior is defensible, we still
-have a useful model for the data.</p>
+about this particular parameter. In the non-Bayesian approach taken in
+the <code>msm</code> package, lack of information in the data typically
+leads to the model fit not converging - which is less helpful.</p>
 </div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
@@ -257,7 +254,7 @@ have a useful model for the data.</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer>

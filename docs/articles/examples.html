@@ -6,15 +6,10 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title>Examples of using msmbayes • msmbayes</title>
-<!-- mathjax math --><script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js" integrity="sha256-MASABpB4tYktI2Oitl4t+78w/lyA+D7b/s9GEP0JOGI=" crossorigin="anonymous"></script><script>
-  window.MathJax = {
-    chtml: {
-      fontURL: "https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/output/chtml/fonts/woff-v2"
-    }
-  };
-</script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
-<script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
+<!-- katex math --><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg" crossorigin="anonymous"></script><script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" integrity="sha384-43gviWU0YVjaDtb/GhzOouOXtZMP/7XUzwPTstBeZFe/+rCMvRwr4yROQP43s0Xk" crossorigin="anonymous" onload="renderMathInElement(document.body);"></script><script src="../katex-auto.js"></script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
+<script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Examples of using msmbayes">
 </head>
@@ -26,7 +21,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">msmbayes</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -71,9 +66,9 @@
 Jackson <a href="mailto:chris.jackson@mrc-bsu.cam.ac.uk" class="email">chris.jackson@mrc-bsu.cam.ac.uk</a>
 </h4>
             
-            <h4 data-toc-skip class="date">2026-10-24</h4>
+            <h4 data-toc-skip class="date">2026-10-25</h4>
       
-      <small class="dont-index">Source: <a href="https://github.com/chjackson/msmbayes/blob/HEAD/vignettes/examples.Rmd" class="external-link"><code>vignettes/examples.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/chjackson/msmbayes/blob/master/vignettes/examples.Rmd" class="external-link"><code>vignettes/examples.Rmd</code></a></small>
       <div class="d-none name"><code>examples.Rmd</code></div>
     </div>
 
@@ -171,6 +166,9 @@ names.</p>
 <span>           <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">0</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">draws</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/msmbayes.html">msmbayes</a></span><span class="op">(</span>data<span class="op">=</span><span class="va">infsim</span>, state<span class="op">=</span><span class="st">"state"</span>, time<span class="op">=</span><span class="st">"months"</span>, subject<span class="op">=</span><span class="st">"subject"</span>,</span>
 <span>                  Q<span class="op">=</span><span class="va">Q</span><span class="op">)</span></span></code></pre></div>
+<pre><code><span><span class="co">## Warning: Bulk Effective Samples Size (ESS) is too low, indicating posterior means and medians may be unreliable.</span></span>
+<span><span class="co">## Running the chains for more iterations may help. See</span></span>
+<span><span class="co">## https://mc-stan.org/misc/warnings.html#bulk-ess</span></span></code></pre>
 <pre><code><span><span class="co">## Warning: Tail Effective Samples Size (ESS) is too low, indicating posterior variances and tail quantiles may be unreliable.</span></span>
 <span><span class="co">## Running the chains for more iterations may help. See</span></span>
 <span><span class="co">## https://mc-stan.org/misc/warnings.html#tail-ess</span></span></code></pre>
@@ -196,19 +194,23 @@ continuous time (here, all transitions are allowed).</p></li>
 <div class="section level4">
 <h4 id="sec-priors">Prior distributions for transition intensities<a class="anchor" aria-label="anchor" href="#sec-priors"></a>
 </h4>
-<p>The parameters of the model, <span class="math inline">\(q_{rs}\)</span>, are transition intensities in
-continuous time. These are not probabilities, but rates. In particular,
-they are not probabilities of transition over an interval of time, as in
-a discrete-time Markov model. See, e.g. the <a href="https://chjackson.github.io/msm/msmcourse/msmbasic.html#transition-structure-is-for-the-continuous-time-process" class="external-link"><code>msm</code>
+<p>The parameters of the model, <span class="math inline">q_{rs}</span>,
+are transition intensities in continuous time. These are not
+probabilities, but rates. In particular, they are not probabilities of
+transition over an interval of time, as in a discrete-time Markov model.
+See, e.g. the <a href="https://chjackson.github.io/msm/msmcourse/msmbasic.html#transition-structure-is-for-the-continuous-time-process" class="external-link"><code>msm</code>
 course notes</a> for more discussion of this distinction.</p>
-<p>To interpret these values, note that <span class="math inline">\(q_{rs}\)</span> is the rate at which transitions
-to <span class="math inline">\(s\)</span> are observed for a population
-in state <span class="math inline">\(r\)</span>. So <span class="math inline">\(1/q_{rs}\)</span> is the mean time to the next
-transition to <span class="math inline">\(s\)</span> that would be
-observed in a population in state <span class="math inline">\(r\)</span>, if we were to observe one person at a
-time (switching to observing a different person if a “competing event”,
-i.e. a transition to a state other than <span class="math inline">\(s\)</span>, happens). Or put more simply perhaps,
-the mean time from state <span class="math inline">\(r\)</span> to <span class="math inline">\(s\)</span> if there were no competing events.</p>
+<p>To interpret these values, note that <span class="math inline">q_{rs}</span> is the rate at which transitions to
+<span class="math inline">s</span> are observed for a population in
+state <span class="math inline">r</span>. So <span class="math inline">1/q_{rs}</span> is the mean time to the next
+transition to <span class="math inline">s</span> that would be observed
+in a population in state <span class="math inline">r</span>, if we were
+to observe one person at a time (switching to observing a different
+person if a “competing event”, i.e. a transition to a state other than
+<span class="math inline">s</span>, happens). Or put more simply
+perhaps, the mean time from state <span class="math inline">r</span> to
+<span class="math inline">s</span> if there were no competing
+events.</p>
 <p>In a Bayesian model, prior distributions must be defined for all
 parameters. In <code>msmbayes</code>, normal priors are used for the log
 transition intensities. The mean and standard deviation of these priors
@@ -218,24 +220,24 @@ function <code>msmprior</code>. These objects can be specified in
 various alternative ways:</p>
 <ol style="list-style-type: lower-alpha">
 <li>
-<p>Directly specifying the mean and standard deviation for <span class="math inline">\(\log(q_{rs})\)</span>, e.g.:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<p>Directly specifying the mean and standard deviation for <span class="math inline">\log(q_{rs})</span>, e.g.:</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">priors</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="../reference/msmprior.html">msmprior</a></span><span class="op">(</span><span class="st">"logq(1,2)"</span>, mean<span class="op">=</span><span class="op">-</span><span class="fl">1</span>, sd<span class="op">=</span><span class="fl">5</span><span class="op">)</span>,</span>
 <span>  <span class="fu"><a href="../reference/msmprior.html">msmprior</a></span><span class="op">(</span><span class="st">"logq(2,1)"</span>, mean<span class="op">=</span><span class="op">-</span><span class="fl">1</span>, sd<span class="op">=</span><span class="fl">5</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 </li>
 <li>
-<p>Specifying prior quantiles for <span class="math inline">\(\log(q_{rs})\)</span>, <span class="math inline">\(q_{rs}\)</span> or <span class="math inline">\(1/q_{rs}\)</span>:</p>
+<p>Specifying prior quantiles for <span class="math inline">\log(q_{rs})</span>, <span class="math inline">q_{rs}</span> or <span class="math inline">1/q_{rs}</span>:</p>
 <p>We can specify two out of the <code>median</code> (i.e. 50%
 quantile), the <code>lower</code> 95% quantile or the <code>upper</code>
 95% quantile for any of these quantities. Perhaps the easiest to
-interpret is <span class="math inline">\(1/q_{rs}\)</span>, the mean
-time to event <span class="math inline">\(s\)</span> for people in <span class="math inline">\(r\)</span>, supplied here as
-<code>time(r,s)</code>. Only two quantiles should be provided for each
-parameter, because this allows a unique normal distribution on <span class="math inline">\(\log(q_{rs})\)</span> to be deduced. Different
+interpret is <span class="math inline">1/q_{rs}</span>, the mean time to
+event <span class="math inline">s</span> for people in <span class="math inline">r</span>, supplied here as <code>time(r,s)</code>.
+Only two quantiles should be provided for each parameter, because this
+allows a unique normal distribution on <span class="math inline">\log(q_{rs})</span> to be deduced. Different
 specifications can be mixed for different parameters, e.g. </p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">priors</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="../reference/msmprior.html">msmprior</a></span><span class="op">(</span><span class="st">"q(2,1)"</span>,    lower<span class="op">=</span><span class="fl">0.001</span>, upper<span class="op">=</span><span class="fl">5</span><span class="op">)</span>,</span>
 <span>  <span class="fu"><a href="../reference/msmprior.html">msmprior</a></span><span class="op">(</span><span class="st">"time(1,2)"</span>, median<span class="op">=</span><span class="fl">10</span>, upper<span class="op">=</span><span class="fl">30</span><span class="op">)</span></span>
@@ -255,11 +257,11 @@ times to events of up to 30.</p>
 <p>Accept the defaults.</p>
 <p>For any parameters not supplied in the <code>priors</code> argument,
 a normal distribution with a mean of -2 and a standard deviation of 2
-will be used for <span class="math inline">\(\log(q_{rs})\)</span>. This
-implies a 95% credible interval of between <span class="math inline">\(\exp(-6)=0.002\)</span> and <span class="math inline">\(\exp(2)=7\)</span> for the event rate, equivalent
-to a mean time to event of between 0.1 and 400. This is appropriately
-vague in many applications, but a more thoughtful choice is recommended
-in practice. Note the prior depends on the time unit (e.g. days or
+will be used for <span class="math inline">\log(q_{rs})</span>. This
+implies a 95% credible interval of between <span class="math inline">\exp(-6)=0.002</span> and <span class="math inline">\exp(2)=7</span> for the event rate, equivalent to a
+mean time to event of between 0.1 and 400. This is appropriately vague
+in many applications, but a more thoughtful choice is recommended in
+practice. Note the prior depends on the time unit (e.g. days or
 months).</p>
 </li>
 </ol>
@@ -282,11 +284,11 @@ transition intensities, labelled <code>logq</code>), and to examine the
 posterior distributions. Trace plots should look horizontal and fuzzy,
 like a sequence of independent draws from the same distribution, if the
 chains have converged (as here).</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://mc-stan.org/bayesplot/" class="external-link">bayesplot</a></span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://mc-stan.org/bayesplot/reference/MCMC-traces.html" class="external-link">mcmc_trace</a></span><span class="op">(</span><span class="va">draws</span>, pars<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"logq[1]"</span>,<span class="st">"logq[2]"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p><img src="examples_files/figure-html/unnamed-chunk-7-1.png" class="r-plt" alt="" width="700"></p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://mc-stan.org/bayesplot/reference/MCMC-distributions.html" class="external-link">mcmc_dens</a></span><span class="op">(</span><span class="va">draws</span>, pars<span class="op">=</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"logq[1]"</span>,<span class="st">"logq[2]"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p><img src="examples_files/figure-html/unnamed-chunk-7-2.png" class="r-plt" alt="" width="700"></p>
 <p>The <code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code> function can be used to summarise the
@@ -296,28 +298,28 @@ summary of the posterior for each parameter (variable
 parameter. Since transition intensities are hard to interpret in
 isolation, the mean sojourn times in each state are included alongside,
 labelled <code>mst</code>.</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">draws</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">## <span style="color: #949494;"># A tibble: 4 × 7</span></span></span>
 <span><span class="co">##   name   from    to     posterior  rhat prior_string                prior</span></span>
 <span><span class="co">##   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;rvar[1d]&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                  <span style="color: #949494; font-style: italic;">&lt;rvar[1d]&gt;</span></span></span>
-<span><span class="co">## <span style="color: #BCBCBC;">1</span> q         1     2  0.17 <span style="color: #949494;">± 0.093</span>  1.00 0.14 (0.0027, 6.8)   0.96 <span style="color: #949494;">± 4.4</span>  </span></span>
-<span><span class="co">## <span style="color: #BCBCBC;">2</span> q         2     1  3.64 <span style="color: #949494;">± 2.072</span>  1.00 0.14 (0.0027, 6.8)   0.96 <span style="color: #949494;">± 4.4</span>  </span></span>
-<span><span class="co">## <span style="color: #BCBCBC;">3</span> mst       1    <span style="color: #BB0000;">NA</span>  6.70 <span style="color: #949494;">± 1.591</span>  1.00 7.4 (0.15, 372)     52.22 <span style="color: #949494;">± 237.6</span></span></span>
-<span><span class="co">## <span style="color: #BCBCBC;">4</span> mst       2    <span style="color: #BB0000;">NA</span>  0.30 <span style="color: #949494;">± 0.071</span>  1.00 7.4 (0.15, 372)     52.22 <span style="color: #949494;">± 237.6</span></span></span></code></pre>
+<span><span class="co">## <span style="color: #BCBCBC;">1</span> q         1     2  0.19 <span style="color: #949494;">± 0.186</span>  1.00 0.14 (0.0027, 6.8)   0.96 <span style="color: #949494;">± 4.4</span>  </span></span>
+<span><span class="co">## <span style="color: #BCBCBC;">2</span> q         2     1  4.11 <span style="color: #949494;">± 4.099</span>  1.00 0.14 (0.0027, 6.8)   0.96 <span style="color: #949494;">± 4.4</span>  </span></span>
+<span><span class="co">## <span style="color: #BCBCBC;">3</span> mst       1    <span style="color: #BB0000;">NA</span>  6.46 <span style="color: #949494;">± 1.728</span>  1.00 7.4 (0.15, 372)     52.22 <span style="color: #949494;">± 237.6</span></span></span>
+<span><span class="co">## <span style="color: #BCBCBC;">4</span> mst       2    <span style="color: #BB0000;">NA</span>  0.29 <span style="color: #949494;">± 0.077</span>  1.00 7.4 (0.15, 372)     52.22 <span style="color: #949494;">± 237.6</span></span></span></code></pre>
 <p>The mean sojourn times are estimated to be (within estimation error)
 close to the true values of 6 and 0.33 months, as expected.</p>
-<p>Set <code>time=TRUE</code> to summarise the <span class="math inline">\(1/q_{rs}\)</span> (mean times to event, ignoring
+<p>Set <code>time=TRUE</code> to summarise the <span class="math inline">1/q_{rs}</span> (mean times to event, ignoring
 competing events, as described above) and their priors. If there are no
 competing risks, as here, these are equal to the mean sojourn times. Or
-set <code>log=TRUE</code> to summarise the <span class="math inline">\(\log(q_{rs})\)</span>.</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+set <code>log=TRUE</code> to summarise the <span class="math inline">\log(q_{rs})</span>.</p>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">draws</span>, pars<span class="op">=</span><span class="st">"time"</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">## <span style="color: #949494;"># A tibble: 2 × 7</span></span></span>
-<span><span class="co">##   name   from    to    posterior  rhat prior_string              prior</span></span>
-<span><span class="co">##   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;rvar[1d]&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                <span style="color: #949494; font-style: italic;">&lt;rvar[1d]&gt;</span></span></span>
-<span><span class="co">## <span style="color: #BCBCBC;">1</span> time      1     2  6.7 <span style="color: #949494;">± 1.591</span>  1.01 7.39 (0.1468, 371.9)   52 <span style="color: #949494;">± 238</span></span></span>
-<span><span class="co">## <span style="color: #BCBCBC;">2</span> time      2     1  0.3 <span style="color: #949494;">± 0.071</span>  1.00 7.39 (0.1468, 371.9)   52 <span style="color: #949494;">± 238</span></span></span></code></pre>
+<span><span class="co">##   name   from    to     posterior  rhat prior_string              prior</span></span>
+<span><span class="co">##   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;rvar[1d]&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                <span style="color: #949494; font-style: italic;">&lt;rvar[1d]&gt;</span></span></span>
+<span><span class="co">## <span style="color: #BCBCBC;">1</span> time      1     2  6.46 <span style="color: #949494;">± 1.728</span>  1.02 7.39 (0.1468, 371.9)   52 <span style="color: #949494;">± 238</span></span></span>
+<span><span class="co">## <span style="color: #BCBCBC;">2</span> time      2     1  0.29 <span style="color: #949494;">± 0.077</span>  1.03 7.39 (0.1468, 371.9)   52 <span style="color: #949494;">± 238</span></span></span></code></pre>
 <p>The <code>summary</code> output also gives the “Rhat” convergence
 diagnostic, which should be close to 1.0 if the MCMC estimation has
 converged (<a href="https://mc-stan.org/rstan/reference/Rhat.html" class="external-link">see
@@ -335,8 +337,7 @@ functions is of type <code>rvar</code>. This data type is from the
 variables, such as uncertain quantities in Bayesian models. Instead of a
 single value, it stores a sample from the quantity’s distribution. Here
 this is the posterior distribution. It is printed here as a posterior
-mean <span class="math inline">\(\pm\)</span> one standard
-deviation.</p>
+mean <span class="math inline">\pm</span> one standard deviation.</p>
 <p>To extract specific posterior summary statistics, the
 <code>summary</code> function can be used on any of these data
 frames.</p>
@@ -345,11 +346,11 @@ frames.</p>
 their own functions, as in the following call. See the
 <code>posterior</code> package <a href="https://mc-stan.org/posterior/reference/draws_summary.html" class="external-link">documentation</a>
 for more examples.</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="fu"><a href="../reference/mean_sojourn.html">mean_sojourn</a></span><span class="op">(</span><span class="va">draws</span><span class="op">)</span>, <span class="va">mean</span>, <span class="va">median</span>, <span class="op">~</span><span class="fu"><a href="https://rdrr.io/r/stats/quantile.html" class="external-link">quantile</a></span><span class="op">(</span><span class="va">.x</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.025</span>, <span class="fl">0.975</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<pre><code><span><span class="co">##   state     mean    median      2.5%     97.5%</span></span>
-<span><span class="co">## 1     1 6.701312 6.7941498 2.9185970 9.6230400</span></span>
-<span><span class="co">## 2     2 0.304368 0.3091742 0.1281332 0.4274684</span></span></code></pre>
+<pre><code><span><span class="co">##   state      mean    median       2.5%     97.5%</span></span>
+<span><span class="co">## 1     1 6.4607075 6.7201822 1.71876651 9.2451526</span></span>
+<span><span class="co">## 2     2 0.2929304 0.3043473 0.07825454 0.4122819</span></span></code></pre>
 </div>
 </div>
 <div class="section level3">
@@ -375,7 +376,7 @@ approximation to the posterior.</p>
 either package (though note that the default optimisation algorithm used
 by <code>msm</code> failed to locate this optimum, so we switched to the
 slightly more robust, but slower, Nelder-Mead method).</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/chjackson/msm" class="external-link">msm</a></span><span class="op">)</span></span>
 <span><span class="va">fit_mle</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/msmbayes.html">msmbayes</a></span><span class="op">(</span>data<span class="op">=</span><span class="va">infsim</span>, state<span class="op">=</span><span class="st">"state"</span>, time<span class="op">=</span><span class="st">"months"</span>, subject<span class="op">=</span><span class="st">"subject"</span>,</span>
 <span>                    Q<span class="op">=</span><span class="va">Q</span>, priors<span class="op">=</span><span class="st">"mle"</span><span class="op">)</span></span>
@@ -386,7 +387,7 @@ slightly more robust, but slower, Nelder-Mead method).</p>
 <span><span class="co">## 1   loglik -624 ± 1.1 -622.5233</span></span>
 <span><span class="co">## 2 logprior    0 ± 0.0    0.0000</span></span>
 <span><span class="co">## 3  logpost -624 ± 1.1 -622.5233</span></span></code></pre>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/stats/logLik.html" class="external-link">logLik</a></span><span class="op">(</span><span class="va">fit_msm</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">## 'log Lik.' -622.5233 (df=2)</span></span></code></pre>
 </div>
@@ -397,19 +398,19 @@ slightly more robust, but slower, Nelder-Mead method).</p>
 <p>To demonstrate how to fit a Markov multi-state model with covariates,
 some data are simulated from a model with covariates.</p>
 <p>The variable <code>statec</code> in the <code>infsim</code> data is
-simulated from a continuous-time Markov model with intensities <span class="math inline">\(q_{rsi} = q_{rs}^{(0)} \exp(\beta_{rs}^{(male)}
-male_i + \beta_{rs}^{(age)} age_i)\)</span>, where <span class="math inline">\(i\)</span> is an individual, <span class="math inline">\(male_i\)</span> is a binary indicator of whether
-they are male, and <span class="math inline">\(age_i\)</span> is their
-age. The log hazard ratios for the effects of covariates on the 1-2
-transition are <span class="math inline">\((\beta_{12}^{(male)},
-\beta_{12}^{(age)}) = (2,1)\)</span>, and for the 2-1 transition, <span class="math inline">\((\beta_{21}^{(male)}, \beta_{21}^{(age)}) =
-(0,-1)\)</span>.</p>
-<p><span class="math inline">\(q_{rs}^{(0)}\)</span> is the intensity
-for a “reference” or baseline individual, defined as a 50 year old
-woman. The same values as <a href="#sec-simdata">above</a> are used for
-this. In the data <code>infsim</code>, age is expressed in units of 10
-years, and centered around age 50. Centering around a value of interest
-helps with interpretation of the intercept term <span class="math inline">\(q_{rs}^{(0)}\)</span>. Centering and scaling
+simulated from a continuous-time Markov model with intensities <span class="math inline">q_{rsi} = q_{rs}^{(0)} \exp(\beta_{rs}^{(male)}
+male_i + \beta_{rs}^{(age)} age_i)</span>, where <span class="math inline">i</span> is an individual, <span class="math inline">male_i</span> is a binary indicator of whether they
+are male, and <span class="math inline">age_i</span> is their age. The
+log hazard ratios for the effects of covariates on the 1-2 transition
+are <span class="math inline">(\beta_{12}^{(male)}, \beta_{12}^{(age)})
+= (2,1)</span>, and for the 2-1 transition, <span class="math inline">(\beta_{21}^{(male)}, \beta_{21}^{(age)}) =
+(0,-1)</span>.</p>
+<p><span class="math inline">q_{rs}^{(0)}</span> is the intensity for a
+“reference” or baseline individual, defined as a 50 year old woman. The
+same values as <a href="#sec-simdata">above</a> are used for this. In
+the data <code>infsim</code>, age is expressed in units of 10 years, and
+centered around age 50. Centering around a value of interest helps with
+interpretation of the intercept term <span class="math inline">q_{rs}^{(0)}</span>. Centering and scaling
 covariates to a roughly unit scale also tends to help with computation,
 especially for MCMC.</p>
 <p>To include covariates in a <code>msmbayes</code> model, a
@@ -418,7 +419,7 @@ supposes that sex and age are predictors of both the 1-2 and 2-1
 transition intensities. Weakly informative priors are defined for the
 covariate effects, through specifying upper 95% credible limits of 50
 for the hazard ratios.</p>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">priors</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="../reference/msmprior.html">msmprior</a></span><span class="op">(</span><span class="st">"hr(age10,1,2)"</span>,median<span class="op">=</span><span class="fl">1</span>,upper<span class="op">=</span><span class="fl">50</span><span class="op">)</span>,</span>
 <span>               <span class="fu"><a href="../reference/msmprior.html">msmprior</a></span><span class="op">(</span><span class="st">"hr(age10,2,1)"</span>,median<span class="op">=</span><span class="fl">1</span>,upper<span class="op">=</span><span class="fl">50</span><span class="op">)</span>,</span>
 <span>               <span class="fu"><a href="../reference/msmprior.html">msmprior</a></span><span class="op">(</span><span class="st">"hr(sexmale,1,2)"</span>,median<span class="op">=</span><span class="fl">1</span>,upper<span class="op">=</span><span class="fl">50</span><span class="op">)</span>,</span>
@@ -431,13 +432,13 @@ for the hazard ratios.</p>
 formulae. Each formula has</p>
 <ul>
 <li><p>a left-hand side that looks like <code>Q(r,s)</code> indicating
-which <span class="math inline">\(r \rightarrow s\)</span> transition
+which <span class="math inline">r \rightarrow s</span> transition
 intensity is the outcome,</p></li>
 <li><p>a right-hand side giving the predictors as a linear model
 formula.</p></li>
 </ul>
-<p>For example, <code>Q(2,1) ~ sex + age</code> indicates that <span class="math inline">\(\log(q_{21})\)</span> is an additive linear
-function of age and sex.</p>
+<p>For example, <code>Q(2,1) ~ sex + age</code> indicates that <span class="math inline">\log(q_{21})</span> is an additive linear function
+of age and sex.</p>
 <blockquote>
 <p><strong>Note:</strong> This syntax is slightly different from
 <code>msm</code>, where we would use a named list of formulae with empty
@@ -446,9 +447,9 @@ e.g. <code>covariates = list("1-2" = ~sex+age, "2-1" = ~ sex+age)</code>.</p>
 </blockquote>
 <p>After fitting a <code>msmbayes</code> model with covariates, the
 <code>summary</code> function on the model object returns the estimates
-of the baseline intensities <span class="math inline">\(q_{rs}^{(0)}\)</span> and the hazard ratios <span class="math inline">\(exp(\beta_{rs})\)</span>, indicated here by
-covariate name and transition.</p>
-<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+of the baseline intensities <span class="math inline">q_{rs}^{(0)}</span> and the hazard ratios <span class="math inline">exp(\beta_{rs})</span>, indicated here by covariate
+name and transition.</p>
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">draws</span><span class="op">)</span> </span></code></pre></div>
 <pre><code><span><span class="co">## <span style="color: #949494;"># A tibble: 8 × 7</span></span></span>
 <span><span class="co">##   name         from    to     posterior  mode prior_string                prior</span></span>
@@ -465,7 +466,7 @@ covariate name and transition.</p>
 summarise the log hazard ratios or hazard ratios in isolation. The
 estimates of the log hazard ratios are close to the true values of 2, 1,
 0, and -1 used to simulate the data, within estimation error.</p>
-<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/loghr.html">loghr</a></span><span class="op">(</span><span class="va">draws</span><span class="op">)</span>   </span></code></pre></div>
 <pre><code><span><span class="co">##   from to    name    posterior       mode</span></span>
 <span><span class="co">## 1    1  2 sexmale  1.68 ± 0.38  1.6749256</span></span>
@@ -473,19 +474,19 @@ estimates of the log hazard ratios are close to the true values of 2, 1,
 <span><span class="co">## 3    2  1 sexmale -0.56 ± 0.41 -0.5651281</span></span>
 <span><span class="co">## 4    2  1   age10 -1.10 ± 0.50 -1.1055974</span></span></code></pre>
 <p>Note the posterior distributions are skewed, hence the posterior mean
-of the hazard ratio is different from the <span class="math inline">\(\exp()\)</span> of the posterior mean of the log
+of the hazard ratio is different from the <span class="math inline">\exp()</span> of the posterior mean of the log
 hazard ratio. The mode or median may be preferred as a point
 estimate.</p>
 <div class="section level3">
 <h3 id="sec-priors-cov">Priors on covariate effects<a class="anchor" aria-label="anchor" href="#sec-priors-cov"></a>
 </h3>
-<p>Normal priors are used for the log hazard ratios <span class="math inline">\(\beta\)</span>. These can be specified through the
+<p>Normal priors are used for the log hazard ratios <span class="math inline">\beta</span>. These can be specified through the
 <code>priors</code> argument, as above, either by specifying the mean
 and SD for the log hazard ratios, or quantiles of either the hazard
 ratios or the log hazard ratios. Note the specific covariate should be
 referred to as well as the transition. For example, to define priors for
 the effect of age on the 1-2 and 2-1 transition rates respectively:</p>
-<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">priors</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="../reference/msmprior.html">msmprior</a></span><span class="op">(</span><span class="st">"loghr(age,1,2)"</span>, mean<span class="op">=</span><span class="fl">0</span>,   sd<span class="op">=</span><span class="fl">2</span><span class="op">)</span>,</span>
 <span>               <span class="fu"><a href="../reference/msmprior.html">msmprior</a></span><span class="op">(</span><span class="st">"hr(age,2,1)"</span>,    median<span class="op">=</span><span class="fl">1</span>, upper<span class="op">=</span><span class="fl">5</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p>For factor covariates, the appropriate factor level should be
@@ -550,7 +551,7 @@ model<a class="anchor" aria-label="anchor" href="#comparison-between-a-bayesian-
 maximum likelihood. Awkwardly, the optimiser used by <code>msm</code>
 needs to be tuned (with the <code>fnscale</code> option) to find the
 global optimum.</p>
-<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://chjackson.github.io/msm/reference/msm.html" class="external-link">msm</a></span><span class="op">(</span><span class="va">statec</span><span class="op">~</span><span class="va">months</span>, subject <span class="op">=</span> <span class="va">subject</span>, data <span class="op">=</span> <span class="va">infsim</span>, qmatrix <span class="op">=</span> <span class="va">Q</span>, </span>
 <span>    covariates <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">"1-2"</span> <span class="op">=</span> <span class="op">~</span><span class="va">sex</span><span class="op">+</span><span class="va">age10</span>, <span class="st">"2-1"</span> <span class="op">=</span> <span class="op">~</span><span class="va">sex</span><span class="op">+</span><span class="va">age10</span><span class="op">)</span>,</span>
 <span>    control <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>fnscale<span class="op">=</span><span class="fl">1000</span>, maxit<span class="op">=</span><span class="fl">10000</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
@@ -574,7 +575,7 @@ global optimum.</p>
 <span><span class="co">## State 2 - State 2                       </span></span>
 <span><span class="co">## </span></span>
 <span><span class="co">## -2 * log-likelihood:  2625.65</span></span></code></pre>
-<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2</span>,<span class="fl">1</span>,<span class="fl">0</span>,<span class="op">-</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <pre><code><span><span class="co">## [1] 7.3890561 2.7182818 1.0000000 0.3678794</span></span></code></pre>
 <p>The estimates of the hazard ratios (note, not the log hazard ratios
@@ -628,7 +629,7 @@ models</a></p></li>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer>
