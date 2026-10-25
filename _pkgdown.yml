@@ -25,6 +25,8 @@ reference:
   - hr
   - loghr
   - soj_prob
+  - soj_haz
+  - soj_quantile
   - totlos
   - loglik
   - summary.msmbayes
@@ -45,6 +47,7 @@ reference:
 - contents:
   - msmbayes_prior_sample
   - msmbayes_priorpred_sample
+  - sim_2state_smm
 - title: Phase-type distribution utilities
 - contents:
   - nphase
