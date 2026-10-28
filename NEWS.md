@@ -1,8 +1,8 @@
-# Version 0.4 (2026/10/24)
+# Version 0.4 (2026/10/28)
 
 * Faster and more memory-efficient model fitting, by using analytic derivatives of the matrix exponential.
 
-* HMMs can optionally use parallel processing to evaluate the likelihood (`grainsize` argument to `msm`).
+* Semi-Markov and misclassification models can optionally use parallel processing to evaluate the likelihood (`grainsize` argument to `msm`).
 
 * Default number of phases in the phase-type approximation model changed to 3.
 

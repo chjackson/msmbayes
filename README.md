@@ -23,14 +23,14 @@ Models can be fitted with Bayesian, approximate Bayesian or maximum likelihood e
 
 * Prior information can also help to stabilise model fitting - avoiding convergence failures. 
 
-* Semi-Markov models, via phase-type approximations to Weibull and Gamma distributions, which are easier to use and much more robust than the "two-phase" methods in msm.
+* Semi-Markov models can be fitted, via phase-type approximations to Weibull and Gamma distributions.  These are easier to use and much more robust than the "two-phase" methods in msm.
 
 * Automatic, efficient uncertainty quantification for any model output.
 
 
 ## Limitations of msmbayes compared to msm 
 
-* Computation is typically more intensive, and it does not scale well to larger datasets.   While a fast Laplace approximation method is available as an alternative to MCMC, all computational methods in `msmbayes` are memory-intensive due to the use of automatic differentiation (via Stan).
+* Bayesian computation in `msmbayes` is typically more intensive than maximum likelihood estimation in `msm`, in particular for larger datasets and when using MCMC.
 
 * Hidden Markov models with general outcome distributions are not supported.  The only HMMs supported are those where the observed state space is the same as (or a subset of) the true state space.  This includes misclassification and phase-type models.
 
@@ -38,7 +38,7 @@ Models can be fitted with Bayesian, approximate Bayesian or maximum likelihood e
 
 * Fixed parameters are not supported.  However, parameters can be constrained through their prior distributions.  Limited support for equality constraints on covariate effects.
 
-* The `pci` syntax for time-inhomogeneous models is not supported.  However, these models can still be specified, by treating time as a covariate, and including censored states at the occasions when the covariate changes but not the state.   Prediction functions also currently cannot automatically deal with piecewise-constant covariates.
+* The `pci` syntax for time-inhomogeneous models is not supported.  However, these models can still be specified, by treating time as a covariate, and including censored states at the occasions when the covariate changes but the state is unknown.   Prediction functions also currently cannot automatically deal with piecewise-constant covariates.
 
 * Multivariate hidden Markov models are not supported.
 
